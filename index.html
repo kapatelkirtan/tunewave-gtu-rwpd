@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090b1b">
+  <meta name="description" content="TuneWave is a free, ad-free interface that hands YouTube music searches to NewPipe on Android for background playback.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>TuneWave — NewPipe Music Bridge</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="TuneWave home">
+      <span class="brand-mark">♫</span>
+      <span><strong>TuneWave</strong><small>YOUR SOUND UNIVERSE</small></span>
+    </a>
+    <div class="topbar-right">
+      <span class="status-dot"></span><span class="status-text">FREE MUSIC BRIDGE</span>
+      <button class="install-pill" id="installButton" type="button" hidden>Install TuneWave ↧</button>
+      <a class="github-pill" href="#how-it-works">How it works <span>↗</span></a>
+    </div>
+  </header>
+
+  <main class="layout" id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="eyebrow-line"></span> SEARCH YOUTUBE. LISTEN YOUR WAY.</div>
+        <h1>Every search.<br><span>Your sound universe.</span></h1>
+        <p>TuneWave gives you a polished music-search home. On Android, send a search to NewPipe for ad-free playback and background listening handled by the app. No TuneWave account, subscription, or API key.</p>
+        <form id="searchForm" class="searchbar">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="searchInput" type="search" placeholder="Song, artist, album or mood…" autocomplete="off" aria-label="Search YouTube music">
+          <button type="submit">Search <span>→</span></button>
+        </form>
+        <div class="quick-searches">
+          <span>TRY</span>
+          <button type="button" class="quick-chip" data-query="Arijit Singh best songs">Bollywood</button>
+          <button type="button" class="quick-chip" data-query="Gujarati hit songs">Gujarati hits</button>
+          <button type="button" class="quick-chip" data-query="lofi chill music">Lofi chill</button>
+          <button type="button" class="quick-chip" data-query="English pop hits">Pop hits</button>
+        </div>
+        <div class="feature-chips" aria-label="Website details">
+          <span>✦ No TuneWave ads</span><span>∞ No paid tier</span><span>◉ Android background via NewPipe</span>
+        </div>
+      </div>
+      <div class="hero-art" aria-label="Decorative music artwork">
+        <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+        <div class="art-disc"><div class="disc-center">♫</div></div>
+        <div class="floating-tag tag-top">ANDROID PLAYER <b>NEWPIPE</b></div>
+        <div class="floating-tag tag-bottom"><span class="mini-bars"><i></i><i></i><i></i><i></i></span> SOUND IN MOTION</div>
+      </div>
+    </section>
+
+    <section class="service-note" aria-label="Connected app details">
+      <span class="service-logo">N</span>
+      <div>
+        <strong>Connected app: NewPipe for Android</strong>
+        <p>TuneWave hands the YouTube search URL to NewPipe using an Android intent link. NewPipe handles playback and its own lock-screen/media controls; the music does not play inside this webpage.</p>
+      </div>
+      <a href="https://newpipe.net/FAQ/tutorials/install-add-fdroid-repo/" target="_blank" rel="noopener noreferrer">Install guide ↗</a>
+    </section>
+
+    <section class="section-heading">
+      <div><div class="eyebrow">ONE SEARCH, TWO PATHS</div><h2 id="resultsHeading">Start listening</h2></div>
+      <span class="result-count" id="deviceStatus">Checking device…</span>
+    </section>
+    <div id="message" class="message" role="status" aria-live="polite">Enter a song or artist. Android users can send the search to NewPipe; other devices can open YouTube in a browser.</div>
+    <section id="results" class="bridge-grid" aria-live="polite">
+      <article class="bridge-card featured-card">
+        <div class="bridge-card-art art-cyan"><span>♫</span></div>
+        <div class="bridge-card-copy"><span class="bridge-kicker">ANDROID · EXTERNAL APP</span><h3>Open in NewPipe</h3><p>Free, open-source Android player with background playback features.</p></div>
+        <button class="primary-action" type="button" data-query="Arijit Singh best songs" data-action="newpipe">Try NewPipe <span>↗</span></button>
+      </article>
+      <article class="bridge-card">
+        <div class="bridge-card-art art-purple"><span>▶</span></div>
+        <div class="bridge-card-copy"><span class="bridge-kicker">ALL DEVICES · BROWSER</span><h3>Open on YouTube</h3><p>Use YouTube's normal results and player. Ads and background rules may apply.</p></div>
+        <button class="secondary-action" type="button" data-query="Arijit Singh best songs" data-action="youtube">Open YouTube <span>↗</span></button>
+      </article>
+    </section>
+
+    <section class="library-panel" id="savedSection">
+      <div class="library-heading"><div><div class="eyebrow">YOUR RECENT SEARCHES</div><h2>Keep your searches close</h2></div><button id="clearRecent" class="text-action" type="button">Clear history</button></div>
+      <div id="recentSearches" class="recent-list"><p class="empty-state">Your recent searches will appear here on this device.</p></div>
+    </section>
+
+    <section id="how-it-works" class="how-panel">
+      <div class="eyebrow">THE CONNECTION</div>
+      <h2>How TuneWave works</h2>
+      <div class="steps-grid">
+        <article class="step-card"><span class="step-number">01</span><h3>Search here</h3><p>Enter a song, artist, genre, or mood. TuneWave saves recent search terms on this device.</p></article>
+        <article class="step-card"><span class="step-number">02</span><h3>Choose your app</h3><p>On Android, send the search to NewPipe. On PC or iPhone/iPad, open the YouTube results page.</p></article>
+        <article class="step-card"><span class="step-number">03</span><h3>Playback happens there</h3><p>NewPipe controls audio and background playback on Android. TuneWave does not extract or host YouTube audio.</p></article>
+      </div>
+    </section>
+
+    <section id="about" class="about-panel">
+      <div class="about-icon">⌘</div>
+      <div><h3>A student-built music-search bridge</h3><p>TuneWave's interface has no ad placements and no paid membership. NewPipe is a separate, community-built Android app, not an official YouTube app. It uses YouTube's web/internal interfaces, which can change; unavailable, restricted, or removed videos may not play. On PC/iOS, this website opens regular YouTube, so ad-free background playback is not guaranteed there.</p></div>
+      <span class="project-tag">GTU · RWPD 2026 · TOPIC #22</span>
+    </section>
+    <p class="compat-note">Important: NewPipe is Android-only and must be installed separately. If the app is not installed, use the YouTube fallback or the official NewPipe installation guide. The website cannot force background playback in YouTube's browser player.</p>
+  </main>
+
+  <footer class="footer">
+    <span>© 2026 TuneWave · Search bridge for NewPipe / YouTube</span>
+    <span>Made By Kirtan Ka.patel</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

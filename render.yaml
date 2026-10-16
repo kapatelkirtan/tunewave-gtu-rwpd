@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: tunewave-gtu-rwpd
+    runtime: static
+    buildCommand: echo "No build step required"
+    staticPublishPath: .

@@ -1,0 +1,15 @@
+TUNEWAVE — NEWPIPE BRIDGE | START HERE
+
+1) Extract this ZIP folder.
+2) Open the folder in Visual Studio Code.
+3) Start index.html with VS Code Live Server or host it on HTTPS.
+4) Enter a song/artist or tap a search chip.
+5) On Android, tap Open in NewPipe (NewPipe must be installed separately).
+6) On PC/iOS, tap Open YouTube. Those platforms use normal YouTube behavior.
+7) To install NewPipe, use the official instructions:
+   https://newpipe.net/FAQ/tutorials/install-add-fdroid-repo/
+
+Important: TuneWave is a search/link bridge, not an embedded streaming player. NewPipe handles playback and Android background controls. The Android handoff must be tested on a real device.
+
+Project: GTU RWPD 2026 Topic #22 — Music Player
+Made By Kirtan Ka.patel
