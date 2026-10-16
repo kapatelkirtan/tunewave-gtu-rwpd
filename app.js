@@ -3,7 +3,7 @@
 
   const API = 'https://api.jamendo.com/v3.0/tracks/';
   // Create a Jamendo developer app and paste its client_id here before deploying.
-  const JAMENDO_CLIENT_ID = 'PASTE_YOUR_JAMENDO_CLIENT_ID_HERE';
+  const JAMENDO_CLIENT_ID = c854bb26;
   const $ = (id) => document.getElementById(id);
   const els = {
     form: $('searchForm'), input: $('searchInput'), clearSearch: $('clearSearch'),
