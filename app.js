@@ -1,542 +1,421 @@
+(() => {
+  'use strict';
 
-/*
- * TuneWave — in-page music search and playback.
- * Searches the TuneWave backend and plays available Jamendo tracks
- * directly on this website. No YouTube or NewPipe redirects.
- */
+  const API = 'https://itunes.apple.com/search';
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    form: $('searchForm'), input: $('searchInput'), clearSearch: $('clearSearch'),
+    heroKicker: $('heroKicker'), heroTitle: $('heroTitle'), heroDescription: $('heroDescription'),
+    explore: $('exploreButton'), albumGrid: $('albumGrid'), albumsHeading: $('albumsHeading'),
+    seeAlbums: $('seeAlbums'), resultsHeading: $('resultsHeading'), songsEyebrow: $('songsEyebrow'),
+    rows: $('songRows'), count: $('resultCount'), message: $('message'), recent: $('recentSearches'),
+    clearRecent: $('clearRecent'), libraryView: $('libraryView'), libraryHeading: $('libraryHeading'),
+    libraryGrid: $('libraryGrid'), likedCount: $('likedCount'), audio: $('audioPlayer'),
+    playerArtwork: $('playerArtwork'), playerTitle: $('playerTitle'), playerArtist: $('playerArtist'),
+    playerLike: $('playerLike'), play: $('playButton'), prev: $('previousButton'), next: $('nextButton'),
+    progress: $('progress'), currentTime: $('currentTime'), totalTime: $('totalTime'),
+    volume: $('volumeSlider'), shuffle: $('shuffleButton'), repeat: $('repeatButton'),
+    queue: $('queueButton'), toast: $('toast'), menuToggle: $('menuToggle'), sidebar: $('sidebar'),
+    seeAll: $('seeAlbums'),
+  };
 
-const recentSearchesKey = "tunewave-recent-v2";
+  const gradients = [
+    'linear-gradient(145deg,#ff8e9e,#5e28db)',
+    'linear-gradient(145deg,#ffb36d,#9e2bd1)',
+    'linear-gradient(145deg,#23d6e8,#302db6)',
+    'linear-gradient(145deg,#ad41ff,#f64b9b)',
+    'linear-gradient(145deg,#ffd277,#ec4d8e)',
+    'linear-gradient(145deg,#4377ed,#34dbcf)',
+  ];
+  const symbols = ['☼', '◈', '♫', '✦', '☾', '♬'];
+  const starterQueries = ['chill vibes', 'focus music', 'bollywood hits', 'night drive', 'feel good music', 'indie pop'];
+  let tracks = [];
+  let albums = [];
+  let currentIndex = -1;
+  let currentQuery = '';
+  let loadingSequence = 0;
+  let toastTimer = null;
+  let albumExpanded = false;
+  let currentView = 'home';
+  let shuffleOn = false;
+  let repeatOn = false;
+  let toastTimeout = null;
 
-const searchForm = document.querySelector("#searchForm");
-const searchInput = document.querySelector("#searchInput");
-const resultsHeading = document.querySelector("#resultsHeading");
-const message = document.querySelector("#message");
-const deviceStatus = document.querySelector("#deviceStatus");
-const recentSearchesEl = document.querySelector("#recentSearches");
-const clearRecentButton = document.querySelector("#clearRecent");
-const installButton = document.querySelector("#installButton");
-const resultsEl = document.querySelector("#results");
+  const readJSON = (key, fallback = []) => {
+    try { const data = JSON.parse(localStorage.getItem(key) || 'null'); return Array.isArray(data) ? data : fallback; }
+    catch { return fallback; }
+  };
+  const writeJSON = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage is optional */ } };
+  const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const formatTime = (seconds) => {
+    if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+    return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+  };
+  const durationOf = (track) => Math.round((track.trackTimeMillis || 0) / 1000);
+  const getArtwork = (url, size = 300) => (url || '').replace(/\d+x\d+bb\.(jpg|png|jpeg)$/i, `${size}x${size}bb.$1`);
+  const getLikes = () => readJSON('tw-likes');
+  const getSearches = () => readJSON('tw-searches');
+  const trackKey = (t) => String(t.trackId || t.collectionId || `${t.trackName}|${t.artistName}`);
+  const isLiked = (track) => getLikes().some(item => trackKey(item) === trackKey(track));
 
-let deferredInstallPrompt = null;
-let activeQuery = "";
-let tracks = [];
-let currentTrackIndex = -1;
-let searchRequestId = 0;
-
-const audio = new Audio();
-audio.preload = "metadata";
-
-// ---------- Messages ----------
-
-function showMessage(text, isError = false) {
-  if (!message) return;
-
-  message.textContent = text;
-  message.classList.toggle("error", isError);
-}
-
-function setDeviceStatus() {
-  if (!deviceStatus) return;
-
-  deviceStatus.textContent =
-    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-      ? "Mobile browser"
-      : "Web player";
-}
-
-// ---------- Recent searches ----------
-
-function readRecentSearches() {
-  try {
-    const saved = JSON.parse(
-      localStorage.getItem(recentSearchesKey) || "[]"
-    );
-
-    return Array.isArray(saved)
-      ? saved.filter(item => typeof item === "string").slice(0, 8)
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveRecentSearch(query) {
-  const normalized = query.trim().replace(/\s+/g, " ").slice(0, 160);
-  if (!normalized) return;
-
-  const updated = [
-    normalized,
-    ...readRecentSearches().filter(
-      item => item.toLowerCase() !== normalized.toLowerCase()
-    )
-  ].slice(0, 8);
-
-  try {
-    localStorage.setItem(recentSearchesKey, JSON.stringify(updated));
-  } catch {
-    // Search still works when local storage is unavailable.
+  function toast(message) {
+    els.toast.textContent = message;
+    els.toast.classList.add('show');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => els.toast.classList.remove('show'), 2600);
   }
 
-  renderRecentSearches();
-}
-
-function renderRecentSearches() {
-  if (!recentSearchesEl) return;
-
-  recentSearchesEl.replaceChildren();
-
-  const searches = readRecentSearches();
-
-  if (!searches.length) {
-    const empty = document.createElement("p");
-    empty.className = "empty-state";
-    empty.textContent = "Your recent searches will appear here.";
-    recentSearchesEl.append(empty);
-    return;
+  async function apiSearch(query, entity, limit) {
+    const params = new URLSearchParams({term: query, media: 'music', entity, limit: String(limit), country: 'IN'});
+    const response = await fetch(`${API}?${params.toString()}`, {headers: {Accept: 'application/json'}});
+    if (!response.ok) throw new Error(`Music search is temporarily unavailable (${response.status}).`);
+    const body = await response.json();
+    return Array.isArray(body.results) ? body.results : [];
   }
 
-  searches.forEach(query => {
-    const row = document.createElement("div");
-    row.className = "recent-item";
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "recent-query";
-    button.textContent = query;
-
-    button.addEventListener("click", () => {
-      if (searchInput) searchInput.value = query;
-      searchTracks(query);
-      resultsEl?.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    });
-
-    row.append(button);
-    recentSearchesEl.append(row);
-  });
-}
-
-// ---------- Player UI ----------
-
-function createPlayer() {
-  let player = document.querySelector("#tuneWavePlayer");
-  if (player) return player;
-
-  player = document.createElement("section");
-  player.id = "tuneWavePlayer";
-  player.className = "tunewave-player";
-  player.setAttribute("aria-label", "Music player");
-
-  const artwork = document.createElement("img");
-  artwork.className = "player-artwork";
-  artwork.alt = "Album artwork";
-  artwork.hidden = true;
-
-  const details = document.createElement("div");
-  details.className = "player-details";
-
-  const title = document.createElement("div");
-  title.className = "player-title";
-  title.textContent = "Choose a song";
-
-  const artist = document.createElement("div");
-  artist.className = "player-artist";
-  artist.textContent = "TuneWave";
-
-  details.append(title, artist);
-
-  const controls = document.createElement("div");
-  controls.className = "player-controls";
-
-  const previous = document.createElement("button");
-  previous.type = "button";
-  previous.textContent = "⏮";
-  previous.setAttribute("aria-label", "Previous song");
-  previous.addEventListener("click", playPrevious);
-
-  const playPause = document.createElement("button");
-  playPause.type = "button";
-  playPause.textContent = "▶";
-  playPause.setAttribute("aria-label", "Play or pause");
-  playPause.addEventListener("click", togglePlayback);
-
-  const next = document.createElement("button");
-  next.type = "button";
-  next.textContent = "⏭";
-  next.setAttribute("aria-label", "Next song");
-  next.addEventListener("click", playNext);
-
-  controls.append(previous, playPause, next);
-
-  const nativeControls = document.createElement("div");
-  nativeControls.className = "player-audio-controls";
-  nativeControls.append(audio);
-
-  player.append(artwork, details, controls, nativeControls);
-  document.body.append(player);
-
-  return player;
-}
-
-const player = createPlayer();
-
-function updatePlayerDetails(track) {
-  player.querySelector(".player-title").textContent = track.title;
-  player.querySelector(".player-artist").textContent = track.artist;
-
-  const artwork = player.querySelector(".player-artwork");
-
-  if (track.artwork) {
-    artwork.src = track.artwork;
-    artwork.hidden = false;
-  } else {
-    artwork.removeAttribute("src");
-    artwork.hidden = true;
-  }
-}
-
-function updatePlayButton() {
-  const button = player.querySelector(
-    '[aria-label="Play or pause"]'
-  );
-
-  button.textContent = audio.paused ? "▶" : "⏸";
-  button.setAttribute(
-    "aria-label",
-    audio.paused ? "Play" : "Pause"
-  );
-}
-
-async function playTrack(index) {
-  const track = tracks[index];
-
-  if (!track || !track.audioUrl) {
-    showMessage(
-      "This track does not have an available playable audio stream.",
-      true
-    );
-    return;
+  function setLoading(query) {
+    els.count.textContent = 'Searching…';
+    els.message.classList.remove('error');
+    els.message.textContent = query ? `Looking for “${query}”…` : 'Finding music for you…';
+    els.rows.innerHTML = '<tr><td colspan="6" class="table-message">Finding matching songs…</td></tr>';
+    els.albumGrid.innerHTML = '<div class="album-skeleton"></div><div class="album-skeleton"></div><div class="album-skeleton"></div><div class="album-skeleton"></div><div class="album-skeleton"></div><div class="album-skeleton"></div>';
   }
 
-  currentTrackIndex = index;
-  updatePlayerDetails(track);
-
-  audio.pause();
-  audio.src = track.audioUrl;
-  audio.load();
-
-  try {
-    await audio.play();
-    showMessage(`Now playing: ${track.title} — ${track.artist}`);
-  } catch (error) {
-    console.error("Playback error:", error);
-    showMessage(
-      "Playback could not start. Try another track or check your connection.",
-      true
-    );
+  function recordSearch(query) {
+    const cleaned = query.trim();
+    if (!cleaned) return;
+    const previous = getSearches().filter(item => typeof item === 'string' && item.toLowerCase() !== cleaned.toLowerCase());
+    writeJSON('tw-searches', [cleaned, ...previous].slice(0, 8));
+    renderRecent();
   }
 
-  updatePlayButton();
-}
-
-function togglePlayback() {
-  if (!audio.src) {
-    if (tracks.length) {
-      const firstPlayable = tracks.findIndex(track => track.audioUrl);
-      if (firstPlayable !== -1) playTrack(firstPlayable);
-      else showMessage("No playable tracks in these results.", true);
+  async function runSearch(query, {fromHistory = false, mode = 'search'} = {}) {
+    const clean = query.trim();
+    if (!clean) { toast('Type a song, artist, album or mood first.'); els.input.focus(); return; }
+    const requestNo = ++loadingSequence;
+    currentQuery = clean;
+    currentView = mode === 'home' ? 'home' : 'search';
+    els.input.value = clean;
+    els.clearSearch.hidden = false;
+    els.libraryView.hidden = true;
+    $('featuredSection').hidden = false;
+    $('songsSection').hidden = false;
+    $('recentSection').hidden = false;
+    if (currentView === 'home') {
+      els.heroKicker.textContent = 'YOUR NEXT FAVORITE TRACK';
+      els.heroTitle.innerHTML = 'Discover<br><span>New Music</span>';
+      els.heroDescription.textContent = 'Find your next favorite song, artist or album.';
+      els.albumsHeading.textContent = 'Featured Albums';
+      els.resultsHeading.textContent = 'Popular Songs';
+      els.songsEyebrow.textContent = "WHAT'S SOUNDING GOOD";
+      setActiveNav('home');
     } else {
-      showMessage("Search for a song first.", true);
+      els.heroKicker.textContent = 'MUSIC DISCOVERY';
+      els.heroTitle.innerHTML = `Search<br><span>${esc(clean)}</span>`;
+      els.heroDescription.textContent = 'Explore matching songs, artists and albums.';
+      els.albumsHeading.textContent = 'Matching Albums';
+      els.resultsHeading.textContent = `Songs for “${clean}”`;
+      els.songsEyebrow.textContent = 'MATCHED TO YOUR SEARCH';
+      setActiveNav('search');
     }
-    return;
-  }
-
-  if (audio.paused) {
-    audio.play()
-      .then(updatePlayButton)
-      .catch(() => showMessage("Unable to resume playback.", true));
-  } else {
-    audio.pause();
-    updatePlayButton();
-  }
-}
-
-function playNext() {
-  if (!tracks.length) return;
-
-  for (let step = 1; step <= tracks.length; step++) {
-    const index = (currentTrackIndex + step + tracks.length) % tracks.length;
-    if (tracks[index].audioUrl) {
-      playTrack(index);
-      return;
-    }
-  }
-
-  showMessage("No playable tracks in these results.", true);
-}
-
-function playPrevious() {
-  if (!tracks.length) return;
-
-  if (audio.currentTime > 3) {
-    audio.currentTime = 0;
-    return;
-  }
-
-  for (let step = 1; step <= tracks.length; step++) {
-    const index =
-      (currentTrackIndex - step + tracks.length) % tracks.length;
-
-    if (tracks[index].audioUrl) {
-      playTrack(index);
-      return;
-    }
-  }
-}
-
-audio.addEventListener("play", updatePlayButton);
-audio.addEventListener("pause", updatePlayButton);
-audio.addEventListener("ended", playNext);
-
-audio.addEventListener("error", () => {
-  updatePlayButton();
-  showMessage(
-    "This track could not be played. Try another available track.",
-    true
-  );
-});
-
-// ---------- Search results ----------
-
-function makeElement(tag, className, text) {
-  const element = document.createElement(tag);
-
-  if (className) element.className = className;
-  if (text !== undefined) element.textContent = text;
-
-  return element;
-}
-
-function renderTracks() {
-  if (!resultsEl) return;
-
-  resultsEl.replaceChildren();
-
-  if (!tracks.length) {
-    resultsEl.append(
-      makeElement(
-        "p",
-        "empty-state",
-        "No songs found. Try another song title or artist."
-      )
-    );
-    return;
-  }
-
-  tracks.forEach((track, index) => {
-    const card = makeElement("article", "bridge-card song-card");
-
-    const art = makeElement("div", "bridge-card-art art-purple");
-
-    if (track.artwork) {
-      const image = document.createElement("img");
-      image.src = track.artwork;
-      image.alt = `${track.title} album artwork`;
-      image.loading = "lazy";
-      image.onerror = () => {
-        image.remove();
-        art.textContent = "♫";
-      };
-      art.append(image);
-    } else {
-      art.textContent = "♫";
-    }
-
-    const copy = makeElement("div", "bridge-card-copy");
-    copy.append(
-      makeElement("span", "bridge-kicker", track.source || "MUSIC"),
-      makeElement("h3", "", track.title),
-      makeElement("p", "", track.artist)
-    );
-
-    if (track.album) {
-      copy.append(makeElement("p", "song-album", track.album));
-    }
-
-    if (track.license) {
-      const licenseLink = document.createElement("a");
-      licenseLink.href = track.license;
-      licenseLink.target = "_blank";
-      licenseLink.rel = "noopener noreferrer";
-      licenseLink.textContent = "License";
-      licenseLink.className = "song-license";
-      copy.append(licenseLink);
-    }
-
-    const playButton = makeElement(
-      "button",
-      "primary-action",
-      track.audioUrl ? "▶ Play" : "Unavailable"
-    );
-
-    playButton.type = "button";
-    playButton.disabled = !track.audioUrl;
-    playButton.addEventListener("click", () => playTrack(index));
-
-    card.append(art, copy, playButton);
-    resultsEl.append(card);
-  });
-}
-
-async function searchTracks(query) {
-  const normalized = String(query || "").trim().replace(/\s+/g, " ");
-
-  if (!normalized) {
-    showMessage("Enter a song title or artist first.", true);
-    searchInput?.focus();
-    return;
-  }
-
-  if (normalized.length > 200) {
-    showMessage("Please keep your search under 200 characters.", true);
-    return;
-  }
-
-  const requestId = ++searchRequestId;
-  activeQuery = normalized;
-
-  if (resultsHeading) {
-    resultsHeading.textContent = `Searching for “${normalized}”…`;
-  }
-
-  resultsEl?.replaceChildren();
-  showMessage("Searching the music catalog…");
-
-  try {
-    const response = await fetch(
-      `/api/search?q=${encodeURIComponent(normalized)}`,
-      {
-        headers: { Accept: "application/json" }
+    setLoading(clean);
+    if (!fromHistory) recordSearch(clean);
+    try {
+      const [songResults, albumResults] = await Promise.all([
+        apiSearch(clean, 'song', 30),
+        apiSearch(clean, 'album', 6),
+      ]);
+      if (requestNo !== loadingSequence) return;
+      tracks = songResults.filter(item => item.wrapperType === 'track' || item.kind === 'song');
+      albums = albumResults.filter(item => item.collectionId || item.collectionName);
+      renderAlbums();
+      renderTracks();
+      els.count.textContent = `${tracks.length} ${tracks.length === 1 ? 'song' : 'songs'}`;
+      if (tracks.length) {
+        els.message.textContent = currentView === 'home'
+          ? 'Explore the current popular search, or search above for a specific song, artist or album.'
+          : `Showing music results for “${clean}”. Select a play button to listen to an available preview.`;
+      } else {
+        els.message.textContent = `No tracks found for “${clean}”. Try a different spelling or search term.`;
       }
-    );
-
-    const data = await response.json();
-
-    // Ignore older requests that finish after a newer search.
-    if (requestId !== searchRequestId) return;
-
-    if (!response.ok) {
-      throw new Error(data.error || "Music search failed.");
+      els.message.classList.remove('error');
+    } catch (error) {
+      if (requestNo !== loadingSequence) return;
+      tracks = [];
+      albums = [];
+      renderAlbums();
+      renderTracks();
+      els.count.textContent = 'Search unavailable';
+      els.message.textContent = `${error instanceof Error ? error.message : 'Could not load music right now.'} Please try again in a moment.`;
+      els.message.classList.add('error');
     }
-
-    tracks = Array.isArray(data.results) ? data.results : [];
-
-    if (resultsHeading) {
-      resultsHeading.textContent = `Results for “${normalized}”`;
-    }
-
-    renderTracks();
-    saveRecentSearch(normalized);
-
-    showMessage(
-      tracks.length
-        ? `Found ${tracks.length} tracks. Choose Play to listen here.`
-        : "No matching tracks found. Try a different search."
-    );
-  } catch (error) {
-    if (requestId !== searchRequestId) return;
-
-    console.error("TuneWave search error:", error);
-
-    tracks = [];
-    renderTracks();
-
-    if (resultsHeading) {
-      resultsHeading.textContent = `Search: “${normalized}”`;
-    }
-
-    showMessage(
-      error.message || "Could not search right now. Please try again.",
-      true
-    );
-  }
-}
-
-// ---------- Search form and quick searches ----------
-
-searchForm?.addEventListener("submit", event => {
-  event.preventDefault();
-  searchTracks(searchInput?.value || "");
-});
-
-document.querySelectorAll(".quick-chip").forEach(button => {
-  button.addEventListener("click", () => {
-    const query = button.dataset.query || "";
-    if (searchInput) searchInput.value = query;
-    searchTracks(query);
-    resultsEl?.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-  });
-});
-
-clearRecentButton?.addEventListener("click", () => {
-  try {
-    localStorage.removeItem(recentSearchesKey);
-  } catch {
-    // Continue if storage is unavailable.
   }
 
-  renderRecentSearches();
-  showMessage("Recent searches cleared from this browser.");
-});
-
-// ---------- PWA installation ----------
-
-window.addEventListener("beforeinstallprompt", event => {
-  event.preventDefault();
-  deferredInstallPrompt = event;
-
-  if (installButton) installButton.hidden = false;
-});
-
-installButton?.addEventListener("click", async () => {
-  if (!deferredInstallPrompt) {
-    showMessage(
-      "To install TuneWave, open your browser menu and choose Install app or Add to Home Screen."
-    );
-    return;
+  function renderAlbums() {
+    if (albums.length) {
+      const shown = albumExpanded ? albums : albums.slice(0, 6);
+      els.albumGrid.innerHTML = shown.map((album, index) => {
+        const art = getArtwork(album.artworkUrl100 || '', 300);
+        const gradient = gradients[index % gradients.length];
+        return `<button type="button" class="album-card" data-album-index="${index}" aria-label="Search for album ${esc(album.collectionName || 'album')}">
+          ${art ? `<img class="album-art" src="${esc(art)}" alt="" loading="lazy" onerror="this.outerHTML='<span class=&quot;album-art album-art-fallback&quot; style=&quot;--card-gradient:${gradient}&quot;>♫</span>'">` : `<span class="album-art album-art-fallback" style="--card-gradient:${gradient}">${symbols[index % symbols.length]}</span>`}
+          <span class="album-title">${esc(album.collectionName || 'Untitled album')}</span><span class="album-subtitle">${esc(album.artistName || 'Various artists')}</span></button>`;
+      }).join('');
+      els.albumsHeading.textContent = currentView === 'home' ? 'Featured Albums' : 'Matching Albums';
+    } else {
+      const cards = currentView === 'home' ? starterQueries : starterQueries.slice(0, 3);
+      els.albumGrid.innerHTML = cards.map((name, index) => `<button type="button" class="album-card" data-playlist-query="${esc(name)}"><span class="album-art album-art-fallback" style="--card-gradient:${gradients[index % gradients.length]}">${symbols[index % symbols.length]}</span><span class="album-title">${esc(titleCase(name))}</span><span class="album-subtitle">Explore the vibe</span></button>`).join('');
+      els.albumsHeading.textContent = currentView === 'home' ? 'Featured Mixes' : 'Try another mood';
+    }
+    els.seeAll.textContent = albumExpanded ? 'Show less  ‹' : 'See all  ›';
   }
 
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
+  function titleCase(text) { return text.replace(/\b\w/g, c => c.toUpperCase()); }
 
-  deferredInstallPrompt = null;
-  installButton.hidden = true;
-});
+  function renderTracks() {
+    if (!tracks.length) {
+      els.rows.innerHTML = `<tr><td colspan="6" class="table-message">${currentView === 'liked' ? 'You have not liked any songs yet.' : 'No songs to display yet. Try searching for a song or artist above.'}</td></tr>`;
+      return;
+    }
+    els.rows.innerHTML = tracks.map((track, index) => {
+      const artwork = getArtwork(track.artworkUrl100 || '', 100) || '/icon-192.png';
+      const duration = durationOf(track);
+      return `<tr data-track-index="${index}">
+        <td><span class="row-number">${index + 1}</span><button type="button" class="row-play" data-play-index="${index}" aria-label="Play ${esc(track.trackName)}">▶</button></td>
+        <td><div class="track-cell"><img class="track-art" src="${esc(artwork)}" alt="" loading="lazy"><div class="track-info"><span class="track-name">${esc(track.trackName || 'Untitled track')}</span><span class="track-subname">${esc(track.primaryGenreName || 'Music')}</span></div></div></td>
+        <td class="ellipsis-cell" title="${esc(track.artistName)}">${esc(track.artistName || 'Unknown artist')}</td>
+        <td class="ellipsis-cell" title="${esc(track.collectionName)}">${esc(track.collectionName || 'Single')}</td>
+        <td class="duration-cell">${formatTime(duration)}</td>
+        <td><div class="row-actions"><button type="button" class="row-like ${isLiked(track) ? 'liked' : ''}" data-like-index="${index}" aria-label="${isLiked(track) ? 'Unlike' : 'Like'} ${esc(track.trackName)}">${isLiked(track) ? '♥' : '♡'}</button><button type="button" class="row-open" data-open-index="${index}" aria-label="Open ${esc(track.trackName)}">⋮</button></div></td>
+      </tr>`;
+    }).join('');
+  }
 
-// ---------- Service worker ----------
+  function renderRecent() {
+    const items = getSearches().filter(item => typeof item === 'string');
+    if (!items.length) {
+      els.recent.innerHTML = '<span class="recent-empty">Your searches will appear here.</span>';
+      return;
+    }
+    els.recent.innerHTML = items.map(query => `<button class="recent-chip" type="button" data-recent-query="${esc(query)}">⌕ &nbsp;${esc(query)}</button>`).join('');
+  }
 
-if (
-  "serviceWorker" in navigator &&
-  (location.protocol === "https:" ||
-    location.hostname === "localhost" ||
-    location.hostname === "127.0.0.1")
-) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("./service-worker.js")
-      .catch(error => {
-        console.error("Service worker registration failed:", error);
+  function updateLikeCount() { els.likedCount.textContent = String(getLikes().length); }
+
+  function renderLibrary(kind) {
+    currentView = kind;
+    els.libraryView.hidden = false;
+    $('featuredSection').hidden = true;
+    $('songsSection').hidden = true;
+    $('recentSection').hidden = true;
+    els.libraryHeading.textContent = kind === 'liked' ? 'Liked Songs' : kind === 'playlists' ? 'Playlists & Mixes' : 'Your Library';
+    const items = kind === 'liked' ? getLikes() : kind === 'library' ? getLikes() : [];
+    if (kind === 'playlists') {
+      els.libraryGrid.innerHTML = starterQueries.map((name, index) => `<button type="button" class="album-card" data-playlist-query="${esc(name)}"><span class="album-art album-art-fallback" style="--card-gradient:${gradients[index % gradients.length]}">${symbols[index % symbols.length]}</span><span class="album-title">${titleCase(name)}</span><span class="album-subtitle">Search this mood</span></button>`).join('');
+    } else if (items.length) {
+      els.libraryGrid.innerHTML = items.map((track, index) => {
+        const art = getArtwork(track.artworkUrl100 || '', 300) || '/icon-192.png';
+        return `<button type="button" class="album-card" data-library-index="${index}"><img class="album-art" src="${esc(art)}" alt="" loading="lazy"><span class="album-title">${esc(track.trackName || track.collectionName || 'Saved song')}</span><span class="album-subtitle">${esc(track.artistName || 'Unknown artist')}</span></button>`;
+      }).join('');
+    } else {
+      els.libraryGrid.innerHTML = `<div class="library-empty">${kind === 'liked' ? 'Your liked songs will appear here. Tap ♡ beside any song to save it.' : 'Your personal collection will appear here when you like songs.'}</div>`;
+    }
+    setActiveNav(kind);
+  }
+
+  function setActiveNav(name) {
+    document.querySelectorAll('[data-nav]').forEach(button => button.classList.toggle('active', button.dataset.nav === name || (name === 'home' && button.dataset.nav === 'home')));
+    if (name !== 'liked' && name !== 'library' && name !== 'playlists') {
+      els.libraryView.hidden = true;
+      $('featuredSection').hidden = false;
+      $('songsSection').hidden = false;
+      $('recentSection').hidden = false;
+    }
+  }
+
+  function setPlayerTrack(index, autoplay = true) {
+    if (!tracks.length || index < 0 || index >= tracks.length) return;
+    currentIndex = index;
+    const track = tracks[index];
+    const art = getArtwork(track.artworkUrl100 || '', 300) || '/icon-192.png';
+    els.playerArtwork.src = art;
+    els.playerTitle.textContent = track.trackName || 'Unknown track';
+    els.playerArtist.textContent = track.artistName || 'Unknown artist';
+    els.totalTime.textContent = formatTime(durationOf(track) || 30);
+    els.progress.value = '0';
+    paintRange(els.progress, 0);
+    els.currentTime.textContent = '0:00';
+    els.playerLike.classList.toggle('liked', isLiked(track));
+    els.playerLike.textContent = isLiked(track) ? '♥' : '♡';
+
+    if (!track.previewUrl) {
+      els.audio.pause();
+      els.audio.removeAttribute('src');
+      els.play.textContent = '▶';
+      toast('A preview is not available for this track. Open the song details instead.');
+      if (track.trackViewUrl) window.open(track.trackViewUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (els.audio.src !== track.previewUrl) els.audio.src = track.previewUrl;
+    els.audio.load();
+    if (autoplay) {
+      const result = els.audio.play();
+      if (result && typeof result.then === 'function') result.then(() => { els.play.textContent = 'Ⅱ'; }).catch(() => {
+        els.play.textContent = '▶';
+        toast('Tap play again to start this preview.');
       });
+    }
+    els.play.setAttribute('aria-label', autoplay ? 'Pause' : 'Play');
+    if (!autoplay) els.play.textContent = '▶';
+  }
+
+  function toggleLike(track) {
+    if (!track) return;
+    let liked = getLikes();
+    const key = trackKey(track);
+    if (liked.some(item => trackKey(item) === key)) {
+      liked = liked.filter(item => trackKey(item) !== key);
+      toast('Removed from Liked Songs');
+    } else {
+      liked.unshift(track);
+      liked = liked.slice(0, 100);
+      toast('Added to Liked Songs');
+    }
+    writeJSON('tw-likes', liked);
+    updateLikeCount();
+    renderTracks();
+    if (currentIndex >= 0 && tracks[currentIndex] && trackKey(tracks[currentIndex]) === key) {
+      const status = isLiked(tracks[currentIndex]);
+      els.playerLike.classList.toggle('liked', status);
+      els.playerLike.textContent = status ? '♥' : '♡';
+    }
+    if (currentView === 'liked') renderLibrary('liked');
+  }
+
+  function paintRange(input, percent) {
+    input.style.setProperty('--range-progress', `${Math.max(0, Math.min(100, percent))}%`);
+  }
+
+  function playNext() {
+    if (!tracks.length) return;
+    let next;
+    if (shuffleOn && tracks.length > 1) {
+      do { next = Math.floor(Math.random() * tracks.length); } while (next === currentIndex);
+    } else next = (currentIndex + 1) % tracks.length;
+    setPlayerTrack(next, true);
+  }
+  function playPrevious() {
+    if (!tracks.length) return;
+    if (els.audio.currentTime > 3) { els.audio.currentTime = 0; return; }
+    setPlayerTrack((currentIndex - 1 + tracks.length) % tracks.length, true);
+  }
+
+  els.form.addEventListener('submit', event => { event.preventDefault(); runSearch(els.input.value); });
+  els.input.addEventListener('input', () => { els.clearSearch.hidden = !els.input.value; });
+  els.clearSearch.addEventListener('click', () => { els.input.value = ''; els.clearSearch.hidden = true; els.input.focus(); });
+  els.explore.addEventListener('click', () => { els.input.focus(); if (els.input.value.trim()) runSearch(els.input.value); else runSearch('new music'); });
+  els.menuToggle.addEventListener('click', () => els.sidebar.classList.toggle('open'));
+  els.seeAlbums.addEventListener('click', () => { albumExpanded = !albumExpanded; renderAlbums(); });
+  els.clearRecent.addEventListener('click', () => { writeJSON('tw-searches', []); renderRecent(); toast('Recent searches cleared'); });
+
+  document.addEventListener('click', event => {
+    const target = event.target.closest('button');
+    if (!target) return;
+    if (target.dataset.playIndex != null) { setPlayerTrack(Number(target.dataset.playIndex), true); return; }
+    if (target.dataset.likeIndex != null) { toggleLike(tracks[Number(target.dataset.likeIndex)]); return; }
+    if (target.dataset.openIndex != null) {
+      const track = tracks[Number(target.dataset.openIndex)];
+      if (track?.trackViewUrl) window.open(track.trackViewUrl, '_blank', 'noopener,noreferrer');
+      else toast('Track details are not available.');
+      return;
+    }
+    if (target.dataset.albumIndex != null) {
+      const album = albums[Number(target.dataset.albumIndex)];
+      if (album) runSearch(album.collectionName || album.artistName || currentQuery || 'music');
+      return;
+    }
+    if (target.dataset.recentQuery) { runSearch(target.dataset.recentQuery, {fromHistory: true}); return; }
+    if (target.dataset.playlistQuery) { runSearch(target.dataset.playlistQuery); els.sidebar.classList.remove('open'); return; }
+    if (target.dataset.libraryIndex != null) {
+      const items = currentView === 'liked' ? getLikes() : getLikes();
+      const chosen = items[Number(target.dataset.libraryIndex)];
+      if (chosen) {
+        const query = chosen.trackName || chosen.artistName || 'music';
+        runSearch(query).then(() => {
+          const found = tracks.findIndex(item => item.trackId && item.trackId === chosen.trackId);
+          if (found >= 0) setPlayerTrack(found, true);
+        });
+      }
+      return;
+    }
   });
-}
 
-// ---------- Start ----------
+  document.querySelectorAll('[data-nav]').forEach(button => button.addEventListener('click', () => {
+    const nav = button.dataset.nav;
+    els.sidebar.classList.remove('open');
+    if (nav === 'home') {
+      currentView = 'home';
+      els.input.value = '';
+      els.clearSearch.hidden = true;
+      els.heroKicker.textContent = 'YOUR NEXT FAVORITE TRACK';
+      els.heroTitle.innerHTML = 'Discover<br><span>New Music</span>';
+      els.heroDescription.textContent = 'Find your next favorite song, artist or album.';
+      els.albumsHeading.textContent = 'Featured Albums';
+      els.resultsHeading.textContent = 'Popular Songs';
+      els.songsEyebrow.textContent = "WHAT'S SOUNDING GOOD";
+      setActiveNav('home');
+      runSearch('popular songs', {fromHistory: true, mode: 'home'});
+    } else if (nav === 'search') {
+      setActiveNav('search');
+      els.input.focus();
+      if (els.input.value.trim()) runSearch(els.input.value);
+    } else renderLibrary(nav);
+  }));
 
-setDeviceStatus();
-renderRecentSearches();
-updatePlayButton();
+  els.play.addEventListener('click', () => {
+    if (currentIndex < 0) {
+      if (tracks.length) setPlayerTrack(0, true);
+      else runSearch('popular songs');
+      return;
+    }
+    if (els.audio.paused) {
+      els.audio.play().then(() => { els.play.textContent = 'Ⅱ'; }).catch(() => toast('This preview could not be played. Try another track.'));
+    } else els.audio.pause();
+  });
+  els.prev.addEventListener('click', playPrevious);
+  els.next.addEventListener('click', playNext);
+  els.shuffle.addEventListener('click', () => { shuffleOn = !shuffleOn; els.shuffle.classList.toggle('on', shuffleOn); toast(shuffleOn ? 'Shuffle enabled' : 'Shuffle disabled'); });
+  els.repeat.addEventListener('click', () => { repeatOn = !repeatOn; els.repeat.classList.toggle('on', repeatOn); toast(repeatOn ? 'Repeat enabled' : 'Repeat disabled'); });
+  els.queue.addEventListener('click', () => toast(tracks.length ? `${tracks.length} songs in the current results` : 'Search for songs to start a queue.'));
+  els.playerLike.addEventListener('click', () => { if (currentIndex >= 0) toggleLike(tracks[currentIndex]); else toast('Play a song first.'); });
+  els.progress.addEventListener('input', () => {
+    if (Number.isFinite(els.audio.duration) && els.audio.duration > 0) els.audio.currentTime = Number(els.progress.value) / 100 * els.audio.duration;
+    paintRange(els.progress, Number(els.progress.value));
+  });
+  els.volume.addEventListener('input', () => { els.audio.volume = Number(els.volume.value); paintRange(els.volume, Number(els.volume.value) * 100); });
+  els.audio.volume = 0.8;
+  paintRange(els.volume, 80);
+  els.audio.addEventListener('play', () => { els.play.textContent = 'Ⅱ'; els.play.setAttribute('aria-label', 'Pause'); });
+  els.audio.addEventListener('pause', () => { els.play.textContent = '▶'; els.play.setAttribute('aria-label', 'Play'); });
+  els.audio.addEventListener('timeupdate', () => {
+    const duration = Number.isFinite(els.audio.duration) ? els.audio.duration : durationOf(tracks[currentIndex] || {}) || 30;
+    const pct = duration > 0 ? (els.audio.currentTime / duration) * 100 : 0;
+    els.progress.value = String(pct);
+    paintRange(els.progress, pct);
+    els.currentTime.textContent = formatTime(els.audio.currentTime);
+    els.totalTime.textContent = formatTime(duration);
+  });
+  els.audio.addEventListener('loadedmetadata', () => { els.totalTime.textContent = formatTime(els.audio.duration); });
+  els.audio.addEventListener('ended', () => { if (repeatOn) { els.audio.currentTime = 0; els.audio.play().catch(() => {}); } else playNext(); });
+  els.audio.addEventListener('error', () => { if (currentIndex >= 0) toast('This preview is unavailable right now. Try another song.'); });
+
+  // Clicking a card and the keyboard shortcuts stay within the dashboard.
+  document.addEventListener('keydown', event => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); els.input.focus(); }
+    if (event.key === 'Escape') els.sidebar.classList.remove('open');
+  });
+
+  renderRecent();
+  updateLikeCount();
+  runSearch('popular songs', {fromHistory: true, mode: 'home'});
+})();
