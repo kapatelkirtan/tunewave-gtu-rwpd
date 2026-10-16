@@ -10,7 +10,7 @@ A responsive, installable web music player powered by the official Audius API. T
 - Add tracks to playlists using the `+` button in each track row.
 - Media Session API integration for compatible browser/device lock-screen controls and metadata.
 - PWA manifest with 192/512 PNG icons and iOS touch icon, versioned service-worker shell caching, and a Download App button.
-- Native install prompt on supported Chromium browsers, plus Android/iOS/desktop installation guidance when the prompt is unavailable.
+- The Download App buttons invoke the native PWA install confirmation when the browser provides it; otherwise they show tailored Android/iPhone/desktop steps. Browsers require user confirmation and do not let websites silently install themselves.
 - Media Session action handlers (play/pause, next/previous, seek) and playback-position updates for compatible lock screens.
 - No TuneWave paid tier, ad slots, ad SDKs, or ad network scripts included.
 - Audius API key can be entered in Provider Settings. It is stored in this browser only. Never place an Audius bearer token in frontend code.
