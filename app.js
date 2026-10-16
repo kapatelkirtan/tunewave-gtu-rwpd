@@ -1,15 +1,17 @@
 (() => {
   'use strict';
 
-  // ============================================================
-  // TuneWave — Jamendo full-track music integration
-  // ============================================================
+  // =========================================================
+  // TuneWave — Jamendo full-track music player
+  // =========================================================
 
   const API = 'https://api.jamendo.com/v3.0';
 
-  // Use the real client_id from your Jamendo developer app.
-  // This is a public API client ID, not a password.
+  // Replace this with your real Jamendo developer client ID
+  // if the ID below is not valid for your app.
   const JAMENDO_CLIENT_ID = 'c854bb26';
+
+  const PAGE_SIZE = 200;
 
   const $ = (id) => document.getElementById(id);
 
@@ -17,29 +19,36 @@
     form: $('searchForm'),
     input: $('searchInput'),
     clearSearch: $('clearSearch'),
+
     heroKicker: $('heroKicker'),
     heroTitle: $('heroTitle'),
     heroDescription: $('heroDescription'),
     explore: $('exploreButton'),
+
     albumGrid: $('albumGrid'),
     albumsHeading: $('albumsHeading'),
     seeAlbums: $('seeAlbums'),
+
     resultsHeading: $('resultsHeading'),
     songsEyebrow: $('songsEyebrow'),
     rows: $('songRows'),
     count: $('resultCount'),
     message: $('message'),
+
     recent: $('recentSearches'),
     clearRecent: $('clearRecent'),
+
     libraryView: $('libraryView'),
     libraryHeading: $('libraryHeading'),
     libraryGrid: $('libraryGrid'),
     likedCount: $('likedCount'),
+
     audio: $('audioPlayer'),
     playerArtwork: $('playerArtwork'),
     playerTitle: $('playerTitle'),
     playerArtist: $('playerArtist'),
     playerLike: $('playerLike'),
+
     play: $('playButton'),
     prev: $('previousButton'),
     next: $('nextButton'),
@@ -47,18 +56,26 @@
     currentTime: $('currentTime'),
     totalTime: $('totalTime'),
     volume: $('volumeSlider'),
+
     shuffle: $('shuffleButton'),
     repeat: $('repeatButton'),
     queue: $('queueButton'),
+
     toast: $('toast'),
     menuToggle: $('menuToggle'),
     sidebar: $('sidebar')
   };
 
-  // Fail early with a useful message if the HTML doesn't match.
   const requiredElements = [
-    'form', 'input', 'albumGrid', 'rows', 'message',
-    'audio', 'play', 'progress', 'toast'
+    'form',
+    'input',
+    'albumGrid',
+    'rows',
+    'message',
+    'audio',
+    'play',
+    'progress',
+    'toast'
   ];
 
   const missingElements = requiredElements.filter(
@@ -67,7 +84,7 @@
 
   if (missingElements.length) {
     console.error(
-      'TuneWave is missing required HTML elements:',
+      'TuneWave is missing these HTML elements:',
       missingElements
     );
     return;
@@ -95,23 +112,34 @@
 
   let tracks = [];
   let albums = [];
+
   let currentIndex = -1;
   let currentQuery = '';
+
   let loadingSequence = 0;
+
+  // Pagination state.
+  let nextTrackOffset = 0;
+  let canLoadMore = false;
+  let loadingMore = false;
+
   let albumExpanded = false;
   let currentView = 'home';
   let shuffleOn = false;
   let repeatOn = false;
   let toastTimeout = null;
 
-  // ============================================================
-  // General helpers
-  // ============================================================
+  // =========================================================
+  // Helpers
+  // =========================================================
 
   const readJSON = (key, fallback = []) => {
     try {
-      const data = JSON.parse(localStorage.getItem(key) || 'null');
-      return Array.isArray(data) ? data : fallback;
+      const parsed = JSON.parse(
+        localStorage.getItem(key) || 'null'
+      );
+
+      return Array.isArray(parsed) ? parsed : fallback;
     } catch {
       return fallback;
     }
@@ -139,10 +167,10 @@
       return '0:00';
     }
 
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-
-    return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
+    return (
+      `${Math.floor(seconds / 60)}:` +
+      String(Math.floor(seconds % 60)).padStart(2, '0')
+    );
   };
 
   const durationOf = (track) =>
@@ -151,11 +179,10 @@
       (Number(track?.trackTimeMillis) || 0) / 1000
     );
 
-  // TuneWave originally supported artwork URLs from another provider.
-  // Jamendo artwork URLs also work with this helper.
   const getArtwork = (url) => url || '';
 
   const getLikes = () => readJSON('tw-likes');
+
   const getSearches = () => readJSON('tw-searches');
 
   const trackKey = (track) =>
@@ -167,11 +194,14 @@
     );
 
   const isLiked = (track) =>
-    getLikes().some((item) => trackKey(item) === trackKey(track));
+    getLikes().some(
+      (item) => trackKey(item) === trackKey(track)
+    );
 
   function titleCase(text) {
-    return String(text || '').replace(/\b\w/g, (character) =>
-      character.toUpperCase()
+    return String(text || '').replace(
+      /\b\w/g,
+      (character) => character.toUpperCase()
     );
   }
 
@@ -191,7 +221,10 @@
   function paintRange(input, percent) {
     if (!input) return;
 
-    const safePercent = Math.max(0, Math.min(100, percent));
+    const safePercent = Math.max(
+      0,
+      Math.min(100, percent)
+    );
 
     input.style.setProperty(
       '--range-progress',
@@ -200,19 +233,23 @@
   }
 
   function setActiveNav(name) {
-    document.querySelectorAll('[data-nav]').forEach((button) => {
-      button.classList.toggle(
-        'active',
-        button.dataset.nav === name
-      );
-    });
+    document.querySelectorAll('[data-nav]').forEach(
+      (button) => {
+        button.classList.toggle(
+          'active',
+          button.dataset.nav === name
+        );
+      }
+    );
 
     if (
       name !== 'liked' &&
       name !== 'library' &&
       name !== 'playlists'
     ) {
-      if (els.libraryView) els.libraryView.hidden = true;
+      if (els.libraryView) {
+        els.libraryView.hidden = true;
+      }
 
       const featured = $('featuredSection');
       const songs = $('songsSection');
@@ -224,9 +261,9 @@
     }
   }
 
-  // ============================================================
-  // Jamendo API — full-track search
-  // ============================================================
+  // =========================================================
+  // Jamendo API
+  // =========================================================
 
   function validateClientId() {
     if (
@@ -235,12 +272,12 @@
       JAMENDO_CLIENT_ID.trim() === ''
     ) {
       throw new Error(
-        'Add your actual Jamendo client ID in app.js before searching.'
+        'Add your Jamendo client ID in app.js.'
       );
     }
   }
 
-  async function fetchJamendo(endpoint, params) {
+  async function fetchJamendo(endpoint, params = {}) {
     validateClientId();
 
     const searchParams = new URLSearchParams({
@@ -249,7 +286,8 @@
       ...params
     });
 
-    const url = `${API}/${endpoint}/?${searchParams.toString()}`;
+    const url =
+      `${API}/${endpoint}/?${searchParams.toString()}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -260,7 +298,7 @@
 
     if (!response.ok) {
       throw new Error(
-        `Jamendo API request failed (${response.status}).`
+        `Music service request failed (${response.status}).`
       );
     }
 
@@ -269,84 +307,101 @@
     if (body?.headers?.status !== 'success') {
       throw new Error(
         body?.headers?.error_message ||
-        'Jamendo returned an unsuccessful response.'
+        'Jamendo could not return music results.'
       );
     }
 
-    return Array.isArray(body.results) ? body.results : [];
+    return Array.isArray(body.results)
+      ? body.results
+      : [];
   }
 
   /**
-   * Search full-length Jamendo tracks.
+   * Search tracks.
    *
-   * Jamendo's `audio` property is the stream URL.
-   * We keep the legacy `previewUrl` property too because the existing
-   * TuneWave player already reads it. Despite the old name, this is
-   * the Jamendo track stream, not an iTunes 30-second preview.
+   * The `offset` parameter allows TuneWave to retrieve later
+   * pages of results. Each request is limited to PAGE_SIZE.
    */
-  async function apiSearch(query, limit = 30) {
+  async function apiSearch(
+    query,
+    limit = PAGE_SIZE,
+    offset = 0
+  ) {
     const results = await fetchJamendo('tracks', {
-      limit: String(limit),
       search: query,
+      limit: String(limit),
+      offset: String(offset),
+
       include: 'licenses musicinfo',
       audioformat: 'mp32',
       imagesize: '300',
+
+      // Include both independent singles and album tracks.
       type: 'single albumtrack'
     });
 
-    return results.map((item) => {
+    const mappedTracks = results.map((item) => {
+      const genres = item.musicinfo?.tags?.genres;
+
+      const genre =
+        Array.isArray(genres) && genres.length
+          ? genres[0]
+          : 'Independent music';
+
       const audioUrl = item.audio || '';
-
-      const genres =
-        item.musicinfo?.tags?.genres;
-
-      const genre = Array.isArray(genres) && genres.length
-        ? genres[0]
-        : 'Independent music';
 
       return {
         ...item,
 
-        // TuneWave-compatible identifiers and display fields.
         trackId: String(item.id || ''),
         trackName: item.name || 'Untitled track',
         artistName: item.artist_name || 'Unknown artist',
 
-        collectionId: String(item.album_id || item.id || ''),
-        collectionName: item.album_name || 'Single',
+        collectionId: String(
+          item.album_id || item.id || ''
+        ),
 
-        artworkUrl100: item.album_image || item.image || '',
+        collectionName:
+          item.album_name || 'Single',
+
+        artworkUrl100:
+          item.album_image || item.image || '',
 
         primaryGenreName: genre,
-        trackTimeMillis: (Number(item.duration) || 0) * 1000,
 
-        // Full stream URL from Jamendo.
+        trackTimeMillis:
+          (Number(item.duration) || 0) * 1000,
+
+        // The Jamendo audio URL is used by the player.
         audioUrl,
         previewUrl: audioUrl,
 
-        trackViewUrl: item.shareurl || item.shorturl || '',
-        licenseUrl: item.license_ccurl || '',
+        trackViewUrl:
+          item.shareurl || item.shorturl || '',
 
-        // Keep source permissions in the returned track object.
-        audiodownloadAllowed: item.audiodownload_allowed === true,
-        audiodownloadUrl: item.audiodownload || ''
+        licenseUrl:
+          item.license_ccurl || ''
       };
     }).filter((track) => track.trackId);
+
+    return {
+      tracks: mappedTracks,
+
+      // Keep the raw result count for correct pagination,
+      // even if any malformed records were filtered out.
+      rawCount: results.length
+    };
   }
 
   /**
-   * Search the separate Jamendo albums endpoint.
-   *
-   * The albums API does not use the same free-text search field
-   * as the tracks API, so this uses namesearch for album titles.
+   * Album searches use the albums endpoint separately.
    */
   async function apiAlbumSearch(query, limit = 6) {
     const results = await fetchJamendo('albums', {
-      limit: String(limit),
       namesearch: query,
+      limit: String(limit),
       imagesize: '300',
-      type: 'album single',
-      order: 'popularity_total_desc'
+      type: 'album single'
     });
 
     return results.map((item) => ({
@@ -355,37 +410,46 @@
       collectionId: String(item.id || ''),
       collectionName: item.name || 'Untitled album',
       artistName: item.artist_name || 'Unknown artist',
+
       artworkUrl100: item.image || '',
 
-      trackViewUrl: item.shareurl || item.shorturl || ''
+      trackViewUrl:
+        item.shareurl || item.shorturl || ''
     }));
   }
 
   /**
-   * If the albums endpoint finds no album title matching the query,
-   * create album cards from albums returned alongside matching tracks.
+   * If the album-name search has no results, build cards
+   * from albums represented in the track search results.
    */
   function albumsFromTracks(trackList) {
     const uniqueAlbums = new Map();
 
     trackList.forEach((track) => {
-      const albumId = String(track.album_id || '');
-      const albumName = String(track.album_name || '');
+      const id = String(track.album_id || '');
+      const name = String(track.album_name || '');
 
-      // Singles may not belong to an album.
-      if (!albumId || !albumName) return;
+      // Jamendo singles do not always belong to an album.
+      if (!id || !name) return;
 
-      if (!uniqueAlbums.has(albumId)) {
-        uniqueAlbums.set(albumId, {
-          collectionId: albumId,
-          collectionName: albumName,
-          artistName: track.artistName || track.artist_name || 'Unknown artist',
+      if (!uniqueAlbums.has(id)) {
+        uniqueAlbums.set(id, {
+          collectionId: id,
+          collectionName: name,
+
+          artistName:
+            track.artistName ||
+            track.artist_name ||
+            'Unknown artist',
+
           artworkUrl100:
             track.artworkUrl100 ||
             track.album_image ||
             track.image ||
             '',
-          trackViewUrl: track.trackViewUrl || ''
+
+          trackViewUrl:
+            track.trackViewUrl || ''
         });
       }
     });
@@ -393,9 +457,9 @@
     return Array.from(uniqueAlbums.values()).slice(0, 6);
   }
 
-  // ============================================================
-  // Loading and search history
-  // ============================================================
+  // =========================================================
+  // Search loading and history
+  // =========================================================
 
   function setLoading(query) {
     els.count.textContent = 'Searching…';
@@ -438,13 +502,16 @@
     renderRecent();
   }
 
-  // ============================================================
-  // Main search action
-  // ============================================================
+  // =========================================================
+  // Main search
+  // =========================================================
 
   async function runSearch(
     query,
-    { fromHistory = false, mode = 'search' } = {}
+    {
+      fromHistory = false,
+      mode = 'search'
+    } = {}
   ) {
     const clean = String(query || '').trim();
 
@@ -459,31 +526,38 @@
     currentQuery = clean;
     currentView = mode === 'home' ? 'home' : 'search';
 
+    // Reset pagination whenever the search changes.
+    nextTrackOffset = 0;
+    canLoadMore = false;
+    loadingMore = false;
+
     els.input.value = clean;
     els.clearSearch.hidden = false;
 
     const libraryView = $('libraryView');
-    const featuredSection = $('featuredSection');
-    const songsSection = $('songsSection');
-    const recentSection = $('recentSection');
+    const featured = $('featuredSection');
+    const songs = $('songsSection');
+    const recent = $('recentSection');
 
     if (libraryView) libraryView.hidden = true;
-    if (featuredSection) featuredSection.hidden = false;
-    if (songsSection) songsSection.hidden = false;
-    if (recentSection) recentSection.hidden = false;
+    if (featured) featured.hidden = false;
+    if (songs) songs.hidden = false;
+    if (recent) recent.hidden = false;
 
     if (currentView === 'home') {
-      els.heroKicker.textContent = 'YOUR NEXT FAVORITE TRACK';
+      els.heroKicker.textContent =
+        'YOUR NEXT FAVORITE TRACK';
 
       els.heroTitle.innerHTML =
         'Discover<br><span>New Music</span>';
 
       els.heroDescription.textContent =
-        'Find your next favorite independent song, artist or album.';
+        'Find your next favorite song, artist or album.';
 
       els.albumsHeading.textContent = 'Featured Albums';
       els.resultsHeading.textContent = 'Popular Songs';
-      els.songsEyebrow.textContent = "WHAT'S SOUNDING GOOD";
+      els.songsEyebrow.textContent =
+        "WHAT'S SOUNDING GOOD";
 
       setActiveNav('home');
     } else {
@@ -493,11 +567,14 @@
         `Search<br><span>${esc(clean)}</span>`;
 
       els.heroDescription.textContent =
-        'Explore matching independent songs, artists and albums.';
+        'Explore matching songs, artists and albums.';
 
       els.albumsHeading.textContent = 'Matching Albums';
-      els.resultsHeading.textContent = `Songs for “${clean}”`;
-      els.songsEyebrow.textContent = 'MATCHED TO YOUR SEARCH';
+      els.resultsHeading.textContent =
+        `Songs for “${clean}”`;
+
+      els.songsEyebrow.textContent =
+        'MATCHED TO YOUR SEARCH';
 
       setActiveNav('search');
     }
@@ -509,64 +586,72 @@
     }
 
     try {
-      // If album lookup fails, song search can still succeed.
-      const [songResult, albumResult] = await Promise.allSettled([
-        apiSearch(clean, 30),
-        apiAlbumSearch(clean, 6)
-      ]);
+      const [songResult, albumResult] =
+        await Promise.allSettled([
+          apiSearch(clean, PAGE_SIZE, 0),
+          apiAlbumSearch(clean, 6)
+        ]);
 
-      // Ignore outdated results when the user makes another search.
+      // If the user has changed the search, discard stale results.
       if (requestNo !== loadingSequence) return;
 
       if (songResult.status === 'rejected') {
         throw songResult.reason;
       }
 
-      // The API adapter already maps Jamendo tracks to TuneWave tracks.
-      // Do NOT filter them using the old iTunes wrapperType/kind fields.
-      tracks = songResult.value;
+      tracks = songResult.value.tracks;
 
-      const apiAlbums = albumResult.status === 'fulfilled'
-        ? albumResult.value
-        : [];
+      // Start the next page after however many API results arrived.
+      nextTrackOffset = songResult.value.rawCount;
 
-      albums = apiAlbums.length
-        ? apiAlbums
+      canLoadMore =
+        songResult.value.rawCount === PAGE_SIZE;
+
+      const matchingAlbums =
+        albumResult.status === 'fulfilled'
+          ? albumResult.value
+          : [];
+
+      albums = matchingAlbums.length
+        ? matchingAlbums
         : albumsFromTracks(tracks);
 
       renderAlbums();
       renderTracks();
 
-      els.count.textContent =
-        `${tracks.length} ${tracks.length === 1 ? 'song' : 'songs'}`;
+      updateResultCount();
 
       if (tracks.length) {
         els.message.textContent =
           currentView === 'home'
-            ? 'Explore the results or search for an artist, song, album or mood.'
-            : `Showing music results for “${clean}”. Select play to stream the available full track.`;
+            ? 'Explore the results, or search for another song, artist or genre.'
+            : `Showing music results for “${clean}”. Select play to stream a track.`;
 
         els.message.classList.remove('error');
       } else {
         els.message.textContent =
-          `No tracks found for “${clean}”. Try another spelling, artist or genre.`;
+          `No tracks found for “${clean}”. Try a different search term.`;
 
         els.message.classList.remove('error');
       }
 
-      // Album lookup is optional, so don't treat its failure as a
-      // failed song search.
       if (
         albumResult.status === 'rejected' &&
         !albums.length
       ) {
-        console.warn('TuneWave album search:', albumResult.reason);
+        console.warn(
+          'TuneWave album search failed:',
+          albumResult.reason
+        );
       }
     } catch (error) {
       if (requestNo !== loadingSequence) return;
 
       tracks = [];
       albums = [];
+
+      nextTrackOffset = 0;
+      canLoadMore = false;
 
       renderAlbums();
       renderTracks();
@@ -576,7 +661,7 @@
       els.message.textContent =
         error instanceof Error
           ? error.message
-          : 'Could not load music right now. Please try again.';
+          : 'Could not load music. Please try again.';
 
       els.message.classList.add('error');
 
@@ -584,9 +669,88 @@
     }
   }
 
-  // ============================================================
+  function updateResultCount() {
+    els.count.textContent =
+      `${tracks.length} ${tracks.length === 1 ? 'song' : 'songs'}`;
+  }
+
+  // =========================================================
+  // Load more songs
+  // =========================================================
+
+  async function loadMoreTracks() {
+    if (
+      loadingMore ||
+      !canLoadMore ||
+      !currentQuery
+    ) {
+      return;
+    }
+
+    const requestNo = loadingSequence;
+
+    loadingMore = true;
+    renderTracks();
+
+    try {
+      const page = await apiSearch(
+        currentQuery,
+        PAGE_SIZE,
+        nextTrackOffset
+      );
+
+      // A newer search started while this request was running.
+      if (requestNo !== loadingSequence) return;
+
+      const existingIds = new Set(
+        tracks.map((track) => trackKey(track))
+      );
+
+      const newTracks = page.tracks.filter(
+        (track) => !existingIds.has(trackKey(track))
+      );
+
+      tracks = [...tracks, ...newTracks];
+
+      // Use raw API count to determine the next offset.
+      nextTrackOffset += page.rawCount;
+
+      canLoadMore = page.rawCount === PAGE_SIZE;
+
+      renderTracks();
+      updateResultCount();
+
+      if (newTracks.length === 0 && page.rawCount > 0) {
+        toast(
+          'This page had no new unique tracks. You can load the next page.'
+        );
+      } else if (newTracks.length > 0) {
+        toast(`Loaded ${newTracks.length} more songs`);
+      }
+
+      if (page.rawCount === 0) {
+        canLoadMore = false;
+        renderTracks();
+      }
+    } catch (error) {
+      console.error('TuneWave pagination error:', error);
+
+      toast(
+        error instanceof Error
+          ? error.message
+          : 'Could not load more songs.'
+      );
+    } finally {
+      if (requestNo === loadingSequence) {
+        loadingMore = false;
+        renderTracks();
+      }
+    }
+  }
+
+  // =========================================================
   // Album cards
-  // ============================================================
+  // =========================================================
 
   function renderAlbums() {
     if (albums.length) {
@@ -594,46 +758,51 @@
         ? albums
         : albums.slice(0, 6);
 
-      els.albumGrid.innerHTML = shown.map((album, index) => {
-        const art = getArtwork(album.artworkUrl100);
-        const gradient = gradients[index % gradients.length];
+      els.albumGrid.innerHTML = shown.map(
+        (album, index) => {
+          const art = getArtwork(album.artworkUrl100);
+          const gradient =
+            gradients[index % gradients.length];
 
-        return `
-          <button
-            type="button"
-            class="album-card"
-            data-album-index="${index}"
-            aria-label="Search for album ${esc(album.collectionName || 'album')}"
-          >
-            ${
-              art
-                ? `
-                  <img
-                    class="album-art"
-                    src="${esc(art)}"
-                    alt=""
-                    loading="lazy"
-                    onerror="this.style.display='none'"
-                  >
-                `
-                : `
-                  <span
-                    class="album-art album-art-fallback"
-                    style="--card-gradient:${gradient}"
-                  >${symbols[index % symbols.length]}</span>
-                `
-            }
+          return `
+            <button
+              type="button"
+              class="album-card"
+              data-album-index="${index}"
+              aria-label="Search for album ${esc(
+                album.collectionName || 'album'
+              )}"
+            >
+              ${
+                art
+                  ? `
+                    <img
+                      class="album-art"
+                      src="${esc(art)}"
+                      alt=""
+                      loading="lazy"
+                      onerror="this.style.display='none'"
+                    >
+                  `
+                  : `
+                    <span
+                      class="album-art album-art-fallback"
+                      style="--card-gradient:${gradient}"
+                    >${symbols[index % symbols.length]}</span>
+                  `
+              }
 
-            <span class="album-title">
-              ${esc(album.collectionName || 'Untitled album')}
-            </span>
+              <span class="album-title">
+                ${esc(album.collectionName || 'Untitled album')}
+              </span>
 
-            <span class="album-subtitle">
-              ${esc(album.artistName || 'Various artists')}
-            </span>
-          </button>
-        `;
-      }).join('');
+              <span class="album-subtitle">
+                ${esc(album.artistName || 'Various artists')}
+              </span>
+            </button>
+          `;
+        }
+      ).join('');
 
       els.albumsHeading.textContent =
         currentView === 'home'
@@ -644,21 +813,28 @@
         ? starterQueries
         : starterQueries.slice(0, 3);
 
-      els.albumGrid.innerHTML = cards.map((name, index) => `
-        <button
-          type="button"
-          class="album-card"
-          data-playlist-query="${esc(name)}"
-        >
-          <span
-            class="album-art album-art-fallback"
-            style="--card-gradient:${gradients[index % gradients.length]}"
-          >${symbols[index % symbols.length]}</span>
+      els.albumGrid.innerHTML = cards.map(
+        (name, index) => `
+          <button
+            type="button"
+            class="album-card"
+            data-playlist-query="${esc(name)}"
+          >
+            <span
+              class="album-art album-art-fallback"
+              style="--card-gradient:${gradients[index % gradients.length]}"
+            >${symbols[index % symbols.length]}</span>
 
-          <span class="album-title">${esc(titleCase(name))}</span>
-          <span class="album-subtitle">Explore the vibe</span>
-        </button>
-      `).join('');
+            <span class="album-title">
+              ${esc(titleCase(name))}
+            </span>
+
+            <span class="album-subtitle">
+              Explore the vibe
+            </span>
+          </button>
+        `
+      ).join('');
 
       els.albumsHeading.textContent =
         currentView === 'home'
@@ -673,9 +849,9 @@
     }
   }
 
-  // ============================================================
-  // Song table
-  // ============================================================
+  // =========================================================
+  // Track list
+  // =========================================================
 
   function renderTracks() {
     if (!tracks.length) {
@@ -685,7 +861,7 @@
             ${
               currentView === 'liked'
                 ? 'You have not liked any songs yet.'
-                : 'No songs to display yet. Try searching for a song or artist above.'
+                : 'No songs to display yet. Try searching above.'
             }
           </td>
         </tr>
@@ -694,9 +870,10 @@
       return;
     }
 
-    els.rows.innerHTML = tracks.map((track, index) => {
+    const trackRows = tracks.map((track, index) => {
       const artwork =
-        getArtwork(track.artworkUrl100) || '/icon-192.png';
+        getArtwork(track.artworkUrl100) ||
+        '/icon-192.png';
 
       const duration = durationOf(track);
       const liked = isLiked(track);
@@ -739,16 +916,12 @@
           <td
             class="ellipsis-cell"
             title="${esc(track.artistName)}"
-          >
-            ${esc(track.artistName || 'Unknown artist')}
-          </td>
+          >${esc(track.artistName || 'Unknown artist')}</td>
 
           <td
             class="ellipsis-cell"
             title="${esc(track.collectionName)}"
-          >
-            ${esc(track.collectionName || 'Single')}
-          </td>
+          >${esc(track.collectionName || 'Single')}</td>
 
           <td class="duration-cell">
             ${formatTime(duration)}
@@ -767,18 +940,51 @@
                 type="button"
                 class="row-open"
                 data-open-index="${index}"
-                aria-label="Open source and track information for ${esc(track.trackName)}"
+                aria-label="Open track source"
               >⋮</button>
             </div>
           </td>
         </tr>
       `;
     }).join('');
+
+    // Add a Load More button directly inside the existing table.
+    // This requires no HTML changes.
+    const loadMoreRow = canLoadMore
+      ? `
+        <tr class="load-more-row">
+          <td colspan="6" style="text-align:center;padding:20px;">
+            <button
+              type="button"
+              class="load-more-button"
+              data-load-more="true"
+              ${loadingMore ? 'disabled' : ''}
+              style="
+                border:1px solid rgba(255,255,255,.2);
+                border-radius:24px;
+                padding:10px 22px;
+                color:inherit;
+                background:rgba(255,255,255,.08);
+                cursor:pointer;
+              "
+            >
+              ${
+                loadingMore
+                  ? 'Loading more songs…'
+                  : 'Load more songs ↓'
+              }
+            </button>
+          </td>
+        </tr>
+      `
+      : '';
+
+    els.rows.innerHTML = trackRows + loadMoreRow;
   }
 
-  // ============================================================
+  // =========================================================
   // Recent searches
-  // ============================================================
+  // =========================================================
 
   function renderRecent() {
     if (!els.recent) return;
@@ -797,29 +1003,34 @@
       return;
     }
 
-    els.recent.innerHTML = items.map((query) => `
-      <button
-        class="recent-chip"
-        type="button"
-        data-recent-query="${esc(query)}"
-      >⌕ &nbsp;${esc(query)}</button>
-    `).join('');
+    els.recent.innerHTML = items.map(
+      (query) => `
+        <button
+          class="recent-chip"
+          type="button"
+          data-recent-query="${esc(query)}"
+        >⌕ &nbsp;${esc(query)}</button>
+      `
+    ).join('');
   }
 
-  // ============================================================
-  // Likes and personal library
-  // ============================================================
+  // =========================================================
+  // Likes and library
+  // =========================================================
 
   function updateLikeCount() {
     if (els.likedCount) {
-      els.likedCount.textContent = String(getLikes().length);
+      els.likedCount.textContent =
+        String(getLikes().length);
     }
   }
 
   function renderLibrary(kind) {
     currentView = kind;
 
-    if (els.libraryView) els.libraryView.hidden = false;
+    if (els.libraryView) {
+      els.libraryView.hidden = false;
+    }
 
     const featured = $('featuredSection');
     const songs = $('songsSection');
@@ -836,61 +1047,78 @@
           ? 'Playlists & Mixes'
           : 'Your Library';
 
-    const items = kind === 'liked' || kind === 'library'
-      ? getLikes()
-      : [];
+    const savedTracks =
+      kind === 'liked' || kind === 'library'
+        ? getLikes()
+        : [];
 
     if (kind === 'playlists') {
-      els.libraryGrid.innerHTML = starterQueries.map((name, index) => `
-        <button
-          type="button"
-          class="album-card"
-          data-playlist-query="${esc(name)}"
-        >
-          <span
-            class="album-art album-art-fallback"
-            style="--card-gradient:${gradients[index % gradients.length]}"
-          >${symbols[index % symbols.length]}</span>
-
-          <span class="album-title">${esc(titleCase(name))}</span>
-          <span class="album-subtitle">Search this mood</span>
-        </button>
-      `).join('');
-    } else if (items.length) {
-      els.libraryGrid.innerHTML = items.map((track, index) => {
-        const art =
-          getArtwork(track.artworkUrl100) || '/icon-192.png';
-
-        return `
-          <button
-            type="button"
-            class="album-card"
-            data-library-index="${index}"
-          >
-            <img
-              class="album-art"
-              src="${esc(art)}"
-              alt=""
-              loading="lazy"
-              onerror="this.onerror=null;this.src='/icon-192.png'"
+      els.libraryGrid.innerHTML =
+        starterQueries.map(
+          (name, index) => `
+            <button
+              type="button"
+              class="album-card"
+              data-playlist-query="${esc(name)}"
             >
+              <span
+                class="album-art album-art-fallback"
+                style="--card-gradient:${gradients[index % gradients.length]}"
+              >${symbols[index % symbols.length]}</span>
 
-            <span class="album-title">
-              ${esc(track.trackName || track.collectionName || 'Saved song')}
-            </span>
+              <span class="album-title">
+                ${esc(titleCase(name))}
+              </span>
 
-            <span class="album-subtitle">
-              ${esc(track.artistName || 'Unknown artist')}
-            </span>
-          </button>
-        `;
-      }).join('');
+              <span class="album-subtitle">
+                Search this mood
+              </span>
+            </button>
+          `
+        ).join('');
+    } else if (savedTracks.length) {
+      els.libraryGrid.innerHTML =
+        savedTracks.map(
+          (track, index) => {
+            const artwork =
+              getArtwork(track.artworkUrl100) ||
+              '/icon-192.png';
+
+            return `
+              <button
+                type="button"
+                class="album-card"
+                data-library-index="${index}"
+              >
+                <img
+                  class="album-art"
+                  src="${esc(artwork)}"
+                  alt=""
+                  loading="lazy"
+                  onerror="this.onerror=null;this.src='/icon-192.png'"
+                >
+
+                <span class="album-title">
+                  ${esc(
+                    track.trackName ||
+                    track.collectionName ||
+                    'Saved song'
+                  )}
+                </span>
+
+                <span class="album-subtitle">
+                  ${esc(track.artistName || 'Unknown artist')}
+                </span>
+              </button>
+            `;
+          }
+        ).join('');
     } else {
       els.libraryGrid.innerHTML = `
         <div class="library-empty">
           ${
             kind === 'liked'
-              ? 'Your liked songs will appear here. Tap ♡ beside any song to save it.'
+              ? 'Your liked songs will appear here. Tap ♡ beside a song to save it.'
               : 'Your personal collection will appear here when you like songs.'
           }
         </div>
@@ -903,19 +1131,25 @@
   function toggleLike(track) {
     if (!track) return;
 
-    let liked = getLikes();
+    let saved = getLikes();
     const key = trackKey(track);
 
-    if (liked.some((item) => trackKey(item) === key)) {
-      liked = liked.filter((item) => trackKey(item) !== key);
+    if (
+      saved.some((item) => trackKey(item) === key)
+    ) {
+      saved = saved.filter(
+        (item) => trackKey(item) !== key
+      );
+
       toast('Removed from Liked Songs');
     } else {
-      liked.unshift(track);
-      liked = liked.slice(0, 100);
+      saved.unshift(track);
+      saved = saved.slice(0, 100);
+
       toast('Added to Liked Songs');
     }
 
-    writeJSON('tw-likes', liked);
+    writeJSON('tw-likes', saved);
 
     updateLikeCount();
     renderTracks();
@@ -925,10 +1159,12 @@
       tracks[currentIndex] &&
       trackKey(tracks[currentIndex]) === key
     ) {
-      const status = isLiked(tracks[currentIndex]);
+      const liked = isLiked(tracks[currentIndex]);
 
-      els.playerLike.classList.toggle('liked', status);
-      els.playerLike.textContent = status ? '♥' : '♡';
+      if (els.playerLike) {
+        els.playerLike.classList.toggle('liked', liked);
+        els.playerLike.textContent = liked ? '♥' : '♡';
+      }
     }
 
     if (currentView === 'liked') {
@@ -936,9 +1172,9 @@
     }
   }
 
-  // ============================================================
-  // Player controls
-  // ============================================================
+  // =========================================================
+  // Audio player
+  // =========================================================
 
   function setPlayerTrack(index, autoplay = true) {
     if (
@@ -953,11 +1189,13 @@
 
     const track = tracks[index];
 
-    const art =
-      getArtwork(track.artworkUrl100) || '/icon-192.png';
+    const artwork =
+      getArtwork(track.artworkUrl100) ||
+      '/icon-192.png';
 
-    els.playerArtwork.src = art;
-    els.playerArtwork.alt = `${track.trackName || 'Track'} artwork`;
+    els.playerArtwork.src = artwork;
+    els.playerArtwork.alt =
+      `${track.trackName || 'Track'} artwork`;
 
     els.playerTitle.textContent =
       track.trackName || 'Unknown track';
@@ -969,19 +1207,24 @@
       formatTime(durationOf(track));
 
     els.progress.value = '0';
-
     paintRange(els.progress, 0);
 
     els.currentTime.textContent = '0:00';
 
     const liked = isLiked(track);
 
-    els.playerLike.classList.toggle('liked', liked);
-    els.playerLike.textContent = liked ? '♥' : '♡';
+    if (els.playerLike) {
+      els.playerLike.classList.toggle('liked', liked);
 
-    // Prefer Jamendo's full audio stream URL.
-    // previewUrl is retained for compatibility with the original UI.
-    const audioUrl = track.audioUrl || track.previewUrl || '';
+      els.playerLike.textContent =
+        liked ? '♥' : '♡';
+    }
+
+    // Jamendo provides the actual stream URL in `audio`.
+    const audioUrl =
+      track.audioUrl ||
+      track.previewUrl ||
+      '';
 
     if (!audioUrl) {
       els.audio.pause();
@@ -990,7 +1233,7 @@
 
       els.play.textContent = '▶';
 
-      toast('Audio is unavailable for this track. Open its source page.');
+      toast('Audio is unavailable for this track.');
 
       if (track.trackViewUrl) {
         window.open(
@@ -1003,7 +1246,6 @@
       return;
     }
 
-    // Always reload the selected stream.
     els.audio.pause();
     els.audio.src = audioUrl;
     els.audio.load();
@@ -1020,7 +1262,7 @@
           els.play.textContent = '▶';
 
           toast(
-            'Could not start this track. Try tapping play again or select another track.'
+            'Playback could not start. Try again or choose another track.'
           );
         });
     } else {
@@ -1062,32 +1304,26 @@
   function openTrackSource(track) {
     if (!track) return;
 
-    if (track.trackViewUrl) {
-      window.open(
-        track.trackViewUrl,
-        '_blank',
-        'noopener,noreferrer'
-      );
+    const sourceUrl =
+      track.trackViewUrl ||
+      track.licenseUrl ||
+      '';
 
+    if (!sourceUrl) {
+      toast('Source details are not available.');
       return;
     }
 
-    if (track.licenseUrl) {
-      window.open(
-        track.licenseUrl,
-        '_blank',
-        'noopener,noreferrer'
-      );
-
-      return;
-    }
-
-    toast('Source information is not available for this track.');
+    window.open(
+      sourceUrl,
+      '_blank',
+      'noopener,noreferrer'
+    );
   }
 
-  // ============================================================
-  // Search form and navigation events
-  // ============================================================
+  // =========================================================
+  // Search and dashboard controls
+  // =========================================================
 
   els.form.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -1107,11 +1343,9 @@
   els.explore.addEventListener('click', () => {
     els.input.focus();
 
-    if (els.input.value.trim()) {
-      runSearch(els.input.value);
-    } else {
-      runSearch('electronic');
-    }
+    runSearch(
+      els.input.value.trim() || 'electronic'
+    );
   });
 
   if (els.menuToggle && els.sidebar) {
@@ -1135,32 +1369,47 @@
     });
   }
 
-  // Central handler for dynamically generated buttons.
+  // =========================================================
+  // Event delegation for dynamically generated content
+  // =========================================================
+
   document.addEventListener('click', (event) => {
     const target = event.target.closest('button');
 
     if (!target) return;
 
+    if (target.dataset.loadMore != null) {
+      loadMoreTracks();
+      return;
+    }
+
     if (target.dataset.playIndex != null) {
-      setPlayerTrack(Number(target.dataset.playIndex), true);
+      setPlayerTrack(
+        Number(target.dataset.playIndex),
+        true
+      );
       return;
     }
 
     if (target.dataset.likeIndex != null) {
-      toggleLike(tracks[Number(target.dataset.likeIndex)]);
+      toggleLike(
+        tracks[Number(target.dataset.likeIndex)]
+      );
       return;
     }
 
     if (target.dataset.openIndex != null) {
-      openTrackSource(tracks[Number(target.dataset.openIndex)]);
+      openTrackSource(
+        tracks[Number(target.dataset.openIndex)]
+      );
       return;
     }
 
     if (target.dataset.albumIndex != null) {
-      const album = albums[Number(target.dataset.albumIndex)];
+      const album =
+        albums[Number(target.dataset.albumIndex)];
 
       if (album) {
-        // Search the album title in the track catalogue.
         runSearch(
           album.collectionName ||
           album.artistName ||
@@ -1176,7 +1425,6 @@
       runSearch(target.dataset.recentQuery, {
         fromHistory: true
       });
-
       return;
     }
 
@@ -1192,19 +1440,19 @@
 
     if (target.dataset.libraryIndex != null) {
       const saved = getLikes();
-      const chosen = saved[Number(target.dataset.libraryIndex)];
+
+      const chosen =
+        saved[Number(target.dataset.libraryIndex)];
 
       if (!chosen) return;
 
       const chosenKey = trackKey(chosen);
 
-      // Search by artist/title, then play the matching Jamendo track.
-      const searchFor =
+      runSearch(
         chosen.trackName ||
         chosen.artistName ||
-        'independent music';
-
-      runSearch(searchFor).then(() => {
+        'independent music'
+      ).then(() => {
         const found = tracks.findIndex(
           (item) => trackKey(item) === chosenKey
         );
@@ -1213,63 +1461,70 @@
           setPlayerTrack(found, true);
         } else {
           toast(
-            'This saved track was not found in the current results. Try searching for it again.'
+            'Track not found in these results. Try searching for it again.'
           );
         }
       });
-
-      return;
     }
   });
 
-  document.querySelectorAll('[data-nav]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const nav = button.dataset.nav;
+  // =========================================================
+  // Navigation
+  // =========================================================
 
-      if (els.sidebar) {
-        els.sidebar.classList.remove('open');
-      }
+  document.querySelectorAll('[data-nav]').forEach(
+    (button) => {
+      button.addEventListener('click', () => {
+        const nav = button.dataset.nav;
 
-      if (nav === 'home') {
-        currentView = 'home';
-
-        els.input.value = '';
-        els.clearSearch.hidden = true;
-
-        els.heroKicker.textContent = 'YOUR NEXT FAVORITE TRACK';
-
-        els.heroTitle.innerHTML =
-          'Discover<br><span>New Music</span>';
-
-        els.heroDescription.textContent =
-          'Find your next favorite independent song, artist or album.';
-
-        els.albumsHeading.textContent = 'Featured Albums';
-        els.resultsHeading.textContent = 'Popular Songs';
-        els.songsEyebrow.textContent = "WHAT'S SOUNDING GOOD";
-
-        setActiveNav('home');
-
-        runSearch('popular music', {
-          fromHistory: true,
-          mode: 'home'
-        });
-      } else if (nav === 'search') {
-        setActiveNav('search');
-        els.input.focus();
-
-        if (els.input.value.trim()) {
-          runSearch(els.input.value);
+        if (els.sidebar) {
+          els.sidebar.classList.remove('open');
         }
-      } else {
-        renderLibrary(nav);
-      }
-    });
-  });
 
-  // ============================================================
-  // Player button events
-  // ============================================================
+        if (nav === 'home') {
+          currentView = 'home';
+
+          els.input.value = '';
+          els.clearSearch.hidden = true;
+
+          els.heroKicker.textContent =
+            'YOUR NEXT FAVORITE TRACK';
+
+          els.heroTitle.innerHTML =
+            'Discover<br><span>New Music</span>';
+
+          els.heroDescription.textContent =
+            'Find your next favorite song, artist or album.';
+
+          els.albumsHeading.textContent = 'Featured Albums';
+          els.resultsHeading.textContent = 'Popular Songs';
+
+          els.songsEyebrow.textContent =
+            "WHAT'S SOUNDING GOOD";
+
+          setActiveNav('home');
+
+          runSearch('popular music', {
+            fromHistory: true,
+            mode: 'home'
+          });
+        } else if (nav === 'search') {
+          setActiveNav('search');
+          els.input.focus();
+
+          if (els.input.value.trim()) {
+            runSearch(els.input.value);
+          }
+        } else {
+          renderLibrary(nav);
+        }
+      });
+    }
+  );
+
+  // =========================================================
+  // Player buttons
+  // =========================================================
 
   els.play.addEventListener('click', () => {
     if (currentIndex < 0) {
@@ -1290,7 +1545,7 @@
         })
         .catch((error) => {
           console.warn('TuneWave playback error:', error);
-          toast('This track could not be played. Try another track.');
+          toast('This track could not be played.');
         });
     } else {
       els.audio.pause();
@@ -1308,11 +1563,12 @@
   if (els.shuffle) {
     els.shuffle.addEventListener('click', () => {
       shuffleOn = !shuffleOn;
-
       els.shuffle.classList.toggle('on', shuffleOn);
 
       toast(
-        shuffleOn ? 'Shuffle enabled' : 'Shuffle disabled'
+        shuffleOn
+          ? 'Shuffle enabled'
+          : 'Shuffle disabled'
       );
     });
   }
@@ -1320,11 +1576,12 @@
   if (els.repeat) {
     els.repeat.addEventListener('click', () => {
       repeatOn = !repeatOn;
-
       els.repeat.classList.toggle('on', repeatOn);
 
       toast(
-        repeatOn ? 'Repeat enabled' : 'Repeat disabled'
+        repeatOn
+          ? 'Repeat enabled'
+          : 'Repeat disabled'
       );
     });
   }
@@ -1349,17 +1606,20 @@
     });
   }
 
-  // ============================================================
-  // Progress, volume, and audio events
-  // ============================================================
+  // =========================================================
+  // Progress, volume and audio events
+  // =========================================================
 
   els.progress.addEventListener('input', () => {
     const duration = els.audio.duration;
 
-    if (Number.isFinite(duration) && duration > 0) {
-      const percent = Number(els.progress.value);
-
-      els.audio.currentTime = (percent / 100) * duration;
+    if (
+      Number.isFinite(duration) &&
+      duration > 0
+    ) {
+      els.audio.currentTime =
+        (Number(els.progress.value) / 100) *
+        duration;
     }
 
     paintRange(
@@ -1370,7 +1630,8 @@
 
   if (els.volume) {
     els.volume.addEventListener('input', () => {
-      els.audio.volume = Number(els.volume.value);
+      els.audio.volume =
+        Number(els.volume.value);
 
       paintRange(
         els.volume,
@@ -1434,14 +1695,14 @@
   els.audio.addEventListener('error', () => {
     if (currentIndex >= 0) {
       toast(
-        'This track could not be streamed. Try another track or open its source page.'
+        'This track is unavailable. Try another track.'
       );
     }
   });
 
-  // ============================================================
+  // =========================================================
   // Keyboard shortcuts
-  // ============================================================
+  // =========================================================
 
   document.addEventListener('keydown', (event) => {
     if (
@@ -1460,14 +1721,13 @@
     }
   });
 
-  // ============================================================
+  // =========================================================
   // Initial setup
-  // ============================================================
+  // =========================================================
 
   renderRecent();
   updateLikeCount();
 
-  // Load a selection on the home page when the dashboard starts.
   runSearch('popular music', {
     fromHistory: true,
     mode: 'home'
