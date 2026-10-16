@@ -1,7 +1,9 @@
 (() => {
   'use strict';
 
-  const API = 'https://itunes.apple.com/search';
+  const API = 'https://api.jamendo.com/v3.0/tracks/';
+  // Create a Jamendo developer app and paste its client_id here before deploying.
+  const JAMENDO_CLIENT_ID = 'PASTE_YOUR_JAMENDO_CLIENT_ID_HERE';
   const $ = (id) => document.getElementById(id);
   const els = {
     form: $('searchForm'), input: $('searchInput'), clearSearch: $('clearSearch'),
@@ -51,11 +53,11 @@
     if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
     return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
   };
-  const durationOf = (track) => Math.round((track.trackTimeMillis || 0) / 1000);
+  const durationOf = (track) => Math.round(track.duration || (track.trackTimeMillis || 0) / 1000);
   const getArtwork = (url, size = 300) => (url || '').replace(/\d+x\d+bb\.(jpg|png|jpeg)$/i, `${size}x${size}bb.$1`);
   const getLikes = () => readJSON('tw-likes');
   const getSearches = () => readJSON('tw-searches');
-  const trackKey = (t) => String(t.trackId || t.collectionId || `${t.trackName}|${t.artistName}`);
+  const trackKey = (t) => String(t.trackId || t.id || t.collectionId || `${t.trackName}|${t.artistName}`);
   const isLiked = (track) => getLikes().some(item => trackKey(item) === trackKey(track));
 
   function toast(message) {
@@ -66,11 +68,35 @@
   }
 
   async function apiSearch(query, entity, limit) {
-    const params = new URLSearchParams({term: query, media: 'music', entity, limit: String(limit), country: 'IN'});
+    if (!JAMENDO_CLIENT_ID || JAMENDO_CLIENT_ID.includes('PASTE_YOUR')) {
+      throw new Error('Add your Jamendo client ID in app.js to enable full-track music search.');
+    }
+    const params = new URLSearchParams({
+      client_id: JAMENDO_CLIENT_ID, format: 'json', limit: String(limit),
+      search: query, include: 'licenses', audioformat: 'mp32',
+      // Request both singles and album tracks; the API returns full stream URLs.
+      type: 'single albumtrack'
+    });
     const response = await fetch(`${API}?${params.toString()}`, {headers: {Accept: 'application/json'}});
     if (!response.ok) throw new Error(`Music search is temporarily unavailable (${response.status}).`);
     const body = await response.json();
-    return Array.isArray(body.results) ? body.results : [];
+    if (body.headers?.status !== 'success') throw new Error(body.headers?.error_message || 'Jamendo could not return music results.');
+    const results = Array.isArray(body.results) ? body.results : [];
+    return results.map(item => ({
+      ...item,
+      trackId: item.id,
+      trackName: item.name,
+      artistName: item.artist_name,
+      collectionId: item.album_id || item.id,
+      collectionName: item.album_name || item.name,
+      artworkUrl100: item.album_image || item.image,
+      primaryGenreName: item.musicinfo?.tags?.genres?.[0] || 'Independent music',
+      trackTimeMillis: (item.duration || 0) * 1000,
+      previewUrl: item.audio,
+      trackViewUrl: item.shareurl || item.shorturl,
+      licenseUrl: item.license_ccurl || '',
+      audioUrl: item.audio
+    }));
   }
 
   function setLoading(query) {
@@ -134,7 +160,7 @@
       if (tracks.length) {
         els.message.textContent = currentView === 'home'
           ? 'Explore the current popular search, or search above for a specific song, artist or album.'
-          : `Showing music results for “${clean}”. Select a play button to listen to an available preview.`;
+          : `Showing music results for “${clean}”. Select a play button to stream the full available track.`;
       } else {
         els.message.textContent = `No tracks found for “${clean}”. Try a different spelling or search term.`;
       }
@@ -252,7 +278,7 @@
       els.audio.pause();
       els.audio.removeAttribute('src');
       els.play.textContent = '▶';
-      toast('A preview is not available for this track. Open the song details instead.');
+      toast('Full-track audio is unavailable for this track. Open its source page instead.');
       if (track.trackViewUrl) window.open(track.trackViewUrl, '_blank', 'noopener,noreferrer');
       return;
     }
@@ -262,7 +288,7 @@
       const result = els.audio.play();
       if (result && typeof result.then === 'function') result.then(() => { els.play.textContent = 'Ⅱ'; }).catch(() => {
         els.play.textContent = '▶';
-        toast('Tap play again to start this preview.');
+        toast('Tap play again to start this track.');
       });
     }
     els.play.setAttribute('aria-label', autoplay ? 'Pause' : 'Play');
@@ -379,7 +405,7 @@
       return;
     }
     if (els.audio.paused) {
-      els.audio.play().then(() => { els.play.textContent = 'Ⅱ'; }).catch(() => toast('This preview could not be played. Try another track.'));
+      els.audio.play().then(() => { els.play.textContent = 'Ⅱ'; }).catch(() => toast('This track could not be played. Try another track.'));
     } else els.audio.pause();
   });
   els.prev.addEventListener('click', playPrevious);
@@ -407,7 +433,7 @@
   });
   els.audio.addEventListener('loadedmetadata', () => { els.totalTime.textContent = formatTime(els.audio.duration); });
   els.audio.addEventListener('ended', () => { if (repeatOn) { els.audio.currentTime = 0; els.audio.play().catch(() => {}); } else playNext(); });
-  els.audio.addEventListener('error', () => { if (currentIndex >= 0) toast('This preview is unavailable right now. Try another song.'); });
+  els.audio.addEventListener('error', () => { if (currentIndex >= 0) toast('This track is unavailable right now. Try another song.'); });
 
   // Clicking a card and the keyboard shortcuts stay within the dashboard.
   document.addEventListener('keydown', event => {
