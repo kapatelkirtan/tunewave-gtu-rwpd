@@ -1,24 +1,25 @@
+
 {
-  "name": "TuneWave — NewPipe Music Bridge",
+  "name": "TuneWave",
   "short_name": "TuneWave",
-  "description": "A free music-search interface that opens NewPipe on Android or YouTube in a browser.",
-  "start_url": "./index.html",
+  "description": "Discover and play music with TuneWave.",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#090b1b",
-  "theme_color": "#090b1b",
+  "background_color": "#080b18",
+  "theme_color": "#080b18",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "icon-512.png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
