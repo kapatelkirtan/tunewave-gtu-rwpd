@@ -2,138 +2,295 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#070c25">
-  <meta name="description" content="Discover songs, artists and albums with TuneWave. Search music and play available audio previews in a polished music dashboard.">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d0f14">
+  <meta name="description" content="TuneWave — discover and play music from Audius.">
   <meta name="application-name" content="TuneWave">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://tunewave-gtu-rwpd-1.onrender.com/">
-  <link rel="icon" type="image/svg+xml" href="/icon.svg">
-  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
-  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="TuneWave">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <title>TuneWave — Music, your way</title>
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="TuneWave">
-  <meta property="og:title" content="TuneWave — Discover Music">
-  <meta property="og:description" content="Find songs, artists and albums, then listen to available previews with TuneWave.">
-  <meta property="og:url" content="https://tunewave-gtu-rwpd-1.onrender.com/">
-  <meta property="og:image" content="https://tunewave-gtu-rwpd-1.onrender.com/icon-192.png">
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"WebSite","name":"TuneWave","alternateName":"TuneWave Music","url":"https://tunewave-gtu-rwpd-1.onrender.com/"}
-  </script>
-  <title>TuneWave — Discover Music</title>
-  <link rel="stylesheet" href="/style.css">
-  <script src="/app.js" defer></script>
+  <link rel="icon" href="/assets/tunewave.svg" type="image/svg+xml">
+  <style>
+    :root{color-scheme:dark;--bg:#0c0e13;--panel:#141720;--panel2:#1b1f2b;--line:#292e3b;--muted:#9aa2b6;--text:#f4f6fb;--accent:#b9f36b;--accent2:#d5ffa2;--danger:#ff7e8c;--radius:18px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(1000px 540px at 65% -15%,#27351f 0%,transparent 57%),var(--bg);color:var(--text);font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh;padding-bottom:112px}button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.app{display:grid;grid-template-columns:224px minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;padding:27px 17px 20px 22px;border-right:1px solid #ffffff0d;display:flex;flex-direction:column;gap:28px;background:#0c0e13d9;backdrop-filter:blur(18px)}.brand{display:flex;align-items:center;gap:11px;font-size:21px;font-weight:850;letter-spacing:-.8px}.brand-mark{width:36px;height:36px;border-radius:12px;background:var(--accent);display:grid;place-items:center;color:#12170c;font-weight:950;font-size:17px;box-shadow:0 5px 24px #b9f36b30}.side-label{color:#777f94;font-size:10px;font-weight:800;letter-spacing:1.7px;margin:0 0 9px 11px}.nav{display:grid;gap:4px}.nav button{border:0;background:transparent;color:#9da4b7;text-align:left;padding:11px 12px;border-radius:11px;display:flex;align-items:center;gap:12px;font-weight:650}.nav button:hover,.nav button.active{background:#b9f36b15;color:var(--accent)}.nav-icon{width:18px;text-align:center;font-size:17px}.sidebar-bottom{margin-top:auto;display:grid;gap:12px}.sidebar-note{color:#7e879d;font-size:11px;padding:13px;border:1px solid var(--line);border-radius:13px;line-height:1.55}.tiny-pill{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase}.tiny-pill:before{content:"";height:6px;width:6px;border-radius:50%;background:var(--accent)}main{min-width:0;padding:27px clamp(18px,4vw,55px) 140px}.topbar{display:flex;align-items:center;gap:14px;margin-bottom:27px}.search-wrap{flex:1;max-width:670px;position:relative}.search-wrap input{height:48px;width:100%;background:#181b25;border:1px solid #2a2e3c;border-radius:14px;color:var(--text);padding:0 15px 0 45px}.search-wrap input::placeholder{color:#727b91}.search-icon{position:absolute;left:16px;top:13px;color:#80889d;font-size:19px}.icon-btn{width:44px;height:44px;border:1px solid var(--line);border-radius:13px;background:#171a23;color:#d9deea;display:grid;place-items:center;font-size:18px}.icon-btn:hover{border-color:#7a8c58;color:var(--accent)}.hero{border:1px solid #b9f36b22;min-height:245px;border-radius:25px;padding:clamp(22px,4vw,44px);position:relative;overflow:hidden;background:linear-gradient(112deg,#26371d 0%,#1b2b20 42%,#171e23 82%);display:flex;align-items:center;margin-bottom:33px}.hero:after{content:"♫";position:absolute;right:7%;top:-48px;font-size:280px;line-height:1;color:#b9f36b0b;transform:rotate(14deg);font-weight:900;pointer-events:none}.hero-content{position:relative;z-index:1;max-width:550px}.eyebrow{font-size:11px;font-weight:850;letter-spacing:2px;color:var(--accent);text-transform:uppercase;display:flex;align-items:center;gap:8px}.hero h1{font-size:clamp(31px,5vw,52px);line-height:1.05;letter-spacing:-2px;margin:13px 0 12px;max-width:540px}.hero p{color:#bdc5b9;max-width:470px;margin:0 0 22px;font-size:14px}.primary-btn,.secondary-btn{border:0;border-radius:12px;padding:12px 17px;font-size:13px;font-weight:850;display:inline-flex;align-items:center;gap:9px}.hero-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.install-top-btn{height:44px;border:0;border-radius:12px;padding:0 13px;background:var(--accent);color:#11160a;font-size:12px;font-weight:850;white-space:nowrap}.install-top-btn:hover{background:var(--accent2)}.install-steps{margin:0;padding-left:20px;color:#dce1eb;font-size:13px}.install-steps li{margin:8px 0}.install-tip{margin-top:14px!important;padding:11px 12px;border-radius:11px;background:#b9f36b12;border:1px solid #b9f36b27;color:#cbd5be!important}.primary-btn{background:var(--accent);color:#11160a}.primary-btn:hover{background:var(--accent2);transform:translateY(-1px)}.secondary-btn{background:#ffffff10;border:1px solid #ffffff1c;color:#edf0f6}.section-head{display:flex;align-items:end;justify-content:space-between;gap:15px;margin:0 0 17px}.section-head h2{font-size:21px;letter-spacing:-.65px;margin:0}.section-head p{margin:4px 0 0;color:var(--muted);font-size:12px}.text-btn{background:transparent;border:0;color:var(--accent);font-size:12px;font-weight:750;padding:8px}.songs{display:grid;gap:5px}.song{display:grid;grid-template-columns:42px minmax(0,1fr) 45px 55px;align-items:center;gap:14px;padding:9px 11px;border-radius:13px;min-width:0;border:1px solid transparent;transition:background .15s}.song:hover{background:#ffffff07;border-color:#ffffff0c}.song.playing{background:#b9f36b10;border-color:#b9f36b25}.cover{width:42px;height:42px;border-radius:9px;object-fit:cover;background:#252a37;display:block}.song-info{min-width:0}.song-title{font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.song-artist{color:#9099ad;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px}.duration{color:#858da1;font-size:11px;text-align:right;font-variant-numeric:tabular-nums}.row-play,.heart-btn{border:0;background:transparent;color:#a2a9ba;display:grid;place-items:center;border-radius:10px;width:35px;height:35px;font-size:15px}.row-play:hover,.heart-btn:hover,.heart-btn.liked{color:var(--accent);background:#b9f36b10}.song:hover .row-play{color:var(--accent)}.empty{padding:36px 18px;text-align:center;color:#9099ad;border:1px dashed #343a4a;border-radius:15px}.empty strong{display:block;color:#e2e6ef;margin-bottom:5px}.loading{height:3px;border-radius:5px;overflow:hidden;background:#242936;margin:6px 0 15px}.loading:after{content:"";display:block;width:32%;height:100%;background:var(--accent);animation:load 1.1s infinite ease-in-out}@keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(330%)}}.notice{display:none;margin-bottom:17px;padding:12px 14px;background:#39252a;border:1px solid #63343d;border-radius:12px;color:#ffdbe0;font-size:12px}.notice.show{display:block}.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:0 0 34px}.tile{background:linear-gradient(145deg,#1c222d,#151821);border:1px solid #ffffff0c;border-radius:15px;padding:17px;min-height:120px;text-align:left;color:var(--text)}.tile:hover{border-color:#b9f36b50;transform:translateY(-2px)}.tile-icon{font-size:22px;margin-bottom:17px}.tile-title{font-weight:800;font-size:13px}.tile-sub{color:var(--muted);font-size:11px;margin-top:4px}.bottom-player{position:fixed;z-index:5;bottom:0;left:0;right:0;min-height:86px;border-top:1px solid #ffffff16;background:#11131beF;backdrop-filter:blur(23px);display:grid;grid-template-columns:minmax(150px,1fr) minmax(220px,1.25fr) minmax(110px,1fr);align-items:center;gap:18px;padding:12px clamp(15px,3vw,32px) calc(12px + env(safe-area-inset-bottom))}.now-playing{display:flex;align-items:center;gap:11px;min-width:0}.now-playing .cover{width:52px;height:52px;border-radius:11px;flex-shrink:0}.now-text{min-width:0}.now-text .song-title{font-size:12px}.now-text .song-artist{font-size:10px}.player-controls{display:grid;gap:8px;min-width:0}.control-row{display:flex;align-items:center;justify-content:center;gap:20px}.control{background:none;border:0;color:#c4cad7;font-size:17px;padding:3px}.control:hover{color:var(--accent)}.play-control{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#10150b;font-size:14px;display:grid;place-items:center;border:0}.play-control:hover{background:var(--accent2);color:#10150b}.progress-row{display:flex;align-items:center;gap:9px;color:#878fa3;font-size:10px;font-variant-numeric:tabular-nums}.range{appearance:none;height:4px;border-radius:4px;background:#454b59;outline:none;flex:1;min-width:30px;cursor:pointer}.range::-webkit-slider-thumb{appearance:none;width:10px;height:10px;border-radius:50%;background:var(--accent)}.range::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--accent);border:0}.volume-wrap{display:flex;align-items:center;justify-content:flex-end;gap:10px}.volume-wrap .range{max-width:96px}.volume-wrap .icon-btn{width:34px;height:34px;background:transparent}.mobile-nav{display:none}.source-label{display:block;color:#738097;font-size:9px;margin-top:2px}.modal-backdrop{position:fixed;inset:0;z-index:20;background:#000a;backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:20px}.modal-backdrop.open{display:flex}.modal{width:min(440px,100%);background:#171a23;border:1px solid #363c4b;border-radius:20px;padding:23px;box-shadow:0 24px 100px #0008}.modal h2{margin:0 0 8px;font-size:22px}.modal p{color:var(--muted);font-size:12px;margin:0 0 20px}.modal label{display:block;color:#bac1d0;font-size:12px;font-weight:700;margin:14px 0 7px}.modal input{width:100%;background:#0f1118;color:var(--text);border:1px solid #343a49;border-radius:10px;padding:11px 12px}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}.playlist-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:13px;margin-top:9px}.playlist-card .grow{flex:1;min-width:0}.small{font-size:11px;color:var(--muted)}.toast{position:fixed;z-index:30;bottom:115px;left:50%;transform:translate(-50%,15px);opacity:0;pointer-events:none;background:#242a32;border:1px solid #424a55;color:#f6f8fc;padding:11px 16px;border-radius:12px;box-shadow:0 8px 30px #0005;font-size:12px;transition:.2s;max-width:90vw}.toast.show{opacity:1;transform:translate(-50%,0)}.footer-note{margin-top:24px;color:#626b7f;font-size:10px;line-height:1.6}.footer-note a{color:#9fbf7f}.hidden{display:none!important}
+    @media(max-width:900px){.app{grid-template-columns:76px minmax(0,1fr)}.sidebar{padding:22px 11px;align-items:center}.brand{font-size:0}.brand-mark{flex-shrink:0}.side-label,.nav-text,.sidebar-note,.sidebar-bottom .tiny-pill{display:none}.nav button{justify-content:center;width:48px;height:45px;padding:0}.nav-icon{font-size:19px}.sidebar-bottom{width:100%;justify-items:center}main{padding:22px 22px 140px}.bottom-player{grid-template-columns:minmax(130px,1fr) minmax(220px,1.5fr);gap:12px}.volume-wrap{display:none}}
+    @media(max-width:600px){#download-app-btn{display:none}body{padding-bottom:145px}.app{display:block}.sidebar{display:none}main{padding:17px 15px 180px}.topbar{gap:8px;margin-bottom:18px}.search-wrap input{height:44px;font-size:12px;padding-left:39px}.search-icon{left:13px;top:11px}.icon-btn{width:40px;height:40px}.hero{min-height:220px;border-radius:20px;padding:24px 20px;margin-bottom:26px}.hero h1{font-size:35px}.hero p{font-size:12px;max-width:280px}.hero:after{right:-6%;font-size:190px;top:10px}.tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.tile{padding:12px 10px;min-height:106px}.tile-icon{font-size:18px;margin-bottom:13px}.tile-title{font-size:11px}.tile-sub{font-size:9px}.section-head h2{font-size:19px}.song{grid-template-columns:38px minmax(0,1fr) 34px 35px;gap:8px;padding:8px 4px}.cover{width:38px;height:38px}.song-title{font-size:12px}.song-artist{font-size:10px}.duration{font-size:10px}.heart-btn,.row-play{width:30px;height:30px}.bottom-player{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding:9px 12px calc(8px + env(safe-area-inset-bottom));min-height:127px}.now-playing{grid-column:1;grid-row:1}.now-playing .cover{width:43px;height:43px}.player-controls{grid-column:1/-1;grid-row:2;display:flex;align-items:center;gap:12px}.control-row{gap:19px;flex:0 0 auto}.progress-row{flex:1;min-width:70px}.progress-row .range{min-width:28px}.bottom-player .duration{font-size:9px}.now-text .song-title{font-size:11px}.now-text .song-artist{font-size:9px}.mobile-nav{position:fixed;z-index:6;bottom:calc(127px + env(safe-area-inset-bottom));left:0;right:0;display:flex;justify-content:space-around;background:#11131bcc;backdrop-filter:blur(16px);border-top:1px solid #ffffff0e;padding:7px 8px}.mobile-nav button{border:0;background:transparent;color:#8f97aa;display:grid;gap:2px;justify-items:center;font-size:9px}.mobile-nav button span:first-child{font-size:17px}.mobile-nav button.active{color:var(--accent)}.footer-note{padding-bottom:25px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+  </style>
 </head>
 <body>
-  <div class="mobile-topbar">
-    <a class="brand" href="#home" aria-label="TuneWave home"><img src="/icon-192.png" alt="" class="brand-icon"><span>Tune<span>Wave</span></span></a>
-    <button class="icon-button menu-toggle" id="menuToggle" aria-label="Open navigation" type="button">☰</button>
-  </div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">TW</span><span>TuneWave</span></div>
+    <div><p class="side-label">YOUR SPACE</p><nav class="nav" aria-label="Main navigation">
+      <button class="active" data-view="home"><span class="nav-icon">⌂</span><span class="nav-text">Discover</span></button>
+      <button data-view="search"><span class="nav-icon">⌕</span><span class="nav-text">Search music</span></button>
+      <button data-view="favorites"><span class="nav-icon">♡</span><span class="nav-text">Liked songs</span></button>
+      <button data-view="playlists"><span class="nav-icon">▤</span><span class="nav-text">Your playlists</span></button>
+    </nav></div>
+    <div><p class="side-label">LIBRARY</p><nav class="nav"><button id="create-playlist-side"><span class="nav-icon">＋</span><span class="nav-text">Create playlist</span></button><button id="settings-side"><span class="nav-icon">⚙</span><span class="nav-text">Provider settings</span></button></nav></div>
+    <div class="sidebar-bottom"><div class="tiny-pill">Free player</div><div class="sidebar-note">No TuneWave premium tier and no ad placements built into this app. Provider catalogs and terms still apply.</div></div>
+  </aside>
+  <main>
+    <header class="topbar">
+      <div class="search-wrap"><span class="search-icon">⌕</span><input type="search" id="search" placeholder="Search songs, artists, moods…" autocomplete="off" aria-label="Search Audius music"></div>
+      <button class="install-top-btn" id="download-app-btn" type="button">⇩ Download App</button>
+      <button class="icon-btn" id="settings-top" title="Provider settings" aria-label="Provider settings">⚙</button>
+      <button class="icon-btn" id="create-playlist-top" title="Create playlist" aria-label="Create playlist">＋</button>
+    </header>
+    <div class="notice" id="notice" role="status"></div>
+    <section class="hero" id="hero">
+      <div class="hero-content"><div class="eyebrow">✦ Music discovery, made simple</div><h1>Your next favorite<br>starts here.</h1><p>Explore tracks from Audius, build playlists, and install TuneWave on your device for a more app-like listening experience.</p><div class="hero-actions"><button class="primary-btn" id="explore-btn">▶ &nbsp; Explore trending</button><button class="secondary-btn" id="download-app-hero" type="button">⇩ Download App</button></div></div>
+    </section>
+    <section aria-label="Quick shortcuts" class="tiles">
+      <button class="tile" data-view="favorites"><div class="tile-icon">♡</div><div class="tile-title">Liked songs</div><div class="tile-sub" id="liked-count">Saved on this device</div></button>
+      <button class="tile" data-view="playlists"><div class="tile-icon">▤</div><div class="tile-title">Your playlists</div><div class="tile-sub" id="playlist-count">Make it yours</div></button>
+      <button class="tile" id="install-btn" type="button"><div class="tile-icon">⇩</div><div class="tile-title">Download App</div><div class="tile-sub" id="install-tile-sub">Install on this device</div></button>
+    </section>
+    <section id="library-section">
+      <div class="section-head"><div><h2 id="list-title">Trending on Audius</h2><p id="list-subtitle">Fresh discoveries from the open music catalog</p></div><button class="text-btn" id="refresh-btn">Refresh ↻</button></div>
+      <div class="loading" id="loading" hidden></div>
+      <div id="song-list" class="songs" aria-live="polite"><div class="empty"><strong>Loading your music</strong>Connecting to Audius…</div></div>
+      <div class="footer-note">Music streams from Audius. TuneWave does not download or re-host audio. Available tracks, stream access, and any artist restrictions are controlled by the provider and rights holders. <a href="https://audius.co/" target="_blank" rel="noopener noreferrer">Visit Audius</a>.</div>
+    </section>
+  </main>
+</div>
+<nav class="mobile-nav" aria-label="Mobile navigation"><button class="active" data-view="home"><span>⌂</span>Discover</button><button data-view="search"><span>⌕</span>Search</button><button data-view="favorites"><span>♡</span>Liked</button><button data-view="playlists"><span>▤</span>Playlists</button></nav>
+<footer class="bottom-player" aria-label="Music player">
+  <div class="now-playing"><img class="cover" id="now-cover" src="/assets/cover-placeholder.svg" alt="Current track artwork"><div class="now-text"><div class="song-title" id="now-title">Choose a track to start</div><div class="song-artist" id="now-artist">TuneWave · Audius</div><span class="source-label" id="play-status">Ready when you are</span></div><button class="heart-btn" id="now-like" title="Like this song" aria-label="Like this song">♡</button></div>
+  <div class="player-controls"><div class="control-row"><button class="control" id="shuffle-btn" title="Shuffle" aria-label="Shuffle">⤨</button><button class="control" id="prev-btn" title="Previous track" aria-label="Previous track">|◀</button><button class="play-control" id="play-btn" title="Play" aria-label="Play">▶</button><button class="control" id="next-btn" title="Next track" aria-label="Next track">▶|</button><button class="control" id="repeat-btn" title="Repeat off" aria-label="Repeat off">↻</button></div><div class="progress-row"><span id="current-time">0:00</span><input type="range" id="seek" class="range" min="0" max="1000" value="0" aria-label="Seek track"><span id="total-time">0:00</span></div></div>
+  <div class="volume-wrap"><button class="icon-btn" id="mute-btn" title="Mute" aria-label="Mute">◖</button><input type="range" class="range" id="volume" min="0" max="1" step="0.01" value="0.85" aria-label="Volume"></div>
+  <audio id="audio" preload="metadata" crossorigin="anonymous"></audio>
+</footer>
+<div class="modal-backdrop" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title"><div class="modal"><h2 id="settings-title">Provider settings</h2><p>TuneWave uses Audius for search and audio streams. A free API key can improve rate limits; keep bearer tokens server-side only.</p><label for="api-key">Audius API key (optional)</label><input id="api-key" type="password" autocomplete="off" placeholder="Paste public API key"><div class="small" style="margin-top:7px">Create a key at <a style="color:var(--accent)" href="https://api.audius.co/plans" target="_blank" rel="noopener noreferrer">Audius API Plans</a>. This key is stored only in this browser.</div><div class="modal-actions"><button class="secondary-btn" data-close="settings-modal">Cancel</button><button class="primary-btn" id="save-settings">Save settings</button></div></div></div>
+<div class="modal-backdrop" id="playlist-modal" role="dialog" aria-modal="true" aria-labelledby="playlist-title"><div class="modal"><h2 id="playlist-title">Create a playlist</h2><p>Playlists are saved locally in this browser.</p><label for="playlist-name">Playlist name</label><input id="playlist-name" maxlength="60" placeholder="Late-night favorites"><div class="modal-actions"><button class="secondary-btn" data-close="playlist-modal">Cancel</button><button class="primary-btn" id="save-playlist">Create playlist</button></div></div></div>
+<div class="modal-backdrop" id="add-modal" role="dialog" aria-modal="true" aria-labelledby="add-title"><div class="modal"><h2 id="add-title">Add to playlist</h2><p id="add-track-name">Choose a playlist for this track.</p><div id="playlist-choices"></div><div class="modal-actions"><button class="secondary-btn" data-close="add-modal">Close</button><button class="primary-btn" id="make-and-add">＋ New playlist</button></div></div></div>
+<div class="modal-backdrop" id="install-help-modal" role="dialog" aria-modal="true" aria-labelledby="install-help-title"><div class="modal"><h2 id="install-help-title">Install TuneWave</h2><p id="install-help-intro">Add TuneWave to your device so it opens like an app.</p><div id="install-help-content"></div><p class="install-tip">Installing TuneWave does not install an Android APK or bypass device limits. Background audio and lock-screen controls depend on your browser, operating system, and the music stream.</p><div class="modal-actions"><button class="secondary-btn" data-close="install-help-modal">Close</button><button class="primary-btn" id="install-help-done" type="button">Got it</button></div></div></div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+(() => {
+  'use strict';
+  const API_BASES = ['https://api.audius.co/v1', 'https://discoveryprovider.audius.co/v1'];
+  const APP_NAME = 'TuneWave';
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => [...document.querySelectorAll(s)];
+  const audio = $('#audio');
+  let apiKey = localStorage.getItem('tw_api_key') || '';
+  let tracks = [];
+  let queue = [];
+  let queueIndex = -1;
+  let currentView = 'home';
+  let currentTrack = null;
+  let addTrack = null;
+  let deferredInstallPrompt = null;
+  let shuffleOn = false;
+  let repeatOn = false;
+  let lastSearch = '';
+  let apiBase = API_BASES[0];
 
-  <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <a class="brand desktop-brand" href="#home" aria-label="TuneWave home">
-        <img src="/icon-192.png" alt="" class="brand-icon">
-        <span>Tune<span>Wave</span></span>
-      </a>
-      <nav class="side-nav" aria-label="Main navigation">
-        <button class="nav-link active" type="button" data-nav="home"><span class="nav-icon">⌂</span>Home</button>
-        <button class="nav-link" type="button" data-nav="search"><span class="nav-icon">⌕</span>Search</button>
-        <button class="nav-link" type="button" data-nav="library"><span class="nav-icon">▤</span>Your Library</button>
-        <button class="nav-link" type="button" data-nav="playlists"><span class="nav-icon">♫</span>Playlists</button>
-        <button class="nav-link" type="button" data-nav="liked"><span class="nav-icon">♡</span>Liked Songs <span class="nav-count" id="likedCount">0</span></button>
-      </nav>
-      <div class="sidebar-bottom">
-        <div class="sidebar-note">
-          <div class="note-logo">♫</div>
-          <div><strong>Good Music</strong><span>Better Vibes</span></div>
-          <span class="note-heart">♥</span>
-          <div class="wave-line"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        </div>
-        <div class="sidebar-caption"><span class="online-dot"></span> MUSIC MODE: ON</div>
-      </div>
-    </aside>
+  const getJson = async (path) => {
+    let lastError;
+    for (const base of API_BASES) {
+      try {
+        const url = new URL(base + path);
+        if (!url.searchParams.has('app_name')) url.searchParams.set('app_name', APP_NAME);
+        const headers = {};
+        if (apiKey) headers['x-api-key'] = apiKey;
+        const res = await fetch(url.toString(), {headers, signal: AbortSignal.timeout(12000)});
+        if (!res.ok) throw new Error(`Audius responded with ${res.status}`);
+        const json = await res.json();
+        if (json && (json.data !== undefined || json.status === 'success')) { apiBase = base; return json.data ?? json; }
+        throw new Error('Unexpected provider response');
+      } catch (err) { lastError = err; }
+    }
+    throw lastError || new Error('Audius is temporarily unavailable');
+  };
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const safeImage = (track) => track?.artwork?.['480x480'] || track?.artwork?.['150x150'] || track?.user?.profile_picture?.['480x480'] || '/assets/cover-placeholder.svg';
+  const artist = (t) => t?.user?.name || t?.artist || 'Unknown artist';
+  const title = (t) => t?.title || 'Untitled track';
+  const duration = (t) => Number(t?.duration || 0);
+  const fmt = (n) => { if (!Number.isFinite(n) || n < 0) return '0:00'; const m = Math.floor(n / 60); const s = Math.floor(n % 60).toString().padStart(2,'0'); return `${m}:${s}`; };
+  const getLocal = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
+  const saveLocal = (key, value) => localStorage.setItem(key, JSON.stringify(value));
+  let liked = getLocal('tw_liked', []);
+  let playlists = getLocal('tw_playlists', []);
+  const trackId = t => String(t?.id ?? '');
+  const isLiked = t => liked.some(x => trackId(x) === trackId(t));
+  const slimTrack = t => ({id:t.id,title:t.title,user:t.user,artwork:t.artwork,duration:t.duration,permalink:t.permalink});
+  const toast = (message) => { const el=$('#toast'); el.textContent=message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>el.classList.remove('show'),2400); };
+  const showNotice = msg => { const n=$('#notice'); n.textContent=msg; n.classList.add('show'); };
+  const clearNotice = () => $('#notice').classList.remove('show');
+  const setLoading = v => { $('#loading').hidden = !v; };
 
-    <main class="main-content" id="home">
-      <header class="topbar">
-        <form id="searchForm" class="top-search" role="search">
-          <span class="search-symbol" aria-hidden="true">⌕</span>
-          <input id="searchInput" type="search" placeholder="Search songs, artists, albums…" autocomplete="off" aria-label="Search songs, artists and albums">
-          <button class="search-clear" type="button" id="clearSearch" aria-label="Clear search" hidden>×</button>
-          <button class="search-submit" type="submit" aria-label="Submit search">Search</button>
-        </form>
-        <div class="topbar-actions">
-          <span class="music-status"><span></span> Music Mode: On</span>
-          <button class="icon-button notification-button" type="button" aria-label="Notifications" title="Notifications">♧</button>
-          <button class="profile-button" type="button" aria-label="TuneWave profile">K</button>
-        </div>
-      </header>
+  async function requestList(view = 'home', query = '') {
+    setLoading(true); clearNotice();
+    $('#song-list').innerHTML = '<div class="empty"><strong>Finding your next track…</strong>Please wait a moment.</div>';
+    try {
+      let data;
+      if (view === 'search') {
+        if (!query.trim()) { $('#song-list').innerHTML='<div class="empty"><strong>Search for a song or artist</strong>Try a title, artist, genre, or mood.</div>'; return; }
+        data = await getJson(`/tracks/search?query=${encodeURIComponent(query.trim())}&limit=35`);
+        $('#list-title').textContent = `Results for “${query.trim()}”`;
+        $('#list-subtitle').textContent = 'Tracks available from Audius';
+      } else {
+        data = await getJson('/tracks/trending?time=week&limit=35');
+        $('#list-title').textContent = 'Trending on Audius';
+        $('#list-subtitle').textContent = 'Fresh discoveries from the open music catalog';
+      }
+      tracks = Array.isArray(data) ? data.filter(x => x && x.id) : [];
+      queue = tracks.slice(); queueIndex = currentTrack ? queue.findIndex(t => trackId(t) === trackId(currentTrack)) : -1;
+      renderSongs(tracks);
+      if (!tracks.length) $('#song-list').innerHTML='<div class="empty"><strong>No tracks found</strong>Try a different search, or refresh in a little while.</div>';
+    } catch (err) {
+      $('#song-list').innerHTML='<div class="empty"><strong>Could not load music</strong>Check your connection or add a free Audius API key in provider settings, then try again.</div>';
+      showNotice(`Audius connection failed: ${err?.message || 'unknown error'}.`);
+    } finally { setLoading(false); updateCounts(); }
+  }
+  function renderSongs(list) {
+    $('#song-list').innerHTML = list.map((t,i)=>`<article class="song ${currentTrack && trackId(currentTrack)===trackId(t) ? 'playing':''}" data-id="${esc(trackId(t))}">
+      <img class="cover" loading="lazy" src="${esc(safeImage(t))}" alt="" onerror="this.onerror=null;this.src='/assets/cover-placeholder.svg'">
+      <div class="song-info"><div class="song-title" title="${esc(title(t))}">${esc(title(t))}</div><div class="song-artist" title="${esc(artist(t))}">${esc(artist(t))}</div></div>
+      <button class="heart-btn ${isLiked(t)?'liked':''}" data-action="like" data-index="${i}" aria-label="${isLiked(t)?'Unlike':'Like'} ${esc(title(t))}" title="Like">${isLiked(t)?'♥':'♡'}</button>
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:1px"><span class="duration">${fmt(duration(t))}</span><button class="row-play" data-action="play" data-index="${i}" aria-label="Play ${esc(title(t))}" title="Play">${currentTrack && trackId(currentTrack)===trackId(t) && !audio.paused?'Ⅱ':'▶'}</button></div>
+    </article>`).join('');
+  }
+  function renderCollection(view) {
+    currentView = view; setActiveNav(view); clearNotice();
+    if (view === 'favorites') {
+      $('#list-title').textContent='Liked songs'; $('#list-subtitle').textContent='Saved just for this browser';
+      tracks = liked.slice(); queue=tracks.slice(); queueIndex=-1; renderSongs(tracks);
+      if (!tracks.length) $('#song-list').innerHTML='<div class="empty"><strong>Your liked songs will live here</strong>Tap the heart next to any track to save it on this device.</div>';
+    } else if (view === 'playlists') {
+      $('#list-title').textContent='Your playlists'; $('#list-subtitle').textContent='Created on this device';
+      tracks=[]; queue=[]; queueIndex=-1;
+      if (!playlists.length) $('#song-list').innerHTML='<div class="empty"><strong>No playlists yet</strong>Create one, then add songs from any track row.</div>';
+      else $('#song-list').innerHTML=playlists.map((p,i)=>`<div class="playlist-card"><div class="cover" style="display:grid;place-items:center;font-size:21px;color:var(--accent)">♫</div><div class="grow"><div class="song-title">${esc(p.name)}</div><div class="small">${(p.tracks||[]).length} saved tracks</div></div><button class="secondary-btn" data-playlist-open="${i}">Open</button><button class="heart-btn" data-playlist-delete="${i}" aria-label="Delete playlist">×</button></div>`).join('');
+    } else if (view === 'search') {
+      $('#list-title').textContent=lastSearch?`Results for “${lastSearch}”`:'Search music'; $('#list-subtitle').textContent='Search tracks across Audius';
+      if (lastSearch) requestList('search',lastSearch); else $('#song-list').innerHTML='<div class="empty"><strong>What do you want to hear?</strong>Enter a title, artist, or genre in the search field above.</div>';
+    } else { requestList('home'); }
+    updateCounts();
+  }
+  function setActiveNav(view){ $$('[data-view]').forEach(el=>el.classList.toggle('active', el.dataset.view===view)); }
+  function updateCounts(){ $('#liked-count').textContent=`${liked.length} saved track${liked.length===1?'':'s'}`; $('#playlist-count').textContent=`${playlists.length} playlist${playlists.length===1?'':'s'}`; }
+  function toggleLike(t){ if(!t)return; const id=trackId(t); const wasLiked=isLiked(t); if(wasLiked) liked=liked.filter(x=>trackId(x)!==id); else liked.unshift(slimTrack(t)); saveLocal('tw_liked',liked); renderCurrentList(); updateCounts(); updateNowLike(); toast(wasLiked?'Removed from liked songs':'Added to liked songs'); }
+  // Use a direct stream endpoint, and let the provider manage redirects/access. Never download or re-host tracks.
+  function streamUrl(t){ const p=new URL(`${apiBase}/tracks/${encodeURIComponent(trackId(t))}/stream`); p.searchParams.set('app_name',APP_NAME); if(apiKey)p.searchParams.set('api_key',apiKey); return p.toString(); }
+  function playTrack(t,list=tracks){ if(!t)return; if(list?.length){ queue=list.slice(); const ix=queue.findIndex(x=>trackId(x)===trackId(t)); queueIndex=ix>=0?ix:0; } currentTrack=t; audio.src=streamUrl(t); audio.load(); audio.play().then(()=>{ updateNowPlaying(); syncTrackRowIcons(); }).catch(()=>{ updateNowPlaying(); $('#play-status').textContent='Tap play to start'; toast('Playback was blocked or this track is unavailable. Try tapping play again.'); }); updateNowPlaying(); syncTrackRowIcons(); }
+  function updateNowPlaying(){ if(!currentTrack)return; $('#now-title').textContent=title(currentTrack); $('#now-artist').textContent=artist(currentTrack); $('#now-cover').src=safeImage(currentTrack); $('#now-cover').onerror=()=>{$('#now-cover').src='/assets/cover-placeholder.svg'}; updateNowLike(); updateMediaSession(); }
+  function updateNowLike(){ const yes=currentTrack && isLiked(currentTrack); $('#now-like').textContent=yes?'♥':'♡'; $('#now-like').classList.toggle('liked',!!yes); }
+  function syncTrackRowIcons(){ $$('.song').forEach(row=>{const id=row.dataset.id; const on=currentTrack&&id===trackId(currentTrack); row.classList.toggle('playing',!!on); const b=row.querySelector('[data-action="play"]'); if(b)b.textContent=on&&!audio.paused?'Ⅱ':'▶';}); }
+  function renderCurrentList(){ if(currentView==='favorites')renderCollection('favorites'); else if(currentView==='playlists')renderCollection('playlists'); else renderSongs(tracks); }
+  function playNext(direction=1){ if(!queue.length){ toast('Choose a track first'); return; } if(shuffleOn && direction===1 && queue.length>1){ let next=queueIndex; while(next===queueIndex) next=Math.floor(Math.random()*queue.length); queueIndex=next; } else { queueIndex=(queueIndex+direction+queue.length)%queue.length; } playTrack(queue[queueIndex],queue); }
+  function updateProgress(){
+    $('#current-time').textContent=fmt(audio.currentTime);
+    $('#total-time').textContent=fmt(Number.isFinite(audio.duration)?audio.duration:(duration(currentTrack)||0));
+    if(!$('#seek').matches(':active')&&Number.isFinite(audio.duration)&&audio.duration>0) $('#seek').value=String(Math.round(audio.currentTime/audio.duration*1000));
+    if('mediaSession' in navigator && typeof navigator.mediaSession.setPositionState==='function' && Number.isFinite(audio.duration) && audio.duration>0){
+      try{navigator.mediaSession.setPositionState({duration:audio.duration, playbackRate:audio.playbackRate||1, position:Math.min(audio.currentTime,audio.duration)});}catch(e){/* Position state is optional on some devices. */}
+    }
+  }
+  function updateMediaSession(){
+    if(!('mediaSession' in navigator)||!currentTrack)return;
+    try{
+      const art=safeImage(currentTrack)||'/assets/icon-512.png';
+      navigator.mediaSession.metadata=new MediaMetadata({title:title(currentTrack),artist:artist(currentTrack),album:'Audius · TuneWave',artwork:[{src:art,sizes:'512x512',type:art.endsWith('.svg')?'image/svg+xml':'image/jpeg'}]});
+      navigator.mediaSession.setActionHandler('play',()=>audio.play().catch(()=>{}));
+      navigator.mediaSession.setActionHandler('pause',()=>audio.pause());
+      navigator.mediaSession.setActionHandler('previoustrack',()=>playNext(-1));
+      navigator.mediaSession.setActionHandler('nexttrack',()=>playNext(1));
+      navigator.mediaSession.setActionHandler('seekto',d=>{if(Number.isFinite(audio.duration)&&Number.isFinite(d.seekTime))audio.currentTime=d.seekTime;});
+      navigator.mediaSession.setActionHandler('seekbackward',d=>audio.currentTime=Math.max(0,audio.currentTime-(d.seekOffset||10)));
+      navigator.mediaSession.setActionHandler('seekforward',d=>{if(Number.isFinite(audio.duration))audio.currentTime=Math.min(audio.duration,audio.currentTime+(d.seekOffset||10));});
+    }catch(e){/* Some browsers expose only part of the Media Session API. */}
+  }
+  function openModal(id){ $('#'+id).classList.add('open'); const input=$('#'+id+' input'); if(input)setTimeout(()=>input.focus(),80); }
+  function closeModal(id){ $('#'+id).classList.remove('open'); }
+  function createPlaylist(name){ const value=name.trim(); if(!value){toast('Enter a playlist name');return false;} playlists.unshift({id:`pl-${Date.now()}`,name:value,tracks:[]}); saveLocal('tw_playlists',playlists); updateCounts(); return true; }
+  function openAddModal(t){ addTrack=t; $('#add-track-name').textContent=`Add “${title(t)}” to a playlist.`; $('#playlist-choices').innerHTML=playlists.length?playlists.map(p=>`<button class="playlist-card" data-add-to="${esc(p.id)}" style="width:100%;text-align:left;background:transparent;color:var(--text)"><div class="cover" style="display:grid;place-items:center;color:var(--accent)">♫</div><div class="grow"><div class="song-title">${esc(p.name)}</div><div class="small">${(p.tracks||[]).length} tracks</div></div><span>＋</span></button>`).join(''):'<div class="empty">Create a playlist first.</div>'; openModal('add-modal'); }
+  function addToPlaylist(id){const p=playlists.find(x=>x.id===id);if(!p||!addTrack)return; p.tracks=p.tracks||[];if(!p.tracks.some(x=>trackId(x)===trackId(addTrack)))p.tracks.push(slimTrack(addTrack));saveLocal('tw_playlists',playlists);closeModal('add-modal');updateCounts();toast(`Added to ${p.name}`);}
+  function openPlaylist(index){const p=playlists[index];if(!p)return; currentView='playlist-detail';setActiveNav('playlists');$('#list-title').textContent=p.name;$('#list-subtitle').textContent=`${(p.tracks||[]).length} tracks · saved locally`;tracks=(p.tracks||[]).slice();queue=tracks.slice();queueIndex=-1;renderSongs(tracks);if(!tracks.length)$('#song-list').innerHTML='<div class="empty"><strong>This playlist is empty</strong>Browse music and add tracks using the + action on a song.</div>';}
 
-      <div class="content-scroll">
-        <section class="hero-banner" aria-label="Discover music">
-          <div class="hero-copy">
-            <p class="hero-kicker" id="heroKicker">YOUR NEXT FAVORITE TRACK</p>
-            <h1 id="heroTitle">Discover<br><span>New Music</span></h1>
-            <p class="hero-description" id="heroDescription">Find your next favorite song, artist or album.</p>
-            <button class="explore-button" type="button" id="exploreButton">Explore music <span>→</span></button>
-          </div>
-          <div class="hero-scene" aria-hidden="true"><div class="hero-sun"></div><div class="hero-mountain mountain-back"></div><div class="hero-mountain mountain-front"></div><div class="hero-listener"><span></span></div><div class="hero-stars"></div></div>
-          <div class="hero-pagination" aria-hidden="true"><i class="selected"></i><i></i><i></i><i></i></div>
-        </section>
-
-        <section class="section-block" id="featuredSection">
-          <div class="section-heading"><div><p class="section-eyebrow">HANDPICKED FOR YOUR MOOD</p><h2 id="albumsHeading">Featured Albums</h2></div><button class="see-all" type="button" id="seeAlbums">See all <span>›</span></button></div>
-          <div class="album-grid" id="albumGrid" aria-live="polite">
-            <div class="album-skeleton"></div><div class="album-skeleton"></div><div class="album-skeleton"></div><div class="album-skeleton"></div><div class="album-skeleton"></div><div class="album-skeleton"></div>
-          </div>
-        </section>
-
-        <section class="section-block songs-section" id="songsSection">
-          <div class="section-heading"><div><p class="section-eyebrow" id="songsEyebrow">WHAT'S SOUNDING GOOD</p><h2 id="resultsHeading">Popular Songs</h2></div><span class="result-count" id="resultCount">Finding music…</span></div>
-          <div class="table-wrap">
-            <table class="song-table">
-              <thead><tr><th class="number-col">#</th><th class="track-col">Title</th><th class="artist-col">Artist</th><th class="album-col">Album</th><th class="duration-col">Time</th><th class="action-col"></th></tr></thead>
-              <tbody id="songRows"><tr><td colspan="6" class="table-message">Finding music for you…</td></tr></tbody>
-            </table>
-          </div>
-          <div class="status-message" id="message" role="status" aria-live="polite"></div>
-        </section>
-
-        <section class="section-block recent-section" id="recentSection">
-          <div class="section-heading"><div><p class="section-eyebrow">PICK UP WHERE YOU LEFT OFF</p><h2>Recent Searches</h2></div><button class="see-all" type="button" id="clearRecent">Clear <span>×</span></button></div>
-          <div class="recent-searches" id="recentSearches"><span class="recent-empty">Your searches will appear here.</span></div>
-        </section>
-
-        <section class="section-block library-view" id="libraryView" hidden>
-          <div class="section-heading"><div><p class="section-eyebrow">YOUR PERSONAL COLLECTION</p><h2 id="libraryHeading">Your Library</h2></div></div>
-          <div class="library-grid" id="libraryGrid"></div>
-        </section>
-
-        <footer class="page-footer"><span>© 2026 TuneWave</span><span>Discover a new kind of listening.</span></footer>
-      </div>
-    </main>
-  </div>
-
-  <section class="player-bar" aria-label="Music preview player">
-    <div class="now-playing">
-      <img id="playerArtwork" src="/icon-192.png" alt="Current track artwork">
-      <div class="now-playing-copy"><strong id="playerTitle">Choose a song</strong><span id="playerArtist">Your next favorite might be here</span></div>
-      <button class="player-heart" id="playerLike" type="button" aria-label="Like current song" title="Like song">♡</button>
-    </div>
-    <div class="player-center">
-      <div class="player-controls">
-        <button class="control-button subtle" type="button" id="shuffleButton" aria-label="Shuffle" title="Shuffle">⤨</button>
-        <button class="control-button" type="button" id="previousButton" aria-label="Previous song" title="Previous song">|◀</button>
-        <button class="main-play" type="button" id="playButton" aria-label="Play" title="Play">▶</button>
-        <button class="control-button" type="button" id="nextButton" aria-label="Next song" title="Next song">▶|</button>
-        <button class="control-button subtle" type="button" id="repeatButton" aria-label="Repeat" title="Repeat">⟳</button>
-      </div>
-      <div class="progress-line"><span id="currentTime">0:00</span><input id="progress" type="range" min="0" max="100" value="0" aria-label="Track progress"><span id="totalTime">0:30</span></div>
-    </div>
-    <div class="player-extra"><span class="volume-symbol" aria-hidden="true">◖))</span><input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volume"><button class="control-button queue-button" id="queueButton" type="button" aria-label="Show queue" title="Show queue">☷</button></div>
-  </section>
-  <audio id="audioPlayer" preload="none"></audio>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  $('#song-list').addEventListener('click',e=>{const del=e.target.closest('[data-playlist-delete]');if(del){const i=Number(del.dataset.playlistDelete);if(confirm(`Delete “${playlists[i]?.name||'this playlist'}”?`)){playlists.splice(i,1);saveLocal('tw_playlists',playlists);renderCollection('playlists');}return;}const open=e.target.closest('[data-playlist-open]');if(open){openPlaylist(Number(open.dataset.playlistOpen));return;}const add=e.target.closest('[data-action="add"]');if(add){openAddModal(tracks[Number(add.dataset.index)]);return;}const heart=e.target.closest('[data-action="like"]');if(heart){toggleLike(tracks[Number(heart.dataset.index)]);return;}const play=e.target.closest('[data-action="play"]');if(play){const t=tracks[Number(play.dataset.index)];if(currentTrack&&trackId(currentTrack)===trackId(t)&&!audio.paused){audio.pause();}else{playTrack(t,tracks);}return;}const song=e.target.closest('.song');if(song){const t=tracks.find(x=>trackId(x)===song.dataset.id);if(t)playTrack(t,tracks);}});
+  // Playlist rows also include a hidden add action when hovering/focusing via keyboard.
+  $('#song-list').addEventListener('contextmenu',e=>{const row=e.target.closest('.song');if(!row)return;e.preventDefault();const t=tracks.find(x=>trackId(x)===row.dataset.id);if(t)openAddModal(t);});
+  // Inject a quick-add button into track rows, keeping the core row compact.
+  const originalRenderSongs=renderSongs;
+  renderSongs=function(list){originalRenderSongs(list);$$('.song').forEach((row,i)=>{const wrap=row.querySelector('div[style*="justify-content:flex-end"]');if(wrap){const b=document.createElement('button');b.className='row-play';b.textContent='＋';b.title='Add to playlist';b.setAttribute('aria-label','Add to playlist');b.dataset.action='add';b.dataset.index=String(i);wrap.prepend(b);}});};
+  $$('#settings-top, #settings-side').forEach(b=>b.addEventListener('click',()=>{ $('#api-key').value=apiKey;openModal('settings-modal'); }));
+  $$('#create-playlist-top, #create-playlist-side').forEach(b=>b.addEventListener('click',()=>openModal('playlist-modal')));
+  $('#save-settings').addEventListener('click',()=>{apiKey=$('#api-key').value.trim();if(apiKey)localStorage.setItem('tw_api_key',apiKey);else localStorage.removeItem('tw_api_key');closeModal('settings-modal');toast('Provider settings saved');if(currentView==='home')requestList('home');else if(currentView==='search'&&lastSearch)requestList('search',lastSearch);});
+  $('#save-playlist').addEventListener('click',()=>{if(createPlaylist($('#playlist-name').value)){const name=$('#playlist-name').value.trim();$('#playlist-name').value='';closeModal('playlist-modal');toast(`Created ${name}`);if(currentView==='playlists')renderCollection('playlists');if(addTrack)openAddModal(addTrack);}});
+  $('#make-and-add').addEventListener('click',()=>{closeModal('add-modal');openModal('playlist-modal');});
+  $('#playlist-choices').addEventListener('click',e=>{const b=e.target.closest('[data-add-to]');if(b)addToPlaylist(b.dataset.addTo);});
+  $$('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
+  $$('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id);}));
+  $$('.nav [data-view],.mobile-nav [data-view],.tile[data-view]').forEach(b=>b.addEventListener('click',()=>{const view=b.dataset.view; currentView=view;setActiveNav(view);if(view==='search'){ $('#search').focus();if(lastSearch)requestList('search',lastSearch);else renderCollection('search'); }else renderCollection(view);}));
+  let searchTimer;
+  $('#search').addEventListener('input',e=>{lastSearch=e.target.value.trim();if(currentView!=='search'){currentView='search';setActiveNav('search');}clearTimeout(searchTimer);searchTimer=setTimeout(()=>{if(lastSearch)requestList('search',lastSearch);else{$('#list-title').textContent='Search music';$('#list-subtitle').textContent='Search tracks across Audius';$('#song-list').innerHTML='<div class="empty"><strong>Search for a song or artist</strong>Type above to discover tracks.</div>'; }},350);});
+  $('#search').addEventListener('keydown',e=>{if(e.key==='Enter'){lastSearch=e.target.value.trim();currentView='search';setActiveNav('search');requestList('search',lastSearch);}});
+  $('#explore-btn').addEventListener('click',()=>{currentView='home';setActiveNav('home');requestList('home');$('#library-section').scrollIntoView({behavior:'smooth'});});
+  $('#refresh-btn').addEventListener('click',()=>currentView==='search'&&lastSearch?requestList('search',lastSearch):currentView==='favorites'||currentView==='playlists'?renderCollection(currentView):requestList('home'));
+  $('#play-btn').addEventListener('click',()=>{if(!currentTrack){playNext(1);return;}if(audio.paused)audio.play().catch(()=>toast('Tap play again to allow playback'));else audio.pause();});
+  $('#prev-btn').addEventListener('click',()=>{if(audio.currentTime>4){audio.currentTime=0;}else playNext(-1);});
+  $('#next-btn').addEventListener('click',()=>playNext(1));
+  $('#shuffle-btn').addEventListener('click',()=>{shuffleOn=!shuffleOn;$('#shuffle-btn').style.color=shuffleOn?'var(--accent)':'';toast(shuffleOn?'Shuffle on':'Shuffle off');});
+  $('#repeat-btn').addEventListener('click',()=>{repeatOn=!repeatOn;audio.loop=repeatOn;$('#repeat-btn').style.color=repeatOn?'var(--accent)':'';$('#repeat-btn').title=repeatOn?'Repeat on':'Repeat off';$('#repeat-btn').setAttribute('aria-label',$('#repeat-btn').title);toast(repeatOn?'Repeat current track on':'Repeat off');});
+  $('#now-like').addEventListener('click',()=>toggleLike(currentTrack));
+  $('#seek').addEventListener('input',()=>{if(Number.isFinite(audio.duration)&&audio.duration>0)audio.currentTime=(Number($('#seek').value)/1000)*audio.duration;});
+  audio.addEventListener('timeupdate',updateProgress);audio.addEventListener('loadedmetadata',updateProgress);audio.addEventListener('play',()=>{$('#play-btn').textContent='Ⅱ';$('#play-btn').title='Pause';$('#play-status').textContent='Now playing · Audius';if('mediaSession'in navigator)navigator.mediaSession.playbackState='playing';syncTrackRowIcons();});audio.addEventListener('pause',()=>{$('#play-btn').textContent='▶';$('#play-btn').title='Play';$('#play-status').textContent=currentTrack?'Paused':'Ready when you are';if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';syncTrackRowIcons();});audio.addEventListener('ended',()=>{if(!repeatOn)playNext(1);});audio.addEventListener('error',()=>{if(currentTrack){$('#play-status').textContent='Stream unavailable';toast('This track could not be streamed. Choose another track.');}});
+  $('#volume').addEventListener('input',e=>{audio.volume=Number(e.target.value);audio.muted=audio.volume===0;$('#mute-btn').textContent=audio.muted?'◌':'◖';});$('#mute-btn').addEventListener('click',()=>{audio.muted=!audio.muted;$('#mute-btn').textContent=audio.muted?'◌':'◖';});
+  function isAppInstalled(){return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;}
+  function showInstallHelp(){
+    const ua=navigator.userAgent||'';
+    const isIOS=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    const isAndroid=/Android/i.test(ua);
+    const isSafari=/Safari/i.test(ua)&&!/Chrome|CriOS|Edg|OPR|FxiOS/i.test(ua);
+    let intro='Install TuneWave from your browser menu to add an app-like icon to your device.';
+    let steps=[];
+    if(isIOS){
+      intro='On iPhone or iPad, use Safari to add TuneWave to your Home Screen.';
+      steps=['Open this TuneWave website in Safari (not an in-app browser).','Tap the Share button.','Choose “Add to Home Screen”.','Tap “Add”, then open TuneWave from the new Home Screen icon.'];
+    }else if(isAndroid){
+      intro='Your browser may show an install prompt, or you can install TuneWave from its menu.';
+      steps=['Open this site in Chrome or another supported browser.','Tap the browser menu (⋮).','Choose “Install app” or “Add to Home screen”.','Confirm the install, then open TuneWave from your app list or Home Screen.'];
+    }else{
+      intro='Install TuneWave from your desktop browser to open it in its own app-like window.';
+      steps=['Look for the install icon in the browser address bar, or open the browser menu.','Choose “Install TuneWave” or “Install app”.','Confirm, then launch TuneWave from your apps list or desktop.'];
+    }
+    if(isSafari&&!isIOS) steps=['Open the browser menu and look for an option to add or install the site.','If your browser does not offer installation, keep TuneWave bookmarked.'];
+    $('#install-help-intro').textContent=intro;
+    $('#install-help-content').innerHTML='<ol class="install-steps">'+steps.map(s=>'<li>'+s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')+'</li>').join('')+'</ol>';
+    openModal('install-help-modal');
+  }
+  async function installTuneWave(){
+    if(isAppInstalled()){toast('TuneWave is already installed on this device.');return;}
+    if(deferredInstallPrompt){
+      const promptEvent=deferredInstallPrompt;
+      deferredInstallPrompt=null;
+      try{
+        await promptEvent.prompt();
+        const result=await promptEvent.userChoice;
+        if(result&&result.outcome==='accepted')toast('TuneWave installation accepted.');
+        else toast('Installation cancelled. You can install it later from the browser menu.');
+      }catch(e){showInstallHelp();}
+      return;
+    }
+    showInstallHelp();
+  }
+  ['install-btn','download-app-btn','download-app-hero'].forEach(id=>$('#'+id)?.addEventListener('click',installTuneWave));
+  $('#install-help-done').addEventListener('click',()=>closeModal('install-help-modal'));
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;});
+  window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;$('#install-tile-sub').textContent='Installed on this device';$('#download-app-btn').textContent='✓ App Installed';toast('TuneWave installed successfully.');});
+  if(isAppInstalled()){$('#install-tile-sub').textContent='Already installed';$('#download-app-btn').textContent='✓ App Installed';}
+  window.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA'].includes(document.activeElement?.tagName))return;if(e.code==='Space'){e.preventDefault();$('#play-btn').click();}if(e.code==='ArrowRight'&&audio.duration)audio.currentTime=Math.min(audio.duration,audio.currentTime+5);if(e.code==='ArrowLeft')audio.currentTime=Math.max(0,audio.currentTime-5);});
+  updateCounts();requestList('home');
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+})();
+</script>
 </body>
 </html>

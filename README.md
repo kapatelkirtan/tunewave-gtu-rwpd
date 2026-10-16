@@ -1,73 +1,53 @@
-# TuneWave — GTU RWPD 2026 Topic #22: Music Player
+# TuneWave — Audius rebuild
 
-**Website:** TuneWave — Your Sound Universe  
-**Connected app:** NewPipe (Android)  
-**Integration type:** Android intent/link bridge, not an embedded music player  
-**Technology:** HTML5, CSS3, vanilla JavaScript, Web App Manifest, Service Worker  
-**Student footer:** Made By Kirtan Ka.patel
+A responsive, installable web music player powered by the official Audius API. This is a standalone replacement package; it has not been merged into the original GitHub repository because repository access was unavailable in the build environment.
 
-## What is connected?
-TuneWave sends a YouTube search URL to the **NewPipe Android app** using an Android `intent://` URI. If Android and NewPipe are installed and the URL is accepted, NewPipe opens the search and handles playback. NewPipe's project describes it as a free/open-source Android front end for YouTube with background audio playback: https://newpipe.net/ and https://github.com/TeamNewPipe/NewPipe.
+## Features in this build
 
-This is a link handoff only. NewPipe does not provide a conventional public embeddable web player, so the songs do **not** play inside the TuneWave webpage and the website cannot control NewPipe's player. The code does not download, extract, host or strip audio from YouTube.
+- Search Audius tracks and load weekly trending tracks.
+- Audio playback, seek/progress, volume/mute, previous/next, shuffle and repeat.
+- Liked tracks and playlists stored locally in the current browser.
+- Add tracks to playlists using the `+` button in each track row.
+- Media Session API integration for compatible browser/device lock-screen controls and metadata.
+- PWA manifest with 192/512 PNG icons and iOS touch icon, versioned service-worker shell caching, and a Download App button.
+- Native install prompt on supported Chromium browsers, plus Android/iOS/desktop installation guidance when the prompt is unavailable.
+- Media Session action handlers (play/pause, next/previous, seek) and playback-position updates for compatible lock screens.
+- No TuneWave paid tier, ad slots, ad SDKs, or ad network scripts included.
+- Audius API key can be entered in Provider Settings. It is stored in this browser only. Never place an Audius bearer token in frontend code.
 
-## Run the website
-1. Extract this ZIP.
-2. Open the folder in Visual Studio Code.
-3. Run the website through VS Code Live Server, or deploy to HTTPS. The PWA/service worker works only on localhost or HTTPS in normal browsers.
-4. Enter a song/artist/genre or tap a quick-search chip.
-5. On Android, choose **Open in NewPipe**. NewPipe must be installed separately. If the intent doesn't open, try **Open YouTube** or use the installation guide link.
-6. On PC, Mac, iPhone or iPad, choose **Open YouTube**. NewPipe is Android-only.
+## Requirements and caveats
 
-## Free / ads / membership
-- TuneWave's own interface has no ad placements, no paid tier, and no membership.
-- NewPipe is free/open-source and its project advertises background playback and an ad-free experience. It is a third-party project, not an official YouTube client.
-- YouTube searches are broad, but no app can guarantee that every video is available; deleted, restricted, age-gated, region-limited, or otherwise unavailable items may not play.
-- The browser fallback uses regular YouTube. Ads and normal YouTube background-play restrictions can apply there. TuneWave does not block or alter YouTube ads.
+- An internet connection is required for Audius search and streaming. The app itself is free and no TuneWave premium subscription is implemented.
+- Provider track availability and any track-level stream restrictions are controlled by Audius and its rights holders. This app does not include all YouTube/Spotify commercial songs.
+- Media Session lock-screen buttons/background playback depend on browser, OS, battery policy, installation context, and provider stream behavior. The Download App button installs the website as a PWA where supported; it does not create an APK. Test on the target phone. A PWA cannot guarantee background playback on every device, and iOS users should add it to the Home Screen using Safari.
+- Likes and playlists are stored locally in the browser and do not sync between devices. Account-based sync would require authentication and a backend/provider OAuth integration.
+- The service worker caches the app shell only, not music audio. No tracks are downloaded or re-hosted.
 
-## Background / lock screen
-On Android, TuneWave hands the search to NewPipe; NewPipe then manages its own audio playback and system media controls. The website itself is **not** the player, so lock-screen playback depends on NewPipe and the Android device. On PC/iOS browser fallback, ad-free background playback is not guaranteed.
+## Run locally
 
-## Important compatibility note
-NewPipe consumes YouTube pages/internal interfaces because the official YouTube API does not expose a free unrestricted full-song audio stream. These interfaces can change; NewPipe may temporarily stop working until updated. Do not confuse this bridge with an official or endorsed integration. For exact policy details, see YouTube's developer policies: https://developers.google.com/youtube/terms/developer-policies.
+Serve this directory over HTTP (service workers do not run from `file://`). For example:
 
-## Features
-- Premium-looking responsive TuneWave interface.
-- Query search and music-mood shortcuts.
-- NewPipe Android launch handoff.
-- YouTube browser fallback on all platforms.
-- Recent searches saved in localStorage on the current device.
-- No API key or TuneWave account needed.
-- Installable PWA shell on supported browsers.
-- Official NewPipe install-guide link.
-- Beginner-friendly comments in JavaScript.
+```bash
+python -m http.server 8000
+```
 
-## Files
-- `index.html` — page structure, search form, app-connection note and actions.
-- `style.css` — premium responsive visual theme, bridge cards, recent searches and layouts.
-- `app.js` — search URL creation, Android intent launch, YouTube fallback and local recent history.
-- `manifest.webmanifest` — installable PWA metadata.
-- `service-worker.js` — caches the website shell only, not music.
-- `icon.svg`, `icon-192.png`, `icon-512.png` — TuneWave icon files.
-- `GTU_RWPD_Topic22_Presentation.pptx` — updated seminar presentation.
-- `GTU_RWPD_Topic22_Explanation.md` — code explanation and viva notes.
+Then visit `http://localhost:8000`. For install prompts, serve from localhost or HTTPS (not `file://`).
 
-## Testing checklist
-- [ ] Start from localhost or HTTPS.
-- [ ] Type an artist or use a quick chip; see the two action cards.
-- [ ] On Android with NewPipe installed, tap **Open in NewPipe** and confirm the search opens.
-- [ ] Tap **Open YouTube** and confirm the browser search opens.
-- [ ] Confirm recent searches persist after refresh and can be cleared.
-- [ ] In NewPipe on Android, start playback and test lock-screen/background controls.
-- [ ] Test browser fallback on PC and iOS; remember those platforms do not inherit NewPipe's features.
-- [ ] Check the layout at phone, tablet and desktop widths.
-- [ ] Install the PWA from browser menu when offered.
+## Deploy on Render as a Static Site
 
-## Troubleshooting
-- **NewPipe does not open:** Check NewPipe is installed from a trusted source; Android may not recognize the link or package handoff on every browser. Use the official installation guide and/or tap Open YouTube.
-- **YouTube opens instead:** Android app-link handling may choose the browser; use the NewPipe app's open/share workflow or set compatible link handling if available.
-- **Song unavailable:** It can be removed, restricted or temporarily unsupported by the source.
-- **Background stops:** This is controlled by NewPipe/Android battery settings, not the TuneWave webpage.
-- **Install button missing:** Installation prompts vary by browser; use its menu to add the site to your home screen.
+1. Push these files to a Git repository.
+2. In Render, create a **Static Site** for that repository.
+3. Build command: leave blank (no build step required).
+4. Publish directory: `.` (repository root).
+5. Deploy and test search/playback on your phone.
 
-**Verification note:** The package's static code can be syntax-checked locally, but launching NewPipe requires a real Android device with the app installed. That app handoff was not live-tested in this build environment.
+If your existing Render service is configured as a Node web service, create a Static Site for this build or adjust its service type/settings. This package has not been deployed to your Render account from this environment.
+
+## Audius API
+
+The app targets `https://api.audius.co/v1` and falls back to `https://discoveryprovider.audius.co/v1` if the first endpoint fails. Free API plan and credentials are documented at:
+
+- https://docs.audius.co/
+- https://docs.audius.co/api/
+- https://api.audius.co/plans
+
