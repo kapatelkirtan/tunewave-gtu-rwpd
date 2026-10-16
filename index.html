@@ -9,22 +9,14 @@
   <title>TuneWave — Discover Music &amp; Search Songs</title>
   <meta
     name="description"
-    content="Discover songs, artists, albums and music by mood with TuneWave. Search music and connect to NewPipe on Android or open YouTube results in your browser."
+    content="Discover songs, artists, albums and music by mood with TuneWave. Search music and listen using your preferred player or browser."
   >
   <meta name="application-name" content="TuneWave">
   <meta name="robots" content="index,follow">
-  <link
-    rel="canonical"
-    href="https://tunewave-gtu-rwpd-1.onrender.com/"
-  >
+  <link rel="canonical" href="https://tunewave-gtu-rwpd-1.onrender.com/">
 
-  <!-- Site icon and install metadata -->
-  <link
-    rel="icon"
-    type="image/png"
-    sizes="192x192"
-    href="/icon-192.png"
-  >
+  <!-- Website icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -35,30 +27,18 @@
   <meta property="og:title" content="TuneWave — Discover Music">
   <meta
     property="og:description"
-    content="Search songs, artists, albums and moods with TuneWave. Connect to NewPipe on Android or open YouTube results in your browser."
+    content="Search songs, artists, albums and moods with TuneWave. Find music and listen your way."
   >
-  <meta
-    property="og:url"
-    content="https://tunewave-gtu-rwpd-1.onrender.com/"
-  >
-  <meta
-    property="og:image"
-    content="https://tunewave-gtu-rwpd-1.onrender.com/icon-192.png"
-  >
+  <meta property="og:url" content="https://tunewave-gtu-rwpd-1.onrender.com/">
+  <meta property="og:image" content="https://tunewave-gtu-rwpd-1.onrender.com/icon-192.png">
   <meta property="og:image:alt" content="TuneWave music logo">
 
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="TuneWave — Discover Music">
-  <meta
-    name="twitter:description"
-    content="Search songs, artists, albums and moods with TuneWave."
-  >
-  <meta
-    name="twitter:image"
-    content="https://tunewave-gtu-rwpd-1.onrender.com/icon-192.png"
-  >
+  <meta name="twitter:description" content="Search songs, artists, albums and moods with TuneWave.">
+  <meta name="twitter:image" content="https://tunewave-gtu-rwpd-1.onrender.com/icon-192.png">
 
-  <!-- Helps search engines identify the website's name -->
+  <!-- Website structured data -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -72,7 +52,6 @@
   <link rel="stylesheet" href="/style.css">
 
   <style>
-    /* Header logo styles; the rest of the design stays in style.css */
     .topbar .brand {
       display: inline-flex;
       align-items: center;
@@ -100,14 +79,10 @@
       gap: 4px;
     }
 
-    .topbar .brand-copy strong {
-      display: block;
-      line-height: 1.1;
-    }
-
+    .topbar .brand-copy strong,
     .topbar .brand-copy small {
       display: block;
-      line-height: 1.3;
+      line-height: 1.2;
     }
 
     @media (max-width: 480px) {
@@ -125,8 +100,8 @@
 </head>
 
 <body>
-  <div class="ambient ambient-one"></div>
-  <div class="ambient ambient-two"></div>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
 
   <header class="topbar">
     <a class="brand" href="#top" aria-label="TuneWave home">
@@ -138,6 +113,7 @@
         height="48"
         fetchpriority="high"
       >
+
       <span class="brand-copy">
         <strong>TuneWave</strong>
         <small>YOUR SOUND UNIVERSE</small>
@@ -145,8 +121,8 @@
     </a>
 
     <div class="topbar-right">
-      <span class="status-dot"></span>
-      <span class="status-text">FREE MUSIC BRIDGE</span>
+      <span class="status-dot" aria-hidden="true"></span>
+      <span class="status-text">FREE MUSIC SEARCH</span>
 
       <button
         class="install-pill"
@@ -164,6 +140,8 @@
   </header>
 
   <main class="layout" id="top">
+
+    <!-- Hero and search -->
     <section class="hero">
       <div class="hero-copy">
         <div class="eyebrow">
@@ -178,6 +156,7 @@
 
         <p>
           TuneWave gives you a polished music-search home.
+          Find songs, artists, albums, and sounds for every mood.
         </p>
 
         <form id="searchForm" class="searchbar">
@@ -235,10 +214,11 @@
         <div class="feature-chips" aria-label="Website details">
           <span>✦ No TuneWave ads</span>
           <span>∞ No paid tier</span>
-          <span>◉ Android playback</span>
+          <span>◉ Listen on your device</span>
         </div>
       </div>
 
+      <!-- Decorative artwork -->
       <div class="hero-art" aria-label="Decorative music artwork">
         <div class="orbit orbit-a"></div>
         <div class="orbit orbit-b"></div>
@@ -248,7 +228,7 @@
         </div>
 
         <div class="floating-tag tag-top">
-          ANDROID PLAYER <b>TuneWave</b>
+          YOUR MUSIC <b>TuneWave</b>
         </div>
 
         <div class="floating-tag tag-bottom">
@@ -260,13 +240,10 @@
       </div>
     </section>
 
-    <section class="service-note" aria-label="Connected app details">
-      <span class="service-logo">N</span>
-
-
+    <!-- Results heading -->
     <section class="section-heading">
       <div>
-        <div class="eyebrow">ONE SEARCH, TWO PATHS</div>
+        <div class="eyebrow">ONE SEARCH, YOUR CHOICE</div>
         <h2 id="resultsHeading">Start listening</h2>
       </div>
 
@@ -276,28 +253,50 @@
     </section>
 
     <div id="message" class="message" role="status" aria-live="polite">
-      Enter a song or artist. Android users can send the search to
-      NewPipe; other devices can open YouTube in a browser.
+      Enter a song or artist, then choose how you'd like to listen.
     </div>
 
+    <!-- Listening choices -->
     <section id="results" class="bridge-grid" aria-live="polite">
+
       <article class="bridge-card featured-card">
         <div class="bridge-card-art art-cyan">
           <span>♫</span>
         </div>
 
         <div class="bridge-card-copy">
-          <span class="bridge-kicker">ANDROID · EXTERNAL APP</span>
-          <h3>Open in NewPipe</h3>
+          <span class="bridge-kicker">ANDROID · EXTERNAL PLAYER</span>
+          <h3>Listen with your music app</h3>
+
           <p>
-            Free, open-source Android player with background
-            playback features.
+            Send your search to a compatible music player
+            installed on your Android device.
           </p>
         </div>
+
+        <button
+          class="primary-action"
+          type="button"
+          data-query="Arijit Singh best songs"
+          data-action="newpipe"
+        >
+          Open music app <span>↗</span>
+        </button>
+      </article>
 
       <article class="bridge-card">
         <div class="bridge-card-art art-purple">
           <span>▶</span>
+        </div>
+
+        <div class="bridge-card-copy">
+          <span class="bridge-kicker">ALL DEVICES · BROWSER</span>
+          <h3>Listen in your browser</h3>
+
+          <p>
+            Open music search results in your device's browser
+            and choose what to play.
+          </p>
         </div>
 
         <button
@@ -306,11 +305,13 @@
           data-query="Arijit Singh best songs"
           data-action="youtube"
         >
-          Open YouTube <span>↗</span>
+          Open browser results <span>↗</span>
         </button>
       </article>
+
     </section>
 
+    <!-- Recent searches -->
     <section class="library-panel" id="savedSection">
       <div class="library-heading">
         <div>
@@ -334,36 +335,73 @@
       </div>
     </section>
 
+    <!-- How it works -->
     <section id="how-it-works" class="how-panel">
-      <div class="eyebrow">THE CONNECTION</div>
+      <div class="eyebrow">MADE FOR MUSIC DISCOVERY</div>
       <h2>How TuneWave works</h2>
 
       <div class="steps-grid">
         <article class="step-card">
           <span class="step-number">01</span>
           <h3>Search here</h3>
+
           <p>
-            Enter a song, artist, genre, or mood. TuneWave saves
-            recent search terms on this device.
+            Enter a song, artist, genre, or mood. Your recent
+            search terms can be saved on this device.
+          </p>
+        </article>
+
+        <article class="step-card">
+          <span class="step-number">02</span>
+          <h3>Choose how to listen</h3>
+
+          <p>
+            Open your search in a compatible music app or view
+            music results in your browser.
           </p>
         </article>
 
         <article class="step-card">
           <span class="step-number">03</span>
-          <h3>Playback happens there</h3>
+          <h3>Enjoy your music</h3>
+
+          <p>
+            Playback is handled by the app or website you open.
+            TuneWave does not host music audio.
+          </p>
         </article>
       </div>
     </section>
 
+    <!-- About TuneWave -->
     <section id="about" class="about-panel">
-      <div class="about-icon">⌘</div>
+      <div class="about-icon" aria-hidden="true">⌘</div>
+
+      <div>
+        <h3>A student-built music discovery project</h3>
+
+        <p>
+          TuneWave is a simple music-search interface with no ad
+          placements or paid membership. Playback, availability,
+          and background listening depend on the external app or
+          website you choose and its own features and policies.
+        </p>
+      </div>
 
       <span class="project-tag">GTU · RWPD 2026 · TOPIC #22</span>
     </section>
+
+    <p class="compat-note">
+      Note: external players may need to be installed separately.
+      If a music app does not open, try opening the search in your
+      browser instead. Available playback features depend on your
+      device and the service you use.
+    </p>
+
   </main>
 
   <footer class="footer">
-    <span>© 2026 TuneWave </span>
+    <span>© 2026 TuneWave · Music discovery</span>
     <span>Made by Kirtan Ka.patel</span>
   </footer>
 
