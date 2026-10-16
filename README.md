@@ -51,3 +51,6 @@ The app targets `https://api.audius.co/v1` and falls back to `https://discoveryp
 - https://docs.audius.co/api/
 - https://api.audius.co/plans
 
+## Google Search Console sitemap
+
+This package includes `sitemap.xml` and `robots.txt` for the configured Render URL. Deploy these files at the website root, then submit `sitemap.xml` in Google Search Console. The sitemap currently lists only the homepage because this build is a single-page app with no separate indexable page routes. If you deploy on a different domain, update the URLs in both files first.
