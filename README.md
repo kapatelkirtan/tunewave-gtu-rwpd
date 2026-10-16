@@ -1,56 +1,25 @@
-# TuneWave — Audius rebuild
+# TuneWave — PWA install fix
 
-A responsive, installable web music player powered by the official Audius API. This is a standalone replacement package; it has not been merged into the original GitHub repository because repository access was unavailable in the build environment.
+This archive is **root-ready**: `index.html`, `manifest.webmanifest`, `service-worker.js`, `assets/`, `robots.txt`, and `sitemap.xml` are directly at the archive root. Do not deploy this archive with an extra enclosing folder.
 
-## Features in this build
+## Deploy to the existing Render Static Site
 
-- Search Audius tracks and load weekly trending tracks.
-- Audio playback, seek/progress, volume/mute, previous/next, shuffle and repeat.
-- Liked tracks and playlists stored locally in the current browser.
-- Add tracks to playlists using the `+` button in each track row.
-- Media Session API integration for compatible browser/device lock-screen controls and metadata.
-- PWA manifest with 192/512 PNG icons and iOS touch icon, versioned service-worker shell caching, and a Download App button.
-- The Download App buttons invoke the native PWA install confirmation when the browser provides it; otherwise they show tailored Android/iPhone/desktop steps. Browsers require user confirmation and do not let websites silently install themselves.
-- Media Session action handlers (play/pause, next/previous, seek) and playback-position updates for compatible lock screens.
-- No TuneWave paid tier, ad slots, ad SDKs, or ad network scripts included.
-- Audius API key can be entered in Provider Settings. It is stored in this browser only. Never place an Audius bearer token in frontend code.
+1. Extract all files from this ZIP.
+2. Put the extracted files directly in the **root of the GitHub repository** (so `index.html` is at the repository root). Commit and push.
+3. In Render, use the existing repository and set the Static Site **Publish Directory** to `.` if the files are in the repository root. No build command is needed for this plain static site.
+4. After deployment, confirm these URLs load successfully: `/`, `/manifest.webmanifest`, `/service-worker.js`, `/assets/icon-192.png`, and `/assets/icon-512.png`.
+5. Open the published site in the device's regular browser, not inside a social/chat app's embedded browser.
 
-## Requirements and caveats
+## How the Download App button behaves
 
-- An internet connection is required for Audius search and streaming. The app itself is free and no TuneWave premium subscription is implemented.
-- Provider track availability and any track-level stream restrictions are controlled by Audius and its rights holders. This app does not include all YouTube/Spotify commercial songs.
-- Media Session lock-screen buttons/background playback depend on browser, OS, battery policy, installation context, and provider stream behavior. The Download App button installs the website as a PWA where supported; it does not create an APK. Test on the target phone. A PWA cannot guarantee background playback on every device, and iOS users should add it to the Home Screen using Safari.
-- Likes and playlists are stored locally in the browser and do not sync between devices. Account-based sync would require authentication and a backend/provider OAuth integration.
-- The service worker caches the app shell only, not music audio. No tracks are downloaded or re-hosted.
+- Chromium browsers show their native install confirmation after the browser fires `beforeinstallprompt`. This build captures that event early and calls its prompt from the button click. The person must still confirm installation.
+- If the browser does not expose an install prompt, TuneWave shows the correct fallback instructions. Web pages cannot force-install themselves or silently create a native app.
+- On iPhone/iPad, use Safari's Share menu → Add to Home Screen → Add. Apple requires this user action; the website cannot trigger this installation sheet directly.
+- The site must be served from HTTPS (Render provides HTTPS) and the manifest, icon URLs, and service worker must all be accessible from the deployed site's root.
+- In Chrome, the browser may delay the native prompt until its installability/user-engagement heuristics are met, and it will not prompt if the app is already installed. Open Chrome's menu and choose **Install app** or **Add to Home screen** if the button falls back to instructions.
 
-## Run locally
+## Important limitations
 
-Serve this directory over HTTP (service workers do not run from `file://`). For example:
+A PWA install is not an APK download. A website cannot automatically install to every operating system without a confirmation. Background playback and lock-screen controls depend on each browser/OS and the provider's stream. This does not guarantee background playback on every device.
 
-```bash
-python -m http.server 8000
-```
-
-Then visit `http://localhost:8000`. For install prompts, serve from localhost or HTTPS (not `file://`).
-
-## Deploy on Render as a Static Site
-
-1. Push these files to a Git repository.
-2. In Render, create a **Static Site** for that repository.
-3. Build command: leave blank (no build step required).
-4. Publish directory: `.` (repository root).
-5. Deploy and test search/playback on your phone.
-
-If your existing Render service is configured as a Node web service, create a Static Site for this build or adjust its service type/settings. This package has not been deployed to your Render account from this environment.
-
-## Audius API
-
-The app targets `https://api.audius.co/v1` and falls back to `https://discoveryprovider.audius.co/v1` if the first endpoint fails. Free API plan and credentials are documented at:
-
-- https://docs.audius.co/
-- https://docs.audius.co/api/
-- https://api.audius.co/plans
-
-## Google Search Console sitemap
-
-This package includes `sitemap.xml` and `robots.txt` for the configured Render URL. Deploy these files at the website root, then submit `sitemap.xml` in Google Search Console. The sitemap currently lists only the homepage because this build is a single-page app with no separate indexable page routes. If you deploy on a different domain, update the URLs in both files first.
+The existing music player and “Made By Kirtan Ka.patel” footer are retained. The service worker caches the site shell only, not music tracks.

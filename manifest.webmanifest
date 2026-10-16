@@ -13,6 +13,7 @@
   "background_color": "#0c0e13",
   "theme_color": "#0d0f14",
   "orientation": "any",
+  "prefer_related_applications": false,
   "categories": [
     "music",
     "entertainment"

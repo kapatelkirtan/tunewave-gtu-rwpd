@@ -12,6 +12,16 @@
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
   <title>TuneWave — Music, your way</title>
   <link rel="manifest" href="/manifest.webmanifest">
+  <script>
+    // Capture the native PWA install event early. Only Chromium-based browsers
+    // currently expose this prompt API; iOS uses its browser's Add to Home Screen flow.
+    window.__twInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', function (event) {
+      event.preventDefault();
+      window.__twInstallPrompt = event;
+      window.dispatchEvent(new Event('tunewave:install-available'));
+    });
+  </script>
   <link rel="icon" href="/assets/tunewave.svg" type="image/svg+xml">
   <style>
     :root{color-scheme:dark;--bg:#0c0e13;--panel:#141720;--panel2:#1b1f2b;--line:#292e3b;--muted:#9aa2b6;--text:#f4f6fb;--accent:#b9f36b;--accent2:#d5ffa2;--danger:#ff7e8c;--radius:18px}
@@ -86,7 +96,7 @@
   let currentView = 'home';
   let currentTrack = null;
   let addTrack = null;
-  let deferredInstallPrompt = null;
+  let deferredInstallPrompt = window.__twInstallPrompt || null;
   let shuffleOn = false;
   let repeatOn = false;
   let lastSearch = '';
@@ -334,11 +344,14 @@
     if(button) button.addEventListener('click', installTuneWave);
   });
   $('#install-help-done').addEventListener('click', () => closeModal('install-help-modal'));
-  window.addEventListener('beforeinstallprompt', event => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
+  function onInstallPromptAvailable(){
+    deferredInstallPrompt = window.__twInstallPrompt || deferredInstallPrompt;
     if(!isAppInstalled() && $('#install-tile-sub')) $('#install-tile-sub').textContent = 'Tap to install this app';
-  });
+    setInstalledUi(isAppInstalled());
+  }
+  window.addEventListener('tunewave:install-available', onInstallPromptAvailable);
+  // In case the browser event was captured before the main application script ran.
+  if (deferredInstallPrompt) onInstallPromptAvailable();
   window.addEventListener('appinstalled', () => {
     deferredInstallPrompt = null;
     setInstalledUi(true);

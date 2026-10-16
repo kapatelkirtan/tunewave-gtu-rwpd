@@ -1,4 +1,4 @@
-const CACHE = 'tunewave-shell-v3';
+const CACHE = 'tunewave-shell-v4';
 const SHELL = [
   '/', '/index.html', '/manifest.webmanifest', '/service-worker.js',
   '/assets/tunewave.svg', '/assets/cover-placeholder.svg',
