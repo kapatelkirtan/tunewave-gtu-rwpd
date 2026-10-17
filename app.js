@@ -207,7 +207,9 @@
     const sourceName = String(track.source || '').toLowerCase();
     const attribution = sourceName === 'jamendo' && (track.licenseUrl || track.sourceUrl)
       ? `<a class="track-license-link" href="${escapeHTML(track.licenseUrl || track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="${track.licenseUrl ? 'Open this track’s licence' : 'Open the Jamendo track page to inspect its licence'}">${track.licenseUrl ? 'CC ↗' : 'Page ↗'}</a>`
-      : '<span class="track-license-spacer" aria-hidden="true"></span>';
+      : sourceName === 'internet archive' && track.sourceUrl
+        ? `<a class="track-license-link" href="${escapeHTML(track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="Open the Internet Archive item and verify its rights">Rights ↗</a>`
+        : '<span class="track-license-spacer" aria-hidden="true"></span>';
     return `<div class="track-row${playing ? ' playing' : ''}" data-track-row="${id}">
       ${artHTML(track)}
       <button class="track-main track-pick" data-play-track="${id}" data-track-index="${index}" aria-label="Play ${escapeHTML(track.title)}" style="background:transparent;border:0;text-align:left;min-width:0;padding:0">
@@ -244,9 +246,9 @@
     state.query = q;
     $('#results-kicker').textContent = 'SEARCHING CONNECTED MUSIC SOURCES';
     $('#results-title').textContent = `Results for “${q}”`;
-    $('#search-hint').textContent = 'Searching Audius and Jamendo…';
+    $('#search-hint').textContent = 'Searching Audius, Jamendo, and Internet Archive…';
     $('#recent-section').hidden = false;
-    setLoading('Searching Audius and Jamendo music…');
+    setLoading('Searching Audius, Jamendo, and openly licensed Archive audio…');
     state.view = 'discover'; updateNavigation();
 
     const [jamendoResult, audiusResult, archiveResult] = await Promise.allSettled([
