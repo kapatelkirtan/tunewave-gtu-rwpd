@@ -20,7 +20,7 @@
     view: 'home', query: '', results: [], catalogResults: [], queue: [], queueIndex: -1,
     current: null, recent: [], favorites: [], position: 0, volume: 0.8,
     isSeeking: false, installPrompt: null, toastTimer: null, lastSavedAt: 0,
-    recognition: null, isVoiceSearching: false, isRestoring: false, isIdentifying: false, recorder: null, identifyTimer: null, mediaStream: null
+    recognition: null, isVoiceSearching: false, isRestoring: false, isIdentifying: false, recorder: null, identifyTimer: null, mediaStream: null, hlsInstance: null
   };
 
   function readState() {
@@ -410,6 +410,7 @@
     state.current = { ...track, source: track.source || 'Music source', streamUrl: track.streamUrl || '' };
     state.position = Math.max(0, Number(resumeAt) || 0);
     audio.pause();
+    if (state.hlsInstance) { state.hlsInstance.destroy(); state.hlsInstance = null; }
     audio.removeAttribute('src');
     audio.load();
     audio.volume = state.volume;
@@ -422,14 +423,39 @@
       const playableUrl = await resolveStreamURL(state.current);
       // Ignore a slow response if the user selected a different song in the meantime.
       if (!state.current || trackId(state.current) !== requestedId) return;
-      audio.src = playableUrl;
       audio.volume = state.volume;
-      audio.load();
       audio.onloadedmetadata = () => {
         if (state.position > 0 && Number.isFinite(audio.duration)) audio.currentTime = Math.min(state.position, Math.max(0, audio.duration - .25));
         if (audio.paused) updateProgress();
       };
-      await audio.play();
+      if (String(state.current.source || '').toLowerCase() === 'soundcloud') {
+        const nativeHls = audio.canPlayType('application/vnd.apple.mpegurl') || audio.canPlayType('application/x-mpegURL');
+        if (window.Hls && window.Hls.isSupported()) {
+          const hls = new window.Hls();
+          state.hlsInstance = hls;
+          hls.loadSource(playableUrl);
+          hls.attachMedia(audio);
+          await new Promise((resolve, reject) => {
+            let settled = false;
+            hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+              audio.play().then(() => { settled = true; resolve(); }).catch(error => { settled = true; reject(error); });
+            });
+            hls.on(window.Hls.Events.ERROR, (_event, data) => {
+              if (data?.fatal && !settled) { settled = true; reject(new Error('SoundCloud HLS playback failed. Try another track.')); }
+            });
+          });
+        } else if (nativeHls) {
+          audio.src = playableUrl;
+          audio.load();
+          await audio.play();
+        } else {
+          throw new DOMException('HLS playback is not supported by this browser.', 'NotSupportedError');
+        }
+      } else {
+        audio.src = playableUrl;
+        audio.load();
+        await audio.play();
+      }
       $('#now-status').textContent = `PLAYING FROM ${String(state.current.source || 'MUSIC SOURCE').toUpperCase()}`;
       updateCurrentTrackUI();
       saveState(true);
