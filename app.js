@@ -96,7 +96,7 @@
     if (!raw || typeof raw !== 'object') return null;
     const id = String(raw.id || raw.track_id || '').trim();
     const permalink = String(raw.permalink_url || raw.permalink || '');
-    if (!id || !/^https:\/\/(www\\.)?soundcloud\\.com\//i.test(permalink)) return null;
+    if (!id || !/^https:\/\/(www\.)?soundcloud\.com\//i.test(permalink)) return null;
     return {
       uid: `soundcloud:${id}`, id, soundcloudId: id,
       title: String(raw.title || raw.name || 'Untitled track').trim(),
