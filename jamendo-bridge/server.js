@@ -437,12 +437,15 @@ async function getOpenverseToken() {
   return openverseToken;
 }
 async function openverseSearch(query) {
-  const token = await getOpenverseToken();
+  // Openverse allows anonymous access for typical usage; credentials are optional for higher rate limits.
+  const headers = (OPENVERSE_CLIENT_ID && OPENVERSE_CLIENT_SECRET)
+    ? { 'Authorization': 'Bearer ' + await getOpenverseToken() }
+    : {};
   const url = new URL('https://api.openverse.org/v1/audio/');
   url.searchParams.set('q', query);
   url.searchParams.set('page_size', '20');
   url.searchParams.set('license', 'cc0,pdm,by,by-sa,by-nc,by-nc-sa,by-nd,by-nc-nd');
-  const response = await sourceFetch(url.href, 'Openverse', 10000, { headers: { 'Authorization': 'Bearer ' + token } });
+  const response = await sourceFetch(url.href, 'Openverse', 10000, { headers: headers });
   const payload = await response.json();
   return (Array.isArray(payload && payload.results) ? payload.results : []).map(function(item) {
     const directUrl = (function() {
@@ -570,7 +573,8 @@ const server = http.createServer(async (req, res) => {
       ccMixterEnabled: true,
       libraryOfCongressEnabled: true,
       radioBrowserEnabled: true,
-      openverseEnabled: Boolean(OPENVERSE_CLIENT_ID && OPENVERSE_CLIENT_SECRET)
+      openverseEnabled: true,
+      openverseAuthEnabled: Boolean(OPENVERSE_CLIENT_ID && OPENVERSE_CLIENT_SECRET)
     });
   }
 
