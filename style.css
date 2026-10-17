@@ -1052,7 +1052,7 @@ button,input,summary,a{-webkit-tap-highlight-color:transparent}
   .hero-capabilities span{font-size:7px;padding:6px 7px}
   .hero-actions{margin-top:12px;gap:6px;flex-wrap:wrap}
   .hero-cta{min-height:34px;padding:0 10px;font-size:8px}
-  .hero-art{flex:0 0 58px;width:58px;height:72px;margin:0 -4px 0 0}
+  .hero-art{display:grid;flex:0 0 58px;width:58px;height:72px;margin:0 -4px 0 0}
   .hero-art>img{width:40px;height:40px;border-radius:12px}
   .hero-ring.ring-a{width:64px;height:27px}
   .hero-ring.ring-b{width:75px;height:34px}
