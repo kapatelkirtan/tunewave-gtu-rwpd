@@ -242,37 +242,15 @@ async function soundcloudStreamUrl(trackId) {
     error.statusCode = 404;
     throw error;
   }
-  const token = await getSoundCloudToken();
-  const transcodings = Array.isArray(track.media?.transcodings) ? track.media.transcodings : [];
-  const progressive = transcodings.find(item => item?.format?.protocol === 'progressive');
-  if (!progressive?.url) {
-    const error = new Error('SoundCloud did not provide a progressive stream for this track.');
-    error.statusCode = 404;
-    throw error;
-  }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 9000);
-  let response;
-  try {
-    response = await fetch(progressive.url, {
-      signal: controller.signal,
-      headers: { 'Accept': 'application/json; charset=utf-8', 'Authorization': `OAuth ${token}` }
-    });
-  } catch (_) {
-    const error = new Error('Could not resolve the SoundCloud audio stream.');
-    error.statusCode = 502;
-    throw error;
-  } finally { clearTimeout(timer); }
-  if (!response.ok) {
-    const error = new Error(`SoundCloud stream resolver returned HTTP ${response.status}.`);
-    error.statusCode = 502;
-    throw error;
-  }
-  const payload = await response.json();
-  const streamUrl = trustedHttpsUrl(payload?.url, ['sndcdn.com']);
+
+  // SoundCloud removed legacy progressive MP3/HLS MP3 streams after 2025.
+  // Use its current streams endpoint and prefer AAC HLS for custom playback.
+  const streams = await soundcloudApi(`/tracks/${encodeURIComponent(trackId)}/streams`);
+  const streamUrl = trustedHttpsUrl(streams?.hls_aac_160_url, ['sndcdn.com'])
+    || trustedHttpsUrl(streams?.hls_aac_96_url, ['sndcdn.com']);
   if (!streamUrl) {
-    const error = new Error('SoundCloud did not return a trusted playable audio URL.');
-    error.statusCode = 502;
+    const error = new Error('SoundCloud did not provide an AAC HLS stream for this track.');
+    error.statusCode = 404;
     throw error;
   }
   return streamUrl;
