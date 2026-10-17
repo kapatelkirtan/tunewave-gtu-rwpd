@@ -189,11 +189,29 @@
       streamUrl: '', source: 'Audiomack'
     };
   }
-  async function searchAudiomackCatalog(query) {
+  function normalizeFreeToUseTrack(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const id = String(raw.id || raw.track_id || '').trim();
+    const streamUrl = String(raw.streamUrl || raw.audio || raw.url || '').trim();
+    if (!id || !/^https:\/\//i.test(streamUrl)) return null;
+    const permalink = String(raw.permalink || raw.sourceUrl || 'https://freetouse.com/');
+    return {
+      uid: 'freetouse:' + id, id, freeToUseId: id,
+      title: String(raw.title || raw.name || 'Untitled track').trim(),
+      artist: String(raw.creator || raw.artist || raw.artist_name || 'Free To Use artist').trim(),
+      duration: Math.max(0, Number(raw.duration || 0)),
+      artwork: String(raw.artwork || raw.thumbnail || ''),
+      permalink, sourceUrl: permalink,
+      licenseUrl: String(raw.licenseUrl || 'https://freetouse.com/license'),
+      licenseName: 'Free To Use License',
+      streamUrl, source: 'Free To Use'
+    };
+  }
+  async function searchFreeToUseCatalog(query) {
     if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('The music provider bridge is not configured.');
-    const payload = await getJson(JAMENDO_BRIDGE_BASE + '/api/audiomack/search?q=' + encodeURIComponent(query), 12000);
+    const payload = await getJson(JAMENDO_BRIDGE_BASE + '/api/freetouse/search?q=' + encodeURIComponent(query), 12000);
     const data = Array.isArray(payload && payload.results) ? payload.results : [];
-    const tracks = uniqueTracks(data, normalizeAudiomackBridgeTrack).slice(0, 20);
+    const tracks = uniqueTracks(data, normalizeFreeToUseTrack).slice(0, 20);
     if (!tracks.length && payload && payload.error) throw new Error(String(payload.error));
     return tracks;
   }
@@ -281,12 +299,9 @@
       if (!/^https:\/\//i.test(streamUrl)) throw new Error('Internet Archive did not return a playable audio file.');
       return streamUrl;
     }
-    if (source === 'audiomack') {
-      const id = String(track.audiomackId || track.id || '').trim();
-      if (!/^\d{1,20}$/.test(id) || !JAMENDO_BRIDGE_CONFIGURED) throw new Error('Audiomack playback needs its configured provider bridge.');
-      const payload = await getJson(JAMENDO_BRIDGE_BASE + '/api/audiomack/track/' + encodeURIComponent(id), 12000);
-      const streamUrl = String(payload && payload.track && payload.track.streamUrl || '');
-      if (!/^https:\/\//i.test(streamUrl)) throw new Error('Audiomack did not return a playable stream for this track.');
+    if (source === 'free to use') {
+      const streamUrl = String(track.streamUrl || '');
+      if (!/^https:\/\//i.test(streamUrl)) throw new Error('Free To Use did not return a playable audio file.');
       return streamUrl;
     }
     if (source === 'ccmixter' || source === 'library of congress' || source === 'openverse' || source === 'radio browser') {
@@ -361,9 +376,9 @@
     setLoading('Searching connected music sources…');
     state.view = 'discover'; updateNavigation();
 
-    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, locResult, openverseResult, radioResult] = await Promise.allSettled([
+    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, locResult, openverseResult, radioResult, freeToUseResult] = await Promise.allSettled([
       searchJamendoCatalog(q), searchAudiusCatalog(q), searchArchiveCatalog(q), searchCommonsCatalog(q),
-      searchCcmixterCatalog(q), searchLocCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q)
+      searchCcmixterCatalog(q), searchLocCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q), searchFreeToUseCatalog(q)
     ]);
     const jamendoTracks = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
     const audiusTracks = audiusResult.status === 'fulfilled' ? audiusResult.value : [];
@@ -373,7 +388,8 @@
     const locTracks = locResult.status === 'fulfilled' ? locResult.value : [];
     const openverseTracks = openverseResult.status === 'fulfilled' ? openverseResult.value : [];
     const radioTracks = radioResult.status === 'fulfilled' ? radioResult.value : [];
-    const combined = [...audiusTracks, ...jamendoTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...locTracks, ...openverseTracks, ...radioTracks];
+    const freeToUseTracks = freeToUseResult.status === 'fulfilled' ? freeToUseResult.value : [];
+    const combined = [...audiusTracks, ...freeToUseTracks, ...jamendoTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...locTracks, ...openverseTracks, ...radioTracks];
     const seen = new Set();
     const tracks = combined.filter(track => {
       const key = trackId(track);
