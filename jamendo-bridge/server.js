@@ -565,17 +565,74 @@ async function openverseSearch(query) {
   return [...found.values()].slice(0, 20);
 }
 
+function radioBrowserQueries(query) {
+  const raw = String(query || '').trim();
+  const normalized = raw.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const unique = items => {
+    const seen = new Set();
+    return items.filter(item => {
+      const key = JSON.stringify(item);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 5);
+  };
+  if (/ultra\\s*funk|ultrafunk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(normalized)) {
+    return unique([
+      { tag: 'phonk' }, { tag: 'funk' }, { tag: 'brazilian funk' },
+      { tag: 'automotivo' }, { name: 'phonk' }
+    ]);
+  }
+  if (/gujarati|gujrati|garba|dandiya|navratri/.test(normalized)) {
+    return unique([
+      { tag: 'gujarati', countrycode: 'IN' }, { tag: 'garba', countrycode: 'IN' },
+      { tag: 'dandiya', countrycode: 'IN' }, { name: 'Gujarati', countrycode: 'IN' },
+      { tag: 'indian folk', countrycode: 'IN' }
+    ]);
+  }
+  if (/bollywood|hindi|desi remix|indian pop|hindustani/.test(normalized)) {
+    return unique([
+      { tag: 'hindi', countrycode: 'IN' }, { tag: 'bollywood', countrycode: 'IN' },
+      { language: 'hindi', countrycode: 'IN' }, { name: 'Bollywood', countrycode: 'IN' },
+      { tag: 'indian music', countrycode: 'IN' }
+    ]);
+  }
+  if (/punjabi/.test(normalized)) {
+    return unique([{ tag: 'punjabi', countrycode: 'IN' }, { language: 'punjabi', countrycode: 'IN' }, { name: 'Punjabi', countrycode: 'IN' }]);
+  }
+  if (/marathi/.test(normalized)) {
+    return unique([{ tag: 'marathi', countrycode: 'IN' }, { language: 'marathi', countrycode: 'IN' }, { name: 'Marathi', countrycode: 'IN' }]);
+  }
+  return unique([{ name: raw }, { tag: raw }]);
+}
+
 async function radioBrowserSearch(query) {
-  const url = new URL('https://de1.api.radio-browser.info/json/stations/search');
-  url.searchParams.set('name', query);
-  url.searchParams.set('limit', '20');
-  url.searchParams.set('hidebroken', 'true');
-  url.searchParams.set('order', 'clickcount');
-  url.searchParams.set('reverse', 'true');
-  const response = await sourceFetch(url.href, 'Radio Browser', 10000);
-  const stations = await response.json();
-  if (!Array.isArray(stations)) return [];
-  return stations.map(function(station) {
+  // Radio Browser is a station directory, so search station tags and language
+  // metadata as well as station names. Results are live stations, not a song
+  // catalogue, and every station controls its own playlist and rights.
+  const queries = radioBrowserQueries(query);
+  const batches = await Promise.allSettled(queries.map(async filters => {
+    const url = new URL('https://de1.api.radio-browser.info/json/stations/search');
+    for (const [key, value] of Object.entries(filters)) url.searchParams.set(key, value);
+    url.searchParams.set('limit', '12');
+    url.searchParams.set('hidebroken', 'true');
+    url.searchParams.set('order', 'clickcount');
+    url.searchParams.set('reverse', 'true');
+    const response = await sourceFetch(url.href, 'Radio Browser', 8500);
+    const stations = await response.json();
+    if (!Array.isArray(stations)) throw new Error('Radio Browser returned an unexpected response.');
+    return stations;
+  }));
+  const successful = batches.filter(batch => batch.status === 'fulfilled');
+  if (!successful.length) throw batches[0].reason || new Error('Radio Browser search failed.');
+  const merged = new Map();
+  for (const batch of successful) {
+    for (const station of batch.value) {
+      const id = String(station && station.stationuuid || '').trim();
+      if (id && !merged.has(id)) merged.set(id, station);
+    }
+  }
+  return [...merged.values()].map(function(station) {
     let streamUrl = '';
     let permalink = '';
     let artwork = '';
@@ -595,11 +652,12 @@ async function radioBrowserSearch(query) {
     return {
       id: String(station.stationuuid),
       title: String(station.name).slice(0, 250),
-      creator: [String(station.country || ''), String(station.tags || '')].filter(Boolean).join(' · ') || 'Online radio station',
+      creator: [String(station.country || ''), String(station.language || ''), String(station.tags || '')]
+        .filter(Boolean).join(' · ') || 'Online radio station',
       duration: 0,
-      streamUrl: streamUrl,
+      streamUrl,
       permalink: permalink || 'https://www.radio-browser.info/',
-      artwork: artwork,
+      artwork,
       rights: 'Live radio stream; music rights and availability are managed by the station operator.',
       provider: 'Radio Browser',
       codec: String(station.codec || ''),
