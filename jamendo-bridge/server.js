@@ -342,45 +342,61 @@ function xmlAttribute(block, tag, attribute) {
 async function freeToUseSearch(query) {
   const normalized = String(query || '').trim();
   const lowered = normalized.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  const ultraFunkSearch = /ultra\s*funk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(lowered);
+  const ultraFunkSearch = /ultra\\s*funk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(lowered);
   const gujaratiSearch = /gujarati|gujrati|garba|dandiya/.test(lowered);
   const hindiSearch = /bollywood|hindi|desi remix|indian pop|hindustani/.test(lowered);
+  const unique = values => [...new Set(values.map(value => String(value || '').trim()).filter(Boolean))];
   const terms = ultraFunkSearch
-    ? [...new Set([normalized, 'ultrafunk', 'ultra funk', 'phonk', 'brazilian funk', 'funk br', 'mandelao', 'automotivo', 'funk brasileiro'])]
+    ? unique([normalized, 'ultrafunk', 'brazilian funk', 'phonk', 'funk brasileiro'])
     : gujaratiSearch
-      ? [...new Set([normalized, 'gujarati music', 'gujarati garba', 'dandiya', 'indian folk music'])]
+      ? unique([normalized, 'gujarati music', 'gujarati garba', 'dandiya', 'indian folk music'])
       : hindiSearch
-        ? [...new Set([normalized, 'hindi songs', 'bollywood instrumental', 'hindi indie', 'indian pop', 'hindustani music'])]
+        ? unique([normalized, 'hindi songs', 'bollywood instrumental', 'hindi indie', 'indian pop'])
         : [normalized];
-  const all = [];
-  const seen = new Set();
-  for (const term of terms) {
+
+  // Run a small, bounded set of related searches concurrently so slow aliases
+  // do not make the UI time out waiting for every source one after another.
+  const batches = await Promise.allSettled(terms.map(async term => {
     const url = new URL('https://api.freetouse.com/v3/music/tracks/search');
     url.searchParams.set('query', term);
     url.searchParams.set('limit', '20');
-    const response = await sourceFetch(url.href, 'Free To Use', 10000);
+    const response = await sourceFetch(url.href, 'Free To Use', 8500);
     const payload = await response.json();
     const records = Array.isArray(payload && payload.data) ? payload.data : [];
-    for (const item of records) {
+    return records.map(item => {
       const id = String(item && item.id || '').trim();
       const streamUrl = trustedHttpsUrl(item && item.files && item.files.mp3, ['freetouse.com']);
-      if (!id || !streamUrl || item.is_premium === true || seen.has(id)) continue;
-      seen.add(id);
+      if (!id || !streamUrl || item.is_premium === true) return null;
       const artistList = Array.isArray(item.artists) ? item.artists : [];
       const artist = artistList.map(entry => Array.isArray(entry) ? entry[1] : entry)
         .map(entry => typeof entry === 'object' && entry ? entry.name : String(entry || ''))
         .filter(Boolean).join(', ') || 'Free To Use artist';
       const thumbnail = item.thumbnails && (item.thumbnails.md || item.thumbnails.sm || item.thumbnails.lg) || '';
-      all.push({
+      return {
         id, title: String(item.title || 'Untitled track').slice(0, 250),
         creator: artist.slice(0, 180), duration: Number(item.duration) || 0,
         artwork: trustedHttpsUrl(thumbnail, ['freetouse.com']) || '',
         streamUrl, permalink: 'https://freetouse.com/',
         licenseUrl: 'https://freetouse.com/license', licenseName: 'Free To Use License',
         provider: 'Free To Use'
-      });
+      };
+    }).filter(Boolean);
+  }));
+
+  const successful = batches.filter(batch => batch.status === 'fulfilled');
+  const all = [];
+  const seen = new Set();
+  for (const batch of successful) {
+    for (const item of batch.value) {
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        all.push(item);
+      }
+      if (all.length >= 25) break;
     }
+    if (all.length >= 25) break;
   }
+  if (!successful.length) throw batches[0].reason || new Error('Free To Use search failed.');
   return all.slice(0, 25);
 }
 
