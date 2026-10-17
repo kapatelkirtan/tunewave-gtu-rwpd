@@ -1,0 +1,9 @@
+{
+  "name": "tunewave-jamendo-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Small server-side Jamendo API bridge for TuneWave",
+  "main": "server.js",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node server.js", "check": "node --check server.js" }
+}
