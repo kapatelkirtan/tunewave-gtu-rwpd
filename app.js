@@ -109,12 +109,29 @@
       streamUrl: audioUrl, source: 'Jamendo'
     };
   }
+  function focusedSearchTerms(query) {
+    const q = String(query || '').trim();
+    const normalized = q.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    if (/ultra\s*funk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(normalized)) {
+      return [...new Set([q, 'ultrafunk', 'Brazilian phonk', 'funk automotivo', 'mandelao'])].slice(0, 5);
+    }
+    if (/gujarati|gujrati|garba|dandiya/.test(normalized)) {
+      return [...new Set([q, 'Gujarati garba', 'Gujarati folk', 'dandiya remix', 'Gujarati DJ remix'])].slice(0, 5);
+    }
+    if (/bollywood|hindi|desi remix|indian pop|hindustani/.test(normalized)) {
+      return [...new Set([q, 'Hindi indie', 'Bollywood instrumental', 'Hindi remix', 'Indian pop'])].slice(0, 5);
+    }
+    return [q];
+  }
   async function searchJamendoCatalog(query) {
     if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('Jamendo bridge is not configured yet.');
-    const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/jamendo/search?q=${encodeURIComponent(query)}`, 10000);
-    const data = Array.isArray(payload?.results) ? payload.results : Array.isArray(payload?.data) ? payload.data : [];
-    const tracks = uniqueTracks(data, normalizeJamendoTrack).slice(0, 30);
-    if (!tracks.length && payload?.error) throw new Error(String(payload.error));
+    const results = await Promise.allSettled(focusedSearchTerms(query).map(term =>
+      getJson(`${JAMENDO_BRIDGE_BASE}/api/jamendo/search?q=${encodeURIComponent(term)}`, 10000)
+    ));
+    const payloads = results.filter(result => result.status === 'fulfilled').map(result => result.value);
+    const data = payloads.flatMap(payload => Array.isArray(payload?.results) ? payload.results : Array.isArray(payload?.data) ? payload.data : []);
+    const tracks = uniqueTracks(data, normalizeJamendoTrack).slice(0, 35);
+    if (!tracks.length && !payloads.length) throw new Error('Jamendo search is temporarily unavailable.');
     return tracks;
   }
   function normalizeArchiveTrack(raw) {
@@ -266,11 +283,11 @@
     const hindiSearch = /bollywood|hindi songs?|desi remix|indian pop/.test(normalizedQuery);
     let terms;
     if (ultraFunkSearch) {
-      terms = [query, 'ultrafunk', 'ultra funk', 'brazilian phonk', 'funk br', 'phonk', 'mandelao', 'automotivo', 'funk brasileiro'];
+      terms = [query, 'ultrafunk', 'ultra funk', 'brazilian phonk', 'funk br', 'phonk', 'mandelao', 'automotivo', 'funk brasileiro', 'funk automotivo', 'phonk funk'];
     } else if (gujaratiSearch) {
-      terms = [query, 'gujarati songs', 'gujarati garba', 'gujarati folk', 'garba remix', 'dandiya remix'];
+      terms = [query, 'gujarati songs', 'gujarati garba', 'gujarati folk', 'garba remix', 'dandiya remix', 'gujarati DJ remix', 'navratri garba'];
     } else if (hindiSearch) {
-      terms = [query, 'bollywood songs', 'hindi songs', 'hindi remix', 'bollywood remix', 'desi remix'];
+      terms = [query, 'bollywood songs', 'hindi songs', 'hindi remix', 'bollywood remix', 'desi remix', 'hindi indie', 'bollywood instrumental', 'indian pop'];
     } else {
       return (await searchOne(query)).slice(0, 30);
     }
@@ -373,7 +390,9 @@
       'spotify': 'https://open.spotify.com/search/' + encoded,
       'apple-music': 'https://music.apple.com/in/search?term=' + encoded,
       'amazon-music': 'https://music.amazon.in/search?keywords=' + encoded,
-      'soundcloud': 'https://soundcloud.com/search/sounds?q=' + encoded
+      'soundcloud': 'https://soundcloud.com/search/sounds?q=' + encoded,
+      'bandcamp': 'https://bandcamp.com/search?q=' + encoded,
+      'free-music-archive': 'https://freemusicarchive.org/search/?quicksearch=' + encoded
     };
     $('[data-external-provider]').forEach(link => {
       const target = destinations[link.dataset.externalProvider];
