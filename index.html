@@ -174,6 +174,30 @@
           </div>
           <p class="external-music-note">These links open each service’s official search/player; they do not bypass ads, subscriptions or regional restrictions. TuneWave’s in-page player searches free/open catalogues and shows license/source links where available. Lock-screen controls use browser Media Session support; background playback still depends on your browser, device and the provider’s stream.</p>
         </section>
+        <section class="official-embed-panel" aria-labelledby="official-embed-title">
+          <div class="external-music-heading">
+            <div>
+              <p class="section-kicker"><span class="status-kicker-dot"></span> OFFICIAL PLAYER CONNECTIONS</p>
+              <h2 id="official-embed-title">Play a track from YouTube or SoundCloud</h2>
+              <p>Open one of the official search links above, choose a track, then paste its share URL below to play it here.</p>
+            </div>
+            <span class="external-link-label">EMBEDDED PLAYERS</span>
+          </div>
+          <form id="official-player-form" class="official-player-form">
+            <label class="sr-only" for="official-player-source">Music service</label>
+            <select id="official-player-source" name="source">
+              <option value="youtube">YouTube / YouTube Music video</option>
+              <option value="soundcloud">SoundCloud track or playlist</option>
+            </select>
+            <label class="sr-only" for="official-player-url">Official track URL</label>
+            <input id="official-player-url" name="trackUrl" type="url" inputmode="url" autocomplete="url" placeholder="Paste an official track URL…" required>
+            <button type="submit" class="search-submit">Play here ↗</button>
+          </form>
+          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">These are official embedded players. Their ads, sign-in requirements and playback rules still apply; TuneWave cannot make their content ad-free or guarantee lock-screen playback.</p>
+          <div id="official-player-stage" class="official-player-stage" hidden>
+            <iframe id="official-player-frame" title="Official embedded music player" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; clipboard-write; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" hidden></iframe>
+          </div>
+        </section>
         <div class="genre-chips" aria-label="Popular searches">
           <button class="genre-chip chip-purple" data-query="ultrafunk">Ultra Funk</button>
           <button class="genre-chip chip-purple" data-query="Kesariya">Kesariya</button>
