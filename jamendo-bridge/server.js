@@ -5,13 +5,16 @@ const { URL } = require('node:url');
 
 const PORT = Number(process.env.PORT || 10000);
 const JAMENDO_CLIENT_ID = String(process.env.JAMENDO_CLIENT_ID || '').trim();
-const DEFAULT_ORIGIN = 'https://tunewave-gtu-rwpd-1.onrender.com';
-const ALLOWED_ORIGINS = new Set(
-  String(process.env.ALLOWED_ORIGINS || DEFAULT_ORIGIN)
-    .split(',').map(s => s.trim()).filter(Boolean).map(s => {
-      try { return new URL(s).origin; } catch { return ''; }
-    }).filter(Boolean)
-);
+const DEFAULT_ORIGINS = [
+  'https://tunewave-gtu-rwpd-1.onrender.com',
+  'https://tunewave-gtu-rwpd.onrender.com'
+];
+const ALLOWED_ORIGINS = new Set([
+  ...DEFAULT_ORIGINS,
+  ...String(process.env.ALLOWED_ORIGINS || '').split(',')
+].map(s => s.trim()).filter(Boolean).map(s => {
+  try { return new URL(s).origin; } catch { return ''; }
+}).filter(Boolean));
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = Math.max(10, Number(process.env.RATE_LIMIT_PER_MINUTE || 45));
 const rateBuckets = new Map();
