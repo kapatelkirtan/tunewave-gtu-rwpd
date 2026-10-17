@@ -274,9 +274,23 @@
     });
   }
   async function searchAudiusCatalog(query) {
-    if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('The music provider bridge is not configured.');
-    const url = JAMENDO_BRIDGE_BASE + '/api/audius/search?q=' + encodeURIComponent(query);
-    const payload = await getBridgeJson(url, 15000);
+    // Search Audius directly first so TuneWave still finds playable tracks if
+    // the optional Render bridge is asleep, misconfigured, or temporarily down.
+    // Audius is an open catalog; results vary and are not a substitute for
+    // licensed mainstream catalogs such as commercial Bollywood releases.
+    const directUrl = new URL(AUDIUS_API_BASE + '/tracks/search');
+    directUrl.searchParams.set('query', query);
+    directUrl.searchParams.set('limit', '30');
+    directUrl.searchParams.set('app_name', AUDIUS_APP_NAME);
+    try {
+      const payload = await getJson(directUrl.href, 9000);
+      const directTracks = uniqueTracks(payload?.data ?? payload?.results ?? [], normalizeAudiusTrack).slice(0, 45);
+      if (directTracks.length) return directTracks;
+    } catch (_) {
+      // Fall through to the bridge, which can run related-query discovery.
+    }
+    if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('Audius direct search returned no results and the music provider bridge is not configured.');
+    const payload = await getBridgeJson(JAMENDO_BRIDGE_BASE + '/api/audius/search?q=' + encodeURIComponent(query), 12000);
     return uniqueTracks(payload?.results ?? payload?.data ?? payload, normalizeAudiusTrack).slice(0, 45);
   }
 
@@ -563,7 +577,7 @@
     } finally { clearTimeout(timeout); }
   }
 
-  const BRIDGE_STARTUP_TIMEOUT_MS = 75000;
+  const BRIDGE_STARTUP_TIMEOUT_MS = 25000;
   let bridgeReadyPromise = null;
   let bridgeReadyUntil = 0;
   let bridgeHealthSnapshot = null;
@@ -573,7 +587,7 @@
     if (bridgeHealthSnapshot && Date.now() < bridgeReadyUntil) return bridgeHealthSnapshot;
     if (!bridgeReadyPromise) {
       bridgeReadyPromise = (async () => {
-        const deadline = Date.now() + BRIDGE_STARTUP_TIMEOUT_MS;
+        const deadline = Date.now() + 25000;
         let lastError = null;
         while (Date.now() < deadline) {
           try {
@@ -592,7 +606,7 @@
         }
         bridgeHealthSnapshot = null;
         bridgeReadyUntil = 0;
-        throw new Error('Music provider bridge did not wake up within 75 seconds. Please retry or check its Render deployment.');
+        throw new Error('Music provider bridge did not wake up within 25 seconds. Please retry or check its Render deployment.');
       })().finally(() => { bridgeReadyPromise = null; });
     }
     return bridgeReadyPromise;
