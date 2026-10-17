@@ -932,6 +932,9 @@
     const url = JAMENDO_BRIDGE_BASE + path + '?q=' + encodeURIComponent('TuneWaveStatusProbe');
     return getJson(url, timeoutMs).then(payload => {
       if (payload && payload.error) throw new Error('provider-search-failed');
+      if (payload && payload.ok === true && Number.isFinite(Number(payload.resultCount))) {
+        return Number(payload.resultCount);
+      }
       if (!payload || !Array.isArray(payload.results)) throw new Error('unexpected-provider-response');
       return payload.results.length;
     });
@@ -987,14 +990,16 @@
           url.searchParams.set('format', 'json');
           url.searchParams.set('origin', '*');
           url.searchParams.set('generator', 'search');
-          url.searchParams.set('gsrsearch', 'filetype:audio TuneWaveStatusProbe');
+          url.searchParams.set('gsrsearch', 'filetype:audio music');
           url.searchParams.set('gsrnamespace', '6');
           url.searchParams.set('gsrlimit', '1');
           url.searchParams.set('prop', 'imageinfo');
           url.searchParams.set('iiprop', 'url');
           const payload = await getJson(url.href, 7500);
-          if (!payload || payload.error || !payload.query) throw new Error('invalid response');
-          return Object.keys(payload.query.pages || {}).length;
+          if (!payload || payload.error || typeof payload !== 'object') throw new Error('invalid response');
+          // A successful MediaWiki query may omit `query` when it finds no matches.
+          // Valid JSON without an API error is still a healthy endpoint response.
+          return Object.keys(payload.query?.pages || {}).length;
         },
         online: count => count ? 'Wikimedia API responded · audio page found.' : 'Wikimedia API responded · no test-query matches.'
       },
@@ -1003,8 +1008,8 @@
         online: count => count ? 'Creative Commons catalogue responded · ' + count + ' test matches.' : 'Catalogue responded · no test-query matches.'
       },
       {
-        provider: 'loc', flag: 'libraryOfCongressEnabled', path: '/api/loc/search',
-        online: count => count ? 'Historical audio search responded · ' + count + ' test matches.' : 'Library API responded · no test-query matches.'
+        provider: 'loc', flag: 'libraryOfCongressEnabled', path: '/api/loc/status',
+        online: count => 'Library of Congress audio API responded' + (count ? ' · sound-recording catalogue available.' : ' · no sample results returned.')
       },
       {
         provider: 'openverse', flag: 'openverseEnabled', path: '/api/openverse/search',
