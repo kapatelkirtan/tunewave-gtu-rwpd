@@ -1,6 +1,6 @@
 # TuneWave open-audio providers
 
-TuneWave combines Audius, Jamendo, Internet Archive, Wikimedia Commons, ccMixter, and rights-filtered Library of Congress audio. Openverse support is included but remains disabled until you add its API client credentials to the Render bridge service.
+TuneWave combines Audius, Jamendo, Internet Archive, Wikimedia Commons, ccMixter, rights-filtered Library of Congress audio, and Radio Browser live music stations. Openverse support is included but remains disabled until you add its API client credentials to the Render bridge service.
 
 ## Deployment
 
@@ -46,3 +46,6 @@ Openverse API documentation: https://api.openverse.org/v1/ . Credentials are req
 These connectors broaden search but do not guarantee every result plays in every browser. Some historical audio has restrictions, some direct URLs can expire or disappear, and browser codec support varies. Check the specific source/track licence, attribution requirements, and intended-use terms before reuse.
 
 A list of 20 music websites is not equivalent to 20 usable streaming APIs. Free Music Archive explicitly states its API is shut down and hotlinking its hosted music is not allowed without permission, so it was deliberately not wired as a direct stream provider. Services such as Spotify, Apple Music, YouTube, SoundCloud, and Bandcamp require their own playback/embed flows, user subscriptions, API credentials, or approval; they must not be scraped or bypassed to extract audio.
+
+
+- **Radio Browser**: searches its public station directory and adds direct HTTPS streams for live music stations. These are station streams rather than individual indexed songs; the station operator controls the playlist, ads, stream availability, and rights.
