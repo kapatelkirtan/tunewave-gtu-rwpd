@@ -245,7 +245,9 @@
       ? `<a class="track-license-link" href="${escapeHTML(track.licenseUrl || track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="${track.licenseUrl ? 'Open this track’s licence' : 'Open the Jamendo track page to inspect its licence'}">${track.licenseUrl ? 'CC ↗' : 'Page ↗'}</a>`
       : sourceName === 'internet archive' && track.sourceUrl
         ? `<a class="track-license-link" href="${escapeHTML(track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="Open the Internet Archive item and verify its rights">Rights ↗</a>`
-        : '<span class="track-license-spacer" aria-hidden="true"></span>';
+        : sourceName === 'wikimedia commons' && track.sourceUrl
+          ? `<a class="track-license-link" href="${escapeHTML(track.licenseUrl || track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="Open the Commons file page and licence">Licence ↗</a>`
+          : '<span class="track-license-spacer" aria-hidden="true"></span>';
     return `<div class="track-row${playing ? ' playing' : ''}" data-track-row="${id}">
       ${artHTML(track)}
       <button class="track-main track-pick" data-play-track="${id}" data-track-index="${index}" aria-label="Play ${escapeHTML(track.title)}" style="background:transparent;border:0;text-align:left;min-width:0;padding:0">
@@ -313,7 +315,7 @@
         archiveTracks.length ? `Internet Archive (${archiveTracks.length})` : '',
         commonsTracks.length ? `Wikimedia Commons (${commonsTracks.length})` : ''
       ].filter(Boolean).join(' + ');
-      $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}. Archive results are limited to items marked Creative Commons or public domain; check the item rights before reuse.`;
+      $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}. Archive and Commons results are filtered for open licences; verify the original rights page before reuse.`;
       $('#results-kicker').textContent = 'YOUR SEARCH, MULTIPLE SOURCES';
       renderQueue(); saveState(true);
       return;
