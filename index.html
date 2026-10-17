@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
-  <script defer src="app.js?v=20261017-6"></script>
+  <script defer src="app.js?v=20261017-7"></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -130,14 +130,6 @@
             <div class="source-connection source-connection-checking" id="radio-connection" data-provider="radio">
               <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-radio" aria-hidden="true">RB</span>
               <div><strong>Radio Browser</strong><small id="radio-description">Checking live station directory…</small></div><span class="connection-status" id="radio-status">CHECKING</span>
-            </div>
-            <div class="source-connection source-connection-checking" id="deezer-connection" data-provider="deezer">
-              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-deezer" aria-hidden="true">DZ</span>
-              <div><strong>Deezer</strong><small id="deezer-description">Checking searchable catalogue and preview clips…</small></div><span class="connection-status" id="deezer-status">CHECKING</span>
-            </div>
-            <div class="source-connection source-connection-checking" id="musicbrainz-connection" data-provider="musicbrainz">
-              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-musicbrainz" aria-hidden="true">MB</span>
-              <div><strong>MusicBrainz</strong><small id="musicbrainz-description">Checking recording metadata search…</small></div><span class="connection-status" id="musicbrainz-status">CHECKING</span>
             </div>
           </div>
           <div class="provider-footer">
@@ -272,13 +264,6 @@
                 <button class="outline-button" data-query="lofi chill beats">Explore chill music <span>→</span></button>
               </div>
             </div>
-            <section class="musicbrainz-panel" id="musicbrainz-panel" aria-labelledby="musicbrainz-panel-title" hidden>
-              <div class="musicbrainz-panel-heading">
-                <div><p class="section-kicker">CATALOGUE CROSS-REFERENCE</p><h3 id="musicbrainz-panel-title">MusicBrainz title matches</h3></div>
-                <span class="metadata-only-tag">METADATA ONLY · NOT AUDIO</span>
-              </div>
-              <p class="musicbrainz-panel-note">Use these recording/artist matches to search the playable providers above. MusicBrainz does not host audio.</p>
-              <div id="musicbrainz-results" class="musicbrainz-results"></div>
             </section>
           </section>
 
