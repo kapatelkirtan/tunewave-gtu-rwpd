@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  // TuneWave searches Audius, Jamendo, and SoundCloud using their supported APIs.
-  // Jamendo and SoundCloud credentials stay in the server-side bridge, never in browser code.
+  // TuneWave searches and plays public tracks from Audius and Jamendo.
+  // Jamendo credentials stay in the server-side bridge, never in browser code.
   const AUDIUS_API_BASE = 'https://api.audius.co/v1';
   const AUDIUS_APP_NAME = 'TuneWave';
   const JAMENDO_BRIDGE_BASE = String(window.TUNEWAVE_JAMENDO_API_BASE || '').trim().replace(/\/+$/, '');
@@ -20,7 +20,7 @@
     view: 'home', query: '', results: [], catalogResults: [], queue: [], queueIndex: -1,
     current: null, recent: [], favorites: [], position: 0, volume: 0.8,
     isSeeking: false, installPrompt: null, toastTimer: null, lastSavedAt: 0,
-    recognition: null, isVoiceSearching: false, isRestoring: false, isIdentifying: false, recorder: null, identifyTimer: null, mediaStream: null, hlsInstance: null
+    recognition: null, isVoiceSearching: false, isRestoring: false, isIdentifying: false, recorder: null, identifyTimer: null, mediaStream: null
   };
 
   function readState() {
@@ -92,28 +92,6 @@
       streamUrl: '', source: 'Audius', isStreamable: raw.is_streamable !== false
     };
   }
-  function normalizeSoundCloudTrack(raw) {
-    if (!raw || typeof raw !== 'object') return null;
-    const id = String(raw.id || raw.track_id || '').trim();
-    const permalink = String(raw.permalink_url || raw.permalink || '');
-    if (!id || !/^https:\/\/(www\.)?soundcloud\.com\//i.test(permalink)) return null;
-    return {
-      uid: `soundcloud:${id}`, id, soundcloudId: id,
-      title: String(raw.title || raw.name || 'Untitled track').trim(),
-      artist: String(raw.artist_name || raw.user?.username || raw.artist || 'Unknown artist').trim(),
-      duration: Math.max(0, Number(raw.duration || 0)),
-      artwork: String(raw.artwork_url || raw.artwork || ''),
-      permalink, sourceUrl: permalink, streamUrl: '', source: 'SoundCloud'
-    };
-  }
-  async function searchSoundCloudCatalog(query) {
-    if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('SoundCloud bridge URL is not configured.');
-    const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/soundcloud/search?q=${encodeURIComponent(query)}`, 12000);
-    const data = Array.isArray(payload?.results) ? payload.results : Array.isArray(payload?.collection) ? payload.collection : [];
-    const tracks = uniqueTracks(data, normalizeSoundCloudTrack).slice(0, 30);
-    if (!tracks.length && payload?.error) throw new Error(String(payload.error));
-    return tracks;
-  }
   function normalizeJamendoTrack(raw) {
     if (!raw || typeof raw !== 'object') return null;
     const id = String(raw.id || raw.track_id || '').trim();
@@ -171,14 +149,6 @@
       const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/jamendo/track/${encodeURIComponent(id)}`, 10000);
       const streamUrl = String(payload?.track?.audio || payload?.audio || '');
       if (!/^https:\/\//i.test(streamUrl)) throw new Error('Jamendo did not return a playable audio stream for this track.');
-      return streamUrl;
-    }
-    if (source === 'soundcloud') {
-      const id = String(track.soundcloudId ?? track.id ?? '').trim();
-      if (!id || !JAMENDO_BRIDGE_CONFIGURED) throw new Error('SoundCloud playback needs the configured provider bridge.');
-      const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/soundcloud/track/${encodeURIComponent(id)}`, 12000);
-      const streamUrl = String(payload?.streamUrl || '');
-      if (!/^https:\/\//i.test(streamUrl)) throw new Error('SoundCloud did not return a playable stream for this track.');
       return streamUrl;
     }
     throw new Error('This saved item belongs to an older or unsupported music source. Search again to find a supported track.');
@@ -245,20 +215,18 @@
     state.query = q;
     $('#results-kicker').textContent = 'SEARCHING CONNECTED MUSIC SOURCES';
     $('#results-title').textContent = `Results for “${q}”`;
-    $('#search-hint').textContent = 'Searching Audius, Jamendo, and SoundCloud…';
+    $('#search-hint').textContent = 'Searching Audius and Jamendo…';
     $('#recent-section').hidden = false;
-    setLoading('Searching Audius, Jamendo, and SoundCloud music…');
+    setLoading('Searching Audius and Jamendo music…');
     state.view = 'discover'; updateNavigation();
 
-    const [jamendoResult, audiusResult, soundcloudResult] = await Promise.allSettled([
+    const [jamendoResult, audiusResult] = await Promise.allSettled([
       searchJamendoCatalog(q),
-      searchAudiusCatalog(q),
-      searchSoundCloudCatalog(q)
+      searchAudiusCatalog(q)
     ]);
     const jamendoTracks = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
     const audiusTracks = audiusResult.status === 'fulfilled' ? audiusResult.value : [];
-    const soundcloudTracks = soundcloudResult.status === 'fulfilled' ? soundcloudResult.value : [];
-    const combined = [...audiusTracks, ...jamendoTracks, ...soundcloudTracks];
+    const combined = [...audiusTracks, ...jamendoTracks];
     const seen = new Set();
     const tracks = combined.filter(track => {
       const key = trackId(track);
@@ -271,18 +239,8 @@
       state.queue = tracks.slice(0, 50);
       state.queueIndex = -1;
       renderTrackList(tracks);
-      const providers = [
-        audiusTracks.length ? `Audius (${audiusTracks.length})` : '',
-        jamendoTracks.length ? `Jamendo (${jamendoTracks.length})` : '',
-        soundcloudTracks.length ? `SoundCloud (${soundcloudTracks.length})` : ''
-      ].filter(Boolean).join(' + ');
-      $('#search-hint').textContent = `Found ${tracks.length} results from ${providers || 'connected providers'}. Availability and playback rights vary by track.`;
-      if (soundcloudTracks.length) {
-        $('#soundcloud-connection')?.classList.add('source-connection-live');
-        $('#soundcloud-connection')?.classList.remove('source-connection-warning');
-        $('#soundcloud-status').textContent = 'LIVE';
-        $('#soundcloud-description').textContent = 'Official API · playable public tracks';
-      }
+      const providers = [audiusTracks.length ? `Audius (${audiusTracks.length})` : '', jamendoTracks.length ? `Jamendo (${jamendoTracks.length})` : ''].filter(Boolean).join(' + ');
+      $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}. Track availability and licences vary.`;
       $('#results-kicker').textContent = 'YOUR SEARCH, MULTIPLE SOURCES';
       renderQueue(); saveState(true);
       return;
@@ -290,15 +248,14 @@
 
     const jamendoFailed = jamendoResult.status === 'rejected';
     const audiusFailed = audiusResult.status === 'rejected';
-    const soundcloudFailed = soundcloudResult.status === 'rejected';
-    if (!audiusFailed || !jamendoFailed || !soundcloudFailed) {
+    if (!audiusFailed || !jamendoFailed) {
       resultsArea.innerHTML = `<div class="no-results"><strong>No matching tracks found</strong>Try the full song title with a different spelling, or try another search.</div>`;
       $('#result-count').textContent = '';
-      $('#search-hint').textContent = 'No matching results from the providers that responded. Check SoundCloud credentials in Render if its results are missing.';
+      $('#search-hint').textContent = 'No matching results from Audius or Jamendo.';
     } else {
-      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>Audius, Jamendo, and SoundCloud could not return results. Check the provider bridge and credentials, then retry.<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
+      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>Audius and Jamendo could not return results. Check the provider bridge and network, then retry.<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
       $('#result-count').textContent = '';
-      $('#search-hint').textContent = 'All connected search sources failed this time.';
+      $('#search-hint').textContent = 'Audius and Jamendo search failed this time.';
       $('#retry-search')?.addEventListener('click', () => searchCatalog(q));
     }
   }
@@ -410,7 +367,6 @@
     state.current = { ...track, source: track.source || 'Music source', streamUrl: track.streamUrl || '' };
     state.position = Math.max(0, Number(resumeAt) || 0);
     audio.pause();
-    if (state.hlsInstance) { state.hlsInstance.destroy(); state.hlsInstance = null; }
     audio.removeAttribute('src');
     audio.load();
     audio.volume = state.volume;
@@ -428,34 +384,9 @@
         if (state.position > 0 && Number.isFinite(audio.duration)) audio.currentTime = Math.min(state.position, Math.max(0, audio.duration - .25));
         if (audio.paused) updateProgress();
       };
-      if (String(state.current.source || '').toLowerCase() === 'soundcloud') {
-        const nativeHls = audio.canPlayType('application/vnd.apple.mpegurl') || audio.canPlayType('application/x-mpegURL');
-        if (window.Hls && window.Hls.isSupported()) {
-          const hls = new window.Hls();
-          state.hlsInstance = hls;
-          hls.loadSource(playableUrl);
-          hls.attachMedia(audio);
-          await new Promise((resolve, reject) => {
-            let settled = false;
-            hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
-              audio.play().then(() => { settled = true; resolve(); }).catch(error => { settled = true; reject(error); });
-            });
-            hls.on(window.Hls.Events.ERROR, (_event, data) => {
-              if (data?.fatal && !settled) { settled = true; reject(new Error('SoundCloud HLS playback failed. Try another track.')); }
-            });
-          });
-        } else if (nativeHls) {
-          audio.src = playableUrl;
-          audio.load();
-          await audio.play();
-        } else {
-          throw new DOMException('HLS playback is not supported by this browser.', 'NotSupportedError');
-        }
-      } else {
-        audio.src = playableUrl;
-        audio.load();
-        await audio.play();
-      }
+      audio.src = playableUrl;
+      audio.load();
+      await audio.play();
       $('#now-status').textContent = `PLAYING FROM ${String(state.current.source || 'MUSIC SOURCE').toUpperCase()}`;
       updateCurrentTrackUI();
       saveState(true);
