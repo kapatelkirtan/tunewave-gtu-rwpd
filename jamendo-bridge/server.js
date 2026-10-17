@@ -342,7 +342,7 @@ function xmlAttribute(block, tag, attribute) {
 async function freeToUseSearch(query) {
   const normalized = String(query || '').trim();
   const lowered = normalized.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  const ultraFunkSearch = /ultra\\s*funk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(lowered);
+  const ultraFunkSearch = /ultra\s*funk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(lowered);
   const gujaratiSearch = /gujarati|gujrati|garba|dandiya/.test(lowered);
   const hindiSearch = /bollywood|hindi|desi remix|indian pop|hindustani/.test(lowered);
   const unique = values => [...new Set(values.map(value => String(value || '').trim()).filter(Boolean))];
@@ -577,7 +577,7 @@ function radioBrowserQueries(query) {
       return true;
     }).slice(0, 5);
   };
-  if (/ultra\\s*funk|ultrafunk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(normalized)) {
+  if (/ultra\s*funk|ultrafunk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(normalized)) {
     return unique([
       { tag: 'phonk' }, { tag: 'funk' }, { tag: 'brazilian funk' },
       { tag: 'automotivo' }, { name: 'phonk' }
