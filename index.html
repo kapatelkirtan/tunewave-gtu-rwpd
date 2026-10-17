@@ -82,19 +82,61 @@
         </form>
         <div class="identify-row"><button type="button" class="identify-button" id="identify-button"><span class="identify-glyph">♫</span><span class="identify-copy"><strong>Identify a song by listening</strong><small>Record up to 10 seconds of music playing nearby</small></span><span class="identify-arrow">↗</span></button><span id="identify-status" class="identify-status" role="status" aria-live="polite">Uses your microphone only after you tap this button.</span></div>
         <div class="search-meta"><span id="search-hint">Type a song title, say the title, or identify music you hear.</span><span class="meta-key"><kbd>Enter</kbd> to search</span></div>
-        <div class="source-connections" aria-label="Music source connection status">
-          <div class="source-connection source-connection-live"><span class="connection-indicator"></span><div><strong>Audius</strong><small>Official API · search and stream</small></div><span class="connection-status">API</span></div>
-          <div class="source-connection source-connection-live"><span class="connection-indicator"></span><div><strong>Free To Use</strong><small>Free music API · no account or API key</small></div><span class="connection-status">API</span></div>
-          <div class="source-connection source-connection-warning" id="jamendo-connection"><span class="connection-indicator connection-indicator-muted"></span><div><strong>Jamendo</strong><small id="jamendo-description">Jamendo bridge configured in config.js</small></div><span class="connection-status" id="jamendo-status">API</span></div>
-          <div class="source-connection source-connection-warning"><span class="connection-indicator connection-indicator-muted"></span><div><strong>Internet Archive</strong><small>Openly licensed audio and recordings</small></div><span class="connection-status">API</span></div>
-          <div class="source-connection source-connection-warning"><span class="connection-indicator connection-indicator-muted"></span><div><strong>Wikimedia Commons</strong><small>Free-licence audio files and recordings</small></div><span class="connection-status">API</span></div>
-          <div class="source-connection source-connection-warning"><span class="connection-indicator connection-indicator-muted"></span><div><strong>ccMixter</strong><small>Creative Commons independent music</small></div><span class="connection-status">API</span></div>
-          <div class="source-connection source-connection-warning"><span class="connection-indicator connection-indicator-muted"></span><div><strong>Library of Congress</strong><small>Historical recordings with rights metadata</small></div><span class="connection-status">API</span></div>
-          <div class="source-connection source-connection-warning"><span class="connection-indicator connection-indicator-muted"></span><div><strong>Openverse</strong><small>Openly licensed audio search · no key needed for basic use</small></div><span class="connection-status">API</span></div>
-          <div class="source-connection source-connection-warning"><span class="connection-indicator connection-indicator-muted"></span><div><strong>Radio Browser</strong><small>Live music stations, not individual track search</small></div><span class="connection-status">API</span></div>
-          <div class="source-connection source-connection-warning" style="grid-column:1 / -1"><span class="connection-indicator connection-indicator-muted"></span><div><strong>Nuclear desktop companion</strong><small>Nuclear is a separate desktop player, not a web streaming API for TuneWave.</small></div><a class="connection-status" href="https://nuclearplayer.com/" target="_blank" rel="noopener noreferrer" aria-label="Open Nuclear desktop player website">Get app ↗</a></div>
-        </div>
-        <p class="provider-note">TuneWave searches Audius and Free To Use without provider credentials, plus Jamendo, Internet Archive, Wikimedia Commons, ccMixter, rights-filtered Library of Congress recordings, Openverse, and live stations from Radio Browser. Ultra Funk/phonk searches try common genre spellings across Audius and Free To Use. Free To Use provides its own licensed catalogue; its free-use conditions apply, and commercial use may require a paid licence. Archive results are filtered to items marked Creative Commons or public domain; check each item’s rights page before reuse. The Archive is best for public-domain recordings, live performances, and older audio—not a guaranteed source for current commercial hits. Nuclear is a desktop companion, not a web streaming API.</p>
+        <section class="connections-panel" aria-labelledby="connections-title">
+          <div class="connections-heading">
+            <div class="connections-heading-copy">
+              <p class="section-kicker"><span class="status-kicker-dot"></span> LIVE NETWORK STATUS</p>
+              <h2 id="connections-title">Music provider network</h2>
+              <p>See which music services are responding right now.</p>
+            </div>
+            <div class="connections-tools">
+              <span class="connection-summary" id="connection-summary" role="status" aria-live="polite">CHECKING NETWORK</span>
+              <button type="button" class="connection-refresh" id="refresh-connections" title="Check music provider connections again">↻ <span>Refresh</span></button>
+            </div>
+          </div>
+          <div class="source-connections" id="source-connections" aria-label="Live music provider connection status">
+            <div class="source-connection source-connection-checking" id="audius-connection" data-provider="audius">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-audius" aria-hidden="true">AU</span>
+              <div><strong>Audius</strong><small id="audius-description">Checking public search API…</small></div><span class="connection-status" id="audius-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="freetouse-connection" data-provider="freetouse">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-freetouse" aria-hidden="true">FT</span>
+              <div><strong>Free To Use</strong><small id="freetouse-description">Checking keyless music catalogue…</small></div><span class="connection-status" id="freetouse-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="jamendo-connection" data-provider="jamendo">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-jamendo" aria-hidden="true">JM</span>
+              <div><strong>Jamendo</strong><small id="jamendo-description">Checking bridge and API setup…</small></div><span class="connection-status" id="jamendo-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="archive-connection" data-provider="archive">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-archive" aria-hidden="true">IA</span>
+              <div><strong>Internet Archive</strong><small id="archive-description">Checking audio search endpoint…</small></div><span class="connection-status" id="archive-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="commons-connection" data-provider="commons">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-commons" aria-hidden="true">WC</span>
+              <div><strong>Wikimedia Commons</strong><small id="commons-description">Checking free-licence audio search…</small></div><span class="connection-status" id="commons-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="ccmixter-connection" data-provider="ccmixter">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-ccmixter" aria-hidden="true">cc</span>
+              <div><strong>ccMixter</strong><small id="ccmixter-description">Checking Creative Commons catalogue…</small></div><span class="connection-status" id="ccmixter-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="loc-connection" data-provider="loc">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-loc" aria-hidden="true">LOC</span>
+              <div><strong>Library of Congress</strong><small id="loc-description">Checking historical audio catalogue…</small></div><span class="connection-status" id="loc-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="openverse-connection" data-provider="openverse">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-openverse" aria-hidden="true">OV</span>
+              <div><strong>Openverse</strong><small id="openverse-description">Checking open-licence audio search…</small></div><span class="connection-status" id="openverse-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="radio-connection" data-provider="radio">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-radio" aria-hidden="true">RB</span>
+              <div><strong>Radio Browser</strong><small id="radio-description">Checking live station directory…</small></div><span class="connection-status" id="radio-status">CHECKING</span>
+            </div>
+          </div>
+          <div class="provider-footer">
+            <p class="provider-note" id="provider-note">A provider is marked ONLINE only after its search endpoint responds. An online API may return no matching Ultra Funk tracks; results and playback rights still depend on each source.</p>
+            <div class="provider-companion"><span class="companion-tag">SEPARATE DESKTOP APP</span><span>Nuclear is not connected to TuneWave’s web player.</span><a href="https://nuclearplayer.com/" target="_blank" rel="noopener noreferrer">Get Nuclear ↗</a></div>
+          </div>
+        </section>
         <div class="genre-chips" aria-label="Popular searches">
           <button class="genre-chip chip-purple" data-query="ultrafunk">Ultra Funk</button>
           <button class="genre-chip chip-purple" data-query="Kesariya">Kesariya</button>
@@ -227,9 +269,9 @@
     <form method="dialog"><button class="dialog-close" aria-label="Close">×</button></form>
     <div class="dialog-logo"><img src="icon-192.png" alt=""></div>
     <p class="section-kicker">ABOUT TUNEWAVE</p><h2>Good music.<br><span>More room to breathe.</span></h2>
-    <p>TuneWave is an independent music interface and player. It searches Audius through its documented REST API and Jamendo through a server-side bridge. Jamendo tracks link to the source page so listeners can inspect the track-specific licence. Nuclear is a separate desktop player and does not expose its plugin catalogue as a public streaming API for this hosted website. Nuclear is a desktop player with a plugin API, not a hosted public music catalogue for website visitors, so it is not represented as a TuneWave provider. Song identification records a short microphone sample and sends it to TuneWave’s configured backend recognition endpoint; a valid AudD token and supported backend route are required.</p>
-    <div class="dialog-feature"><span>✓</span><div><strong>Audius + Jamendo + open audio sources</strong><p>Search results combine Audius, Jamendo, Internet Archive, Wikimedia Commons, ccMixter, rights-filtered Library of Congress recordings, live stations from Radio Browser, and Free To Use music through its public API without an API key or account. Jamendo uses a developer client ID on the server-side bridge, and each track's licence remains attached to its source page.</p></div></div>
-    <div class="dialog-feature"><span>i</span><div><strong>Why Nuclear is not a website provider</strong><p>Nuclear's plugin API is for the running desktop app. It does not provide a public hosted catalogue and browser-stream API for all TuneWave visitors. Audius + Jamendo is the supported web architecture instead.</p></div></div>
+    <p>TuneWave is an independent music interface and player. It searches Audius, Free To Use, Jamendo, Internet Archive, Wikimedia Commons, ccMixter, Library of Congress recordings, Openverse, and Radio Browser through their public APIs or TuneWave’s server-side bridge. Connection status is tested live from the page and does not guarantee that every query returns a playable track. Source links and licence metadata are shown where available. Nuclear is a separate desktop player and does not expose its plugin catalogue as a public streaming API for this website. Song identification records a short microphone sample and sends it to TuneWave’s configured recognition endpoint; a valid AudD token and supported backend route are required.</p>
+    <div class="dialog-feature"><span>✓</span><div><strong>Audius + Jamendo + open audio sources</strong><p>Search results combine Audius, Free To Use, Jamendo, Internet Archive, Wikimedia Commons, ccMixter, rights-filtered Library of Congress recordings, Openverse, and Radio Browser. Free To Use does not require an API key or account. Jamendo uses a developer client ID on the server-side bridge, and source licence information should be checked before reuse.</p></div></div>
+    <div class="dialog-feature"><span>i</span><div><strong>Why Nuclear is not a website provider</strong><p>Nuclear's plugin API is for the running desktop app. It does not provide a public hosted catalogue and browser-stream API for all TuneWave visitors. Audius, Free To Use, and the connected open audio catalogues are the supported web sources instead.</p></div></div>
     <div class="dialog-feature"><span>✓</span><div><strong>Identify music you hear</strong><p>Records up to 10 seconds from your microphone and asks the configured recognition service to identify it. This requires microphone permission and a valid recognition service credential.</p></div></div>
     <div class="dialog-feature"><span>✓</span><div><strong>Listening controls</strong><p>Lock-screen and headset controls appear when your browser/device supports Media Session.</p></div></div>
     <div class="dialog-feature"><span>✓</span><div><strong>Local library</strong><p>Favorites, recent tracks, and playback position are saved in this browser only.</p></div></div>
