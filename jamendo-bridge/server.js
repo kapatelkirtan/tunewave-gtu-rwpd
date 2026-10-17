@@ -324,7 +324,7 @@ const server = http.createServer(async (req, res) => {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
     try {
       if (requestUrl.pathname === '/api/soundcloud/search') {
-        const query = String(requestUrl.searchParams.get('q') || '').trim().replace(/\\s+/g, ' ');
+        const query = String(requestUrl.searchParams.get('q') || '').trim().replace(/\s+/g, ' ');
         if (!query || query.length > 120) return sendJson(res, 400, { error: 'Provide a search query between 1 and 120 characters.' });
         const cacheKey = `soundcloud:search:${query.toLowerCase()}`;
         let results = cacheGet(cacheKey);
@@ -334,7 +334,7 @@ const server = http.createServer(async (req, res) => {
         }
         return sendJson(res, 200, { provider: 'SoundCloud', results });
       }
-      const match = requestUrl.pathname.match(/^\\/api\\/soundcloud\\/track\\/([0-9]{1,24})$/);
+      const match = requestUrl.pathname.match(/^\/api\/soundcloud\/track\/([0-9]{1,24})$/);
       if (!match) return sendJson(res, 404, { error: 'Route not found.' });
       const streamUrl = await soundcloudStreamUrl(match[1]);
       return sendJson(res, 200, { provider: 'SoundCloud', streamUrl });
