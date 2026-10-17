@@ -11,7 +11,6 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -86,9 +85,9 @@
         <div class="source-connections" aria-label="Music source connection status">
           <div class="source-connection source-connection-live"><span class="connection-indicator"></span><div><strong>Audius</strong><small>Official API · search and stream</small></div><span class="connection-status">API</span></div>
           <div class="source-connection source-connection-warning" id="jamendo-connection"><span class="connection-indicator connection-indicator-muted"></span><div><strong>Jamendo</strong><small id="jamendo-description">Jamendo bridge configured in config.js</small></div><span class="connection-status" id="jamendo-status">API</span></div>
-          <div class="source-connection source-connection-warning" id="soundcloud-connection"><span class="connection-indicator connection-indicator-muted"></span><div><strong>SoundCloud</strong><small id="soundcloud-description">Needs SoundCloud app keys in Render</small></div><span class="connection-status" id="soundcloud-status">SETUP</span></div>
+          <div class="source-connection source-connection-warning" style="grid-column:1 / -1"><span class="connection-indicator connection-indicator-muted"></span><div><strong>Nuclear desktop companion</strong><small>Nuclear is a separate desktop player, not a web streaming API for TuneWave.</small></div><a class="connection-status" href="https://nuclearplayer.com/" target="_blank" rel="noopener noreferrer" aria-label="Open Nuclear desktop player website">Get app ↗</a></div>
         </div>
-        <p class="provider-note">Search Audius, Jamendo, and eligible public SoundCloud tracks. SoundCloud playback depends on API access and each track’s streaming restrictions.</p>
+        <p class="provider-note">TuneWave plays eligible tracks from Audius and Jamendo in this website. Nuclear is a free desktop player with its own plugins and local APIs; it does not expose its catalogue as a hosted stream API that TuneWave can use for all website visitors.</p>
         <div class="genre-chips" aria-label="Popular searches">
           <button class="genre-chip chip-purple" data-query="Kesariya">Kesariya</button>
           <button class="genre-chip chip-cyan" data-query="Dholi Taro Dhol Baaje">Dholi Taro Dhol Baaje</button>
@@ -220,13 +219,13 @@
     <form method="dialog"><button class="dialog-close" aria-label="Close">×</button></form>
     <div class="dialog-logo"><img src="icon-192.png" alt=""></div>
     <p class="section-kicker">ABOUT TUNEWAVE</p><h2>Good music.<br><span>More room to breathe.</span></h2>
-    <p>TuneWave is an independent music interface and player. It searches Audius through its documented REST API, Jamendo through a server-side bridge, and eligible public SoundCloud tracks through SoundCloud’s API. SoundCloud results link back to the original track; Jamendo tracks link to the source page so listeners can inspect the track-specific licence. Nuclear is a desktop player with a plugin API, not a hosted public music catalogue for website visitors, so it is not represented as a TuneWave provider. Song identification records a short microphone sample and sends it to TuneWave’s configured backend recognition endpoint; a valid AudD token and supported backend route are required.</p>
-    <div class="dialog-feature"><span>✓</span><div><strong>Audius + Jamendo + SoundCloud</strong><p>Search results combine Audius, Jamendo, and eligible public SoundCloud tracks. Jamendo needs a developer client ID; SoundCloud needs a registered developer app's client ID and secret configured on the server-side bridge. Track access and licensing vary by source.</p></div></div>
+    <p>TuneWave is an independent music interface and player. It searches Audius through its documented REST API and Jamendo through a server-side bridge. Jamendo tracks link to the source page so listeners can inspect the track-specific licence. Nuclear is a separate desktop player and does not expose its plugin catalogue as a public streaming API for this hosted website. Nuclear is a desktop player with a plugin API, not a hosted public music catalogue for website visitors, so it is not represented as a TuneWave provider. Song identification records a short microphone sample and sends it to TuneWave’s configured backend recognition endpoint; a valid AudD token and supported backend route are required.</p>
+    <div class="dialog-feature"><span>✓</span><div><strong>Audius + Jamendo web music</strong><p>Search results combine Audius and Jamendo tracks. Jamendo uses a developer client ID on the server-side bridge, and each track's licence remains attached to its source page.</p></div></div>
     <div class="dialog-feature"><span>i</span><div><strong>Why Nuclear is not a website provider</strong><p>Nuclear's plugin API is for the running desktop app. It does not provide a public hosted catalogue and browser-stream API for all TuneWave visitors. Audius + Jamendo is the supported web architecture instead.</p></div></div>
     <div class="dialog-feature"><span>✓</span><div><strong>Identify music you hear</strong><p>Records up to 10 seconds from your microphone and asks the configured recognition service to identify it. This requires microphone permission and a valid recognition service credential.</p></div></div>
     <div class="dialog-feature"><span>✓</span><div><strong>Listening controls</strong><p>Lock-screen and headset controls appear when your browser/device supports Media Session.</p></div></div>
     <div class="dialog-feature"><span>✓</span><div><strong>Local library</strong><p>Favorites, recent tracks, and playback position are saved in this browser only.</p></div></div>
-    <div class="dialog-note">Song availability and rights vary by provider. Jamendo's API terms permit non-commercial use by default; commercial/ad-supported projects must request terms from Jamendo. Inspect each Jamendo track's licence on its source page. SoundCloud only permits tracks available for off-platform streaming, and its API requires app credentials and attribution. TuneWave does not add its own ads, but cannot guarantee third-party streams are always available or ad-free. Background and lock-screen controls depend on browser/device support.</div>
+    <div class="dialog-note">Song availability and rights vary by provider. Jamendo's API terms permit non-commercial use by default; commercial/ad-supported projects must request terms from Jamendo. Inspect each Jamendo track's licence on its source page. Nuclear remains a desktop companion rather than a provider inside TuneWave. TuneWave does not add its own ads, but cannot guarantee third-party streams are always available or ad-free. Background and lock-screen controls depend on browser/device support.</div>
     <p class="dialog-credit">Made By <strong>Kirtan Ka.patel</strong></p>
   </dialog>
 </body>
