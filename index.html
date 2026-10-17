@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
-  <script defer src="app.js?v=20261017-8"></script>
+  <script defer src="app.js?v=20261017-9"></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -189,8 +189,8 @@
           <div class="external-music-heading">
             <div>
               <p class="section-kicker"><span class="status-kicker-dot"></span> OFFICIAL PLAYER CONNECTIONS</p>
-              <h2 id="official-embed-title">Official music players</h2>
-              <p>Choose YouTube, SoundCloud, Audiomack, HearThis.at, or Bandcamp. Paste a share URL for YouTube/SoundCloud; for Audiomack, HearThis.at, and Bandcamp, paste the provider’s official embed-player URL.</p>
+              <h2 id="official-embed-title">Find a song, play it here</h2>
+              <p>TuneWave automatically searches its connected catalogues as you type. For Audiomack, HearThis.at, and Bandcamp, search the provider below, then paste a track URL or official embed code to play its player on this page.</p>
             </div>
             <span class="external-link-label">EMBEDDED PLAYERS</span>
           </div>
@@ -204,10 +204,19 @@
               <option value="bandcamp">Bandcamp official embed URL</option>
             </select>
             <label class="sr-only" for="official-player-url">Official track URL</label>
-            <input id="official-player-url" name="trackUrl" type="url" inputmode="url" autocomplete="url" placeholder="Paste an official share or embed URL…" required>
+            <input id="official-player-url" name="trackUrl" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Paste a track URL or the complete official iframe embed code…" required>
             <button type="submit" class="search-submit">Play here ↗</button>
           </form>
-          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">These are official embedded players. Their ads, sign-in requirements and playback rules still apply; TuneWave cannot make their content ad-free or guarantee lock-screen playback.</p>
+          <div class="official-provider-searches" aria-label="Search tracks on official music providers">
+            <p id="official-player-query">Search a title above; these provider searches follow your query.</p>
+            <div class="official-provider-search-links">
+              <a data-external-provider="audiomack" href="https://audiomack.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on Audiomack ↗</a>
+              <a data-external-provider="hearthis" href="https://hearthis.at/search-music/?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on HearThis.at ↗</a>
+              <a data-external-provider="bandcamp" href="https://bandcamp.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on Bandcamp ↗</a>
+            </div>
+            <p class="official-provider-search-help">Audiomack and HearThis.at share links may be converted to their official embeds. For Bandcamp, paste the embed code from Share / Embed. These are provider-hosted players; their search pages and player restrictions remain controlled by each service.</p>
+          </div>
+          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Search results from TuneWave’s connected catalogs play directly in the built-in player. Official embedded players appear here in the page, but their ads, sign-in rules, full-track access, and lock-screen support are controlled by the provider.</p>
           <div id="official-player-stage" class="official-player-stage" hidden>
             <iframe id="official-player-frame" title="Official embedded music player" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; clipboard-write; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" hidden></iframe>
           </div>
