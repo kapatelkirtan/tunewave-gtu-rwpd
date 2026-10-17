@@ -30,3 +30,10 @@ The existing music player and “Made By Kirtan Ka.patel” footer are retained.
 TuneWave searches Free To Use alongside Audius and the other connected audio catalogs. Free To Use's official API requires no account or API key: https://freetouse.com/api. The bridge queries its public search endpoint and uses only results with a valid HTTPS MP3 URL and a non-premium track flag. Searches for Ultra Funk/phonk try related spellings, but the provider may not have every track or remix.
 
 Free listening is not a blanket permission to redistribute or monetize the music. Review the provider's current license and conditions before using tracks outside personal listening: https://freetouse.com/license. Free To Use documents that commercial use may require a paid license.
+
+
+## Mainstream music search shortcuts
+
+TuneWave keeps its in-player results focused on sources that expose a usable free/open audio catalogue. For popular copyrighted Hindi/Bollywood, Gujarati and trending Ultra Funk tracks, the home search also updates official search links for YouTube Music, JioSaavn, Spotify, Apple Music, Amazon Music India and SoundCloud. These links open the corresponding service's own search/player; they are not presented as TuneWave streaming APIs and do not bypass that service's subscription, advertising or regional restrictions. Availability of free playback depends on each service and track.
+
+Audius searches also expand common Ultra Funk/phonk, Gujarati/garba and Hindi/Bollywood query variants, while Free To Use searches include additional Brazilian funk/phonk aliases. Catalogue matches are not guaranteed for every song or remix.
