@@ -63,10 +63,6 @@ Keep both values server-side. Never add them to `app.js`, `config.js`, or public
 Audiomack offers free embeddable players for creator uploads and its API includes search and track-play endpoints. That does not mean every track can be used unrestrictedly: the catalog, ads, access, API availability, and track rights remain controlled by Audiomack and individual rights holders. See [Audiomack Creator information](https://creators.audiomack.com/about) and [API documentation](https://audiomack.com/data-api/docs).
 
 
-## Deezer integration (preview clips)
+## Removed catalogue-only providers
 
-TuneWave queries Deezer's public track-search endpoint through the server-side bridge and only accepts preview URLs hosted on Deezer's CDN. Public search results provide metadata and preview clips (commonly about 30 seconds); they do not unlock full-track playback or make the full catalogue ad-free. Results are marked “PREVIEW” and link to the official Deezer page. Public API availability and preview URLs may change.
-
-## MusicBrainz integration (metadata only)
-
-TuneWave queries the public MusicBrainz recording-search API for recording title, artist credit, release, year, and duration metadata. Matching records appear in a separate “MusicBrainz title matches” panel with an action to search that title/artist against TuneWave's playable providers. MusicBrainz does not host audio and cannot make a recording playable by itself. The bridge serializes MusicBrainz requests at approximately one request per second and sends a descriptive User-Agent. See the [MusicBrainz API documentation](https://musicbrainz.org/doc/MusicBrainz_API) for current public API requirements and rate limits.
+Deezer preview search and MusicBrainz metadata search have been removed from TuneWave. Deezer's public search integration returned short preview clips, while MusicBrainz does not host audio. TuneWave keeps its existing free/open catalogue providers, but their available music and playback rights vary by track; they cannot guarantee every commercial Bollywood, Gujarati, Hindi, or Ultra Funk release.
