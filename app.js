@@ -176,9 +176,7 @@
     const sourceName = String(track.source || '').toLowerCase();
     const attribution = sourceName === 'jamendo' && (track.licenseUrl || track.sourceUrl)
       ? `<a class="track-license-link" href="${escapeHTML(track.licenseUrl || track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="${track.licenseUrl ? 'Open this track’s licence' : 'Open the Jamendo track page to inspect its licence'}">${track.licenseUrl ? 'CC ↗' : 'Page ↗'}</a>`
-      : sourceName === 'soundcloud' && track.sourceUrl
-        ? `<a class="track-license-link" href="${escapeHTML(track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="Open the original SoundCloud track">SC ↗</a>`
-        : '<span class="track-license-spacer" aria-hidden="true"></span>';
+      : '<span class="track-license-spacer" aria-hidden="true"></span>';
     return `<div class="track-row${playing ? ' playing' : ''}" data-track-row="${id}">
       ${artHTML(track)}
       <button class="track-main track-pick" data-play-track="${id}" data-track-index="${index}" aria-label="Play ${escapeHTML(track.title)}" style="background:transparent;border:0;text-align:left;min-width:0;padding:0">
