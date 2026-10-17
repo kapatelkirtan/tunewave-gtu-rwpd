@@ -1,0 +1,76 @@
+name: TuneWave validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax-check JavaScript
+        run: |
+          node --check app.js
+          node --check service-worker.js
+          node --check server.js
+          node --check jamendo-bridge/server.js
+      - name: Validate page structure and essential controls
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const app = fs.readFileSync('app.js', 'utf8');
+          const requiredIds = [
+            'search-form', 'search-input', 'results-area', 'audio-player',
+            'bottom-play-button', 'main-play-button', 'queue-list',
+            'source-connections', 'connection-summary', 'refresh-connections',
+            'recent-grid', 'official-player-form', 'official-player-frame'
+          ];
+          const ids = [...html.matchAll(/\\bid="([^"]+)"/g)].map(match => match[1]);
+          const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+          const missing = requiredIds.filter(id => !ids.includes(id));
+          if (duplicates.length) {
+            console.error('Duplicate HTML IDs:', [...new Set(duplicates)].join(', '));
+            process.exitCode = 1;
+          }
+          if (missing.length) {
+            console.error('Required controls missing from index.html:', missing.join(', '));
+            process.exitCode = 1;
+          }
+          const voidTags = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+          const stack = [];
+          const source = html.replace(/<!--[\\s\\S]*?-->/g, '');
+          const mismatches = [];
+          for (const match of source.matchAll(/<\\/?([a-zA-Z][\\w:-]*)\\b[^>]*>/g)) {
+            const name = match[1].toLowerCase();
+            const token = match[0];
+            const closing = token.startsWith('</');
+            const selfClosing = /\\/\\s*>$/.test(token) || voidTags.has(name);
+            if (closing) {
+              const top = stack.pop();
+              if (!top || top.name !== name) mismatches.push({ close: name, expected: top?.name || 'nothing' });
+            } else if (!selfClosing) {
+              stack.push({ name });
+            }
+          }
+          if (mismatches.length || stack.length) {
+            console.error('HTML tag nesting is invalid:', JSON.stringify({mismatches, unclosed: stack}));
+            process.exitCode = 1;
+          }
+          for (const fn of ['searchCatalog', 'playTrack', 'checkProviderConnections', 'restoreSession']) {
+            if (!app.includes('function ' + fn) && !app.includes('async function ' + fn)) {
+              console.error('Required app behavior missing:', fn);
+              process.exitCode = 1;
+            }
+          }
+          if (!process.exitCode) console.log('TuneWave structure and essential controls validated.');
+          NODE
