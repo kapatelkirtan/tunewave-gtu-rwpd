@@ -552,6 +552,19 @@
       seen.add(key); return true;
     }).slice(0, 55);
 
+    const providerRuns = [
+      ['Audius', audiusResult], ['Free To Use', freeToUseResult], ['Jamendo', jamendoResult],
+      ['Internet Archive', archiveResult], ['Wikimedia Commons', commonsResult],
+      ['ccMixter', ccmixterResult], ['Library of Congress', locResult],
+      ['Openverse', openverseResult], ['Radio Browser', radioResult]
+    ];
+    const failedProviders = providerRuns
+      .filter(([, result]) => result.status === 'rejected')
+      .map(([name, result]) => name + ': ' + String(result.reason?.message || 'request failed'));
+    const failureSummary = failedProviders.length
+      ? ' Unavailable sources: ' + failedProviders.join('; ') + '.'
+      : '';
+
     if (tracks.length) {
       state.catalogResults = tracks.slice();
       state.queue = tracks.slice(0, 50);
@@ -568,28 +581,9 @@
         openverseTracks.length ? `Openverse (${openverseTracks.length})` : '',
         radioTracks.length ? `Radio Browser (${radioTracks.length} stations)` : ''
       ].filter(Boolean).join(' + ');
-      $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}. Open-source audio results include licence/source links; check the original rights page before reuse.`;
+      $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}. Open-source audio results include licence/source links; check the original rights page before reuse.` + failureSummary;
       $('#results-kicker').textContent = 'YOUR SEARCH, MULTIPLE SOURCES';
       renderQueue(); saveState(true);
-      return;
-    }
-
-    const providerRuns = [
-      ['Audius', audiusResult], ['Free To Use', freeToUseResult], ['Jamendo', jamendoResult],
-      ['Internet Archive', archiveResult], ['Wikimedia Commons', commonsResult],
-      ['ccMixter', ccmixterResult], ['Library of Congress', locResult],
-      ['Openverse', openverseResult], ['Radio Browser', radioResult]
-    ];
-    const failedProviders = providerRuns
-      .filter(([, result]) => result.status === 'rejected')
-      .map(([name, result]) => name + ': ' + String(result.reason?.message || 'request failed'));
-    const failureSummary = failedProviders.length
-      ? ' Unavailable sources: ' + failedProviders.join('; ') + '.'
-      : '';
-
-    if (tracks.length) {
-      // (Results were already rendered above; this branch is only retained as a safeguard.)
-      $('#search-hint').textContent += failureSummary;
       return;
     }
 
@@ -1167,11 +1161,11 @@
           // Valid JSON without an API error is still a healthy endpoint response.
           return Object.keys(payload.query?.pages || {}).length;
         },
-        online: count => count ? 'Wikimedia API responded · audio page found.' : 'Wikimedia API responded · no test-query matches.'
+        online: count => count ? 'Wikimedia API responded · audio page found.' : 'Wikimedia API responded · no “music” match.'
       },
       {
         provider: 'ccmixter', flag: 'ccMixterEnabled', path: '/api/ccmixter/search',
-        online: count => count ? 'Creative Commons catalogue responded · ' + count + ' “music” matches.' : 'Catalogue responded · no test-query matches.'
+        online: count => count ? 'Creative Commons catalogue responded · ' + count + ' “music” matches.' : 'Catalogue responded · no “music” matches.'
       },
       {
         provider: 'loc', flag: 'libraryOfCongressEnabled', path: '/api/loc/status',
