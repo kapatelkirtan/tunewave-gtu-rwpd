@@ -227,3 +227,13 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
   .official-player-form .search-submit { width: 100%; justify-content: center; }
   .official-player-stage iframe[title*="YouTube"] { min-height: 215px; }
 }
+
+/* Query-aware official player shortcuts */
+.official-provider-searches{margin:12px 0 8px;padding:14px;border:1px solid rgba(139,119,255,.17);border-radius:14px;background:rgba(19,24,42,.64)}
+.official-provider-searches>p{font-size:10px;line-height:1.65;color:#929bbc;margin:0 0 10px}
+.official-provider-search-links{display:flex;flex-wrap:wrap;gap:8px}
+.official-provider-search-links a{display:inline-flex;align-items:center;gap:6px;padding:9px 11px;border-radius:10px;border:1px solid rgba(89,218,238,.16);background:rgba(56,230,243,.055);color:#a9f4fa;text-decoration:none;font-size:10px;font-weight:700}
+.official-provider-search-links a:hover{border-color:rgba(89,218,238,.4);background:rgba(56,230,243,.11)}
+.official-provider-searches .official-provider-search-help{margin:10px 0 0;color:#737c9b;font-size:9px}
+.official-player-form input[type=text]{min-width:0}
+@media(max-width:650px){.official-provider-search-links{display:grid;grid-template-columns:1fr}.official-provider-search-links a{justify-content:center}.official-player-form{flex-wrap:wrap}.official-player-form input{width:100%;order:2}.official-player-form select{width:100%;order:1}.official-player-form .search-submit{width:100%;order:3}}
