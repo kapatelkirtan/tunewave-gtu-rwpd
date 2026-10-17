@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#080812">
+  <meta name="theme-color" content="#f1f0eb">
   <meta name="description" content="TuneWave — find songs by title, voice, or by listening to a short music sample.">
-  <title>TuneWave — Your Sound Universe</title>
+  <title>TuneWave — Listening, Reimagined</title>
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20261018-36">
+  <link rel="stylesheet" href="style.css?v=20261018-37">
   <script src="config.js"></script>
   <script defer src="app.js?v=20261018-18"></script>
 </head>
@@ -57,11 +57,12 @@
         </div>
       </header>
 
-      <section class="welcome-row" id="welcome-row">
+      <div class="launch-deck" id="launch-deck">
+<section class="welcome-row" id="welcome-row">
         <div>
-          <p class="eyebrow"><span class="eyebrow-line"></span> SONIC INTERFACE / PERSONAL AUDIO, RECOMPOSED</p>
-          <h1>Find your<br><span>frequency.</span></h1>
-          <p class="welcome-copy">Explore open music catalogues, identify sounds around you, and keep every discovery in one focused listening space.</p>
+          <p class="eyebrow"><span class="eyebrow-line"></span> TUNEWAVE LISTENING SYSTEM / NOISE OFF</p>
+          <h1>Hear the<br><span>unexpected.</span></h1>
+          <p class="welcome-copy">Your personal audio console for discovering new sounds, identifying what’s playing, and keeping the next great track within reach.</p>
           <div class="hero-capabilities" aria-label="Ways to find music">
             <span><b>01</b> Search by title</span>
             <span><b>02</b> Voice search</span>
@@ -81,21 +82,18 @@
           <div class="hero-caption"><span class="live-dot"></span> Your next repeat starts here</div>
         </div>
       </section>
-
-      
-
-      <section class="search-section" aria-label="Search music">
+<section class="search-section" aria-label="Search music">
         <div class="search-intro">
           <div>
             <p class="section-kicker">LIVE MUSIC SEARCH</p>
-            <h2>What sounds like you?</h2>
+            <h2>Find your next sound.</h2>
           </div>
           <span class="search-intro-note"><span class="live-dot"></span> Search open catalogues</span>
         </div>
         <form id="search-form" class="search-box">
           <span class="search-symbol" aria-hidden="true">⌕</span>
           <label class="sr-only" for="search-input">Search by song title</label>
-          <input id="search-input" name="q" type="search" autocomplete="off" placeholder="Search a song title — e.g. Kesariya or Heeriye">
+          <input id="search-input" name="q" type="search" autocomplete="off" placeholder="Search tracks, artists or a mood...">
           <button type="button" class="voice-button" id="voice-button" aria-label="Say a song title" title="Say a song title"><span>♩</span><span class="voice-text">Voice</span></button>
           <button type="submit" class="search-submit">Search <span>→</span></button>
         </form>
@@ -123,6 +121,9 @@
 
         
       </section>
+</div>
+
+
 
 
       
