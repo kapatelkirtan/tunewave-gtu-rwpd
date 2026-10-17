@@ -220,6 +220,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
   background: #090b14;
 }
 .official-player-stage iframe[title*="YouTube"] { aspect-ratio: 16 / 9; min-height: 260px; }
+.official-player-stage iframe[title*="Spotify"] { min-height: 352px; }
 .official-player-stage[hidden],
 .official-player-stage iframe[hidden] { display: none; }
 @media (max-width: 760px) {
