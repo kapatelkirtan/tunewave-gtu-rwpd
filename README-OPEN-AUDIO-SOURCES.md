@@ -17,3 +17,8 @@ After deployment, test:
 - Search results are filtered to records whose metadata identifies a Creative Commons URL or a public-domain/Creative Commons rights statement. Metadata can be inaccurate; check the original item rights page before reuse.
 - Audio files are streamed from the original Internet Archive item. Playback availability and supported formats vary by item.
 - Audius and Jamendo remain connected as before. Jamendo credentials remain in Render environment variables.
+
+
+## Wikimedia Commons integration
+
+TuneWave also searches Wikimedia Commons through its public MediaWiki API. Results are limited to audio files with metadata indicating Creative Commons, public-domain, or another free licence, and the player uses the file URL supplied by Commons. Browser support varies by audio format (especially Ogg/Opus), so some results may not play in every browser. Open the Commons file page and confirm attribution/licence terms before reuse. No API key is required.
