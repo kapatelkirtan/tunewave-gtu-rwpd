@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#090812">
+  <meta name="theme-color" content="#08080d">
   <meta name="description" content="TuneWave — find songs by title, voice, or by listening to a short music sample.">
   <title>TuneWave — Your Sound Universe</title>
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20261018-28">
+  <link rel="stylesheet" href="style.css?v=20261018-29">
   <script src="config.js"></script>
   <script defer src="app.js?v=20261018-18"></script>
 </head>
@@ -56,6 +56,33 @@
           <button class="icon-button" id="settings-button" title="TuneWave settings and information" aria-label="TuneWave settings and information">⚙</button>
         </div>
       </header>
+
+      <section class="welcome-row" id="welcome-row">
+        <div>
+          <p class="eyebrow"><span class="eyebrow-line"></span> THE TUNEWAVE LISTENING ATELIER</p>
+          <h1>Sound, shaped<br><span>around you.</span></h1>
+          <p class="welcome-copy">A personal listening space for new discoveries, familiar favourites, and the sounds you have not found yet.</p>
+          <div class="hero-capabilities" aria-label="Ways to find music">
+            <span><b>01</b> Search by title</span>
+            <span><b>02</b> Voice search</span>
+            <span><b>03</b> Identify a song</span>
+          </div>
+          <div class="hero-actions" aria-label="Quick music actions">
+            <button type="button" class="hero-cta hero-cta-primary" data-view="discover">Explore music <span aria-hidden="true">↗</span></button>
+            <button type="button" class="hero-cta hero-cta-secondary" data-query="Ultra Funk">Try Ultra Funk <span aria-hidden="true">♫</span></button>
+          </div>
+        </div>
+        <div class="hero-art" aria-label="TuneWave music artwork">
+          <div class="hero-glow"></div>
+          <div class="hero-spectrum" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="hero-ring ring-a"></div><div class="hero-ring ring-b"></div>
+          <img src="icon-192.png" alt="TuneWave music emblem">
+          <div class="hero-note note-one">♫</div><div class="hero-note note-two">♪</div>
+          <div class="hero-caption"><span class="live-dot"></span> Your next repeat starts here</div>
+        </div>
+      </section>
+
+      
 
       <section class="search-section" aria-label="Search music">
         <div class="search-intro">
@@ -104,30 +131,7 @@
 
 <div class="content-grid">
         <section class="feed-column">
-          <section class="welcome-row" id="welcome-row">
-        <div>
-          <p class="eyebrow"><span class="eyebrow-line"></span> YOUR SOUND UNIVERSE</p>
-          <h1>Your music.<br><span>Your own atmosphere.</span></h1>
-          <p class="welcome-copy">Search by the song name, use your voice, or identify a track by listening to a short sample.</p>
-          <div class="hero-capabilities" aria-label="Ways to find music">
-            <span><b>01</b> Search by title</span>
-            <span><b>02</b> Voice search</span>
-            <span><b>03</b> Identify a song</span>
-          </div>
-          <div class="hero-actions" aria-label="Quick music actions">
-            <button type="button" class="hero-cta hero-cta-primary" data-view="discover">Explore music <span aria-hidden="true">↗</span></button>
-            <button type="button" class="hero-cta hero-cta-secondary" data-query="Ultra Funk">Try Ultra Funk <span aria-hidden="true">♫</span></button>
-          </div>
-        </div>
-        <div class="hero-art" aria-label="TuneWave music artwork">
-          <div class="hero-glow"></div>
-          <div class="hero-spectrum" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <div class="hero-ring ring-a"></div><div class="hero-ring ring-b"></div>
-          <img src="icon-192.png" alt="TuneWave music emblem">
-          <div class="hero-note note-one">♫</div><div class="hero-note note-two">♪</div>
-          <div class="hero-caption"><span class="live-dot"></span> Your next repeat starts here</div>
-        </div>
-      </section>
+          
 
           <section class="home-shelves" id="home-shelves" aria-label="Browse songs by title">
         <section class="music-shelf" aria-labelledby="recommended-heading">
