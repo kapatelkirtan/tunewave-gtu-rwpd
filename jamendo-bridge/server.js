@@ -864,6 +864,10 @@ const server = http.createServer(async (req, res) => {
   // are paused for an hour after an upstream 403/429 to avoid extending a block.
   if (requestUrl.pathname === '/api/loc/status') {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
+    const cachedLocStatus = cacheGet('loc:status');
+    if (cachedLocStatus && Date.now() - locLastHealthyAt < 10 * 60 * 1000) {
+      return sendJson(res, 200, cachedLocStatus);
+    }
     if (Date.now() < locBlockedUntil) {
       const retryMinutes = Math.max(1, Math.ceil((locBlockedUntil - Date.now()) / 60000));
       return sendJson(res, 503, {
@@ -882,11 +886,13 @@ const server = http.createServer(async (req, res) => {
       if (!payload || typeof payload !== 'object' || Array.isArray(payload) || payload.error || !Array.isArray(payload.results)) {
         throw new Error('LOC returned an unexpected JSON search response.');
       }
-      return sendJson(res, 200, {
+      const statusPayload = {
         ok: true, provider: 'Library of Congress', endpoint: statusUrl.pathname,
         resultCount: payload.results.length, lastHealthyAt: locLastHealthyAt,
         note: 'Valid LOC JSON search response; zero results are not a connectivity failure.'
-      });
+      };
+      cacheSet('loc:status', statusPayload);
+      return sendJson(res, 200, statusPayload);
     } catch (error) {
       const code = Number(error && error.statusCode) || 502;
       console.error('[loc-status-bridge] ' + code + ': ' + String(error && error.message || 'request failed'));
