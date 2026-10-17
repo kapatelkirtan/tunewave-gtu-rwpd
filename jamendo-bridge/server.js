@@ -232,7 +232,7 @@ async function archivePlayableFile(identifier) {
     id: identifier,
     title: String(metadata.title || identifier).slice(0, 250),
     creator: String(metadata.creator || 'Unknown creator').slice(0, 180),
-    duration: Math.max(0, Number(file.length) || 0),
+    duration: 0,
     streamUrl,
     permalink: `https://archive.org/details/${encodeURIComponent(identifier)}`,
     licenseUrl: String(metadata.licenseurl || metadata.license_url || ''),
