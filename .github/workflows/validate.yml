@@ -35,7 +35,7 @@ jobs:
             'source-connections', 'connection-summary', 'refresh-connections',
             'recent-grid', 'official-player-form', 'official-player-frame'
           ];
-          const ids = [...html.matchAll(/\\bid="([^"]+)"/g)].map(match => match[1]);
+          const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
           const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
           const missing = requiredIds.filter(id => !ids.includes(id));
           if (duplicates.length) {
@@ -48,13 +48,13 @@ jobs:
           }
           const voidTags = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
           const stack = [];
-          const source = html.replace(/<!--[\\s\\S]*?-->/g, '');
+          const source = html.replace(/<!--[\s\S]*?-->/g, '');
           const mismatches = [];
-          for (const match of source.matchAll(/<\\/?([a-zA-Z][\\w:-]*)\\b[^>]*>/g)) {
+          for (const match of source.matchAll(/<\/?([a-zA-Z][\w:-]*)\b[^>]*>/g)) {
             const name = match[1].toLowerCase();
             const token = match[0];
             const closing = token.startsWith('</');
-            const selfClosing = /\\/\\s*>$/.test(token) || voidTags.has(name);
+            const selfClosing = /\/\s*>$/.test(token) || voidTags.has(name);
             if (closing) {
               const top = stack.pop();
               if (!top || top.name !== name) mismatches.push({ close: name, expected: top?.name || 'nothing' });
