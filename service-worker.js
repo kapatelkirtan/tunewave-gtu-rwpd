@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tunewave-shell-v36';
+const CACHE_NAME = 'tunewave-shell-v37';
 const APP_SHELL = [
   './', './index.html', './style.css', './app.js', './config.js', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png'
@@ -17,11 +17,22 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
   // Configuration contains public service URLs that may change after a provider is deployed.
   // Use network-first so changing config.js does not leave installed PWAs on a stale bridge URL.
-  if (url.pathname.endsWith('/config.js')) {
+  if (url.pathname.endsWith('/config.js') || url.pathname.endsWith('/app.js') || url.pathname.endsWith('/style.css')) {
+    // Keep configuration and executable UI assets network-first so a PWA cannot
+    // keep running a broken old search script after a new deployment.
     event.respondWith(fetch(request).then(response => {
-      if (response.ok) { const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(request, copy)); }
+      if (response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+      }
       return response;
-    }).catch(() => caches.match(request)));
+    }).catch(async () => {
+      const cached = await caches.match(request);
+      if (cached) return cached;
+      if (url.pathname.endsWith('/app.js')) return caches.match('./app.js');
+      if (url.pathname.endsWith('/style.css')) return caches.match('./style.css');
+      return undefined;
+    }));
     return;
   }
   if (request.mode === 'navigate') {
