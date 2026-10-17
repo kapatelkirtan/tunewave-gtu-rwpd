@@ -21,7 +21,7 @@ const rateBuckets = new Map();
 const responseCache = new Map();
 const CACHE_TTL_MS = 45_000;
 const MAX_CACHE_ENTRIES = 120;
-const DOGMAZIC_RADIO_STREAM_URL = 'https://radio.dogmazic.net:8001/';
+const FUNKWHALE_BASE_URL = 'https://open.audio';
 
 // LOC documents a 20 requests/minute limit. Keep calls serialized and spaced,
 // and pause LOC for an hour after a 403/429 instead of repeatedly retrying a block.
@@ -850,7 +850,7 @@ const server = http.createServer(async (req, res) => {
       configured: Boolean(JAMENDO_CLIENT_ID),
       internetArchiveEnabled: true,
       ccMixterEnabled: true,
-      dogmazicRadioEnabled: true,
+      funkwhaleEnabled: true,
       radioBrowserEnabled: true,
       openverseEnabled: true,
       freeToUseEnabled: true,
@@ -861,55 +861,109 @@ const server = http.createServer(async (req, res) => {
 
 
 
-  // Dogmazic is an ad-free, openly licensed continuous radio stream. Test the
-  // direct stream endpoint without consuming the stream or requiring account/API credentials.
-  if (requestUrl.pathname === '/api/dogmazic/status') {
+  // Search the public catalogue hosted by the Open Audio Funkwhale instance.
+  // Read-only access is attempted without listener credentials; the instance can disable
+  // anonymous API access, in which case this provider reports unavailable and others continue.
+  async function funkwhaleFetchTerm(query) {
+    let lastError = null;
+    for (const version of [1, 2]) {
+      const url = new URL('/api/v' + version + '/tracks/', FUNKWHALE_BASE_URL);
+      url.searchParams.set('q', String(query || '').trim());
+      url.searchParams.set('page_size', '20');
+      url.searchParams.set('page', '1');
+      url.searchParams.set('playable', 'true');
+      url.searchParams.set('include_channels', 'true');
+      try {
+        const response = await sourceFetch(url.href, 'Funkwhale / Open Audio', 10000);
+        const payload = await response.json();
+        if (!payload || !Array.isArray(payload.results)) {
+          throw new Error('Funkwhale returned an unexpected catalogue response.');
+        }
+        return payload.results;
+      } catch (error) {
+        lastError = error;
+        if (version === 1 && /HTTP 404/i.test(String(error && error.message || ''))) continue;
+        throw error;
+      }
+    }
+    throw lastError || new Error('Funkwhale catalogue is unavailable.');
+  }
+
+  function funkwhaleNormalizeTrack(track) {
+    if (!track || typeof track !== 'object' || track.is_playable === false) return null;
+    const id = String(track.id || track.guid || '').trim();
+    const rawListenUrl = String(track.listen_url || track.uploads?.find(upload => upload && upload.listen_url)?.listen_url || '').trim();
+    if (!id || !rawListenUrl) return null;
+    let streamUrl;
+    try {
+      const parsed = new URL(rawListenUrl, FUNKWHALE_BASE_URL);
+      if (parsed.protocol !== 'https:' || parsed.hostname !== 'open.audio' || !/^\/api\/v[12]\/listen\//.test(parsed.pathname)) return null;
+      streamUrl = parsed.href;
+    } catch (_) { return null; }
+
+    const artistCredit = Array.isArray(track.artist_credit) ? track.artist_credit : [];
+    const artist = String(track.artist?.name ||
+      artistCredit.map(entry => entry && (entry.credit || entry.artist?.name || entry.name)).filter(Boolean).join(', ') ||
+      'Funkwhale contributor').slice(0, 180);
+    const album = track.album && typeof track.album === 'object' ? track.album : null;
+    const cover = album?.cover?.urls || track.cover?.urls || {};
+    const artwork = trustedHttpsUrl(cover.medium_square_crop || cover.large_square_crop || cover.original || '', ['open.audio']);
+    const license = track.license && typeof track.license === 'object' ? track.license : {};
+    const licenseUrl = sanitizeLicenseUrl(license.url || license.license_url || track.license_url || '');
+    const licenseName = String(license.name || license.code || track.license_name || '').slice(0, 120);
+    return {
+      id,
+      title: String(track.title || 'Untitled track').slice(0, 250),
+      creator: artist,
+      duration: Math.max(0, Number(track.duration || track.uploads?.[0]?.duration) || 0),
+      artwork,
+      streamUrl,
+      permalink: FUNKWHALE_BASE_URL + '/library/tracks/' + encodeURIComponent(id),
+      sourceUrl: FUNKWHALE_BASE_URL + '/library/tracks/' + encodeURIComponent(id),
+      licenseUrl,
+      licenseName,
+      rights: licenseName,
+      provider: 'Funkwhale'
+    };
+  }
+
+  async function funkwhaleSearch(query) {
+    const terms = discoverySearchTerms(query).slice(0, 4);
+    const batches = await Promise.allSettled(terms.map(term => funkwhaleFetchTerm(term)));
+    const successful = batches.filter(batch => batch.status === 'fulfilled');
+    if (!successful.length) throw batches[0]?.reason || new Error('Funkwhale search failed.');
+    const tracks = new Map();
+    for (const batch of successful) {
+      for (const raw of batch.value) {
+        const track = funkwhaleNormalizeTrack(raw);
+        if (track && !tracks.has(track.id)) tracks.set(track.id, track);
+        if (tracks.size >= 25) break;
+      }
+      if (tracks.size >= 25) break;
+    }
+    return [...tracks.values()].slice(0, 25);
+  }
+
+  if (requestUrl.pathname === '/api/funkwhale/status') {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
-    const cacheKey = 'dogmazic:radio:status';
+    const cacheKey = 'funkwhale:status';
     const cached = cacheGet(cacheKey);
     if (cached) return sendJson(res, 200, cached);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 9000);
     try {
-      const response = await fetch(DOGMAZIC_RADIO_STREAM_URL, {
-        method: 'GET',
-        redirect: 'follow',
-        headers: {
-          'Accept': 'audio/*, application/ogg, application/octet-stream, */*;q=0.5',
-          'User-Agent': 'TuneWave/1.0 (https://tunewave-gtu-rwpd-1.onrender.com)'
-        },
-        signal: controller.signal
-      });
-      if (!response.ok) {
-        const error = new Error('Dogmazic Radio returned HTTP ' + response.status + '.');
-        error.statusCode = 502;
-        throw error;
-      }
-      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-      if (contentType && !/(audio|ogg|mpegurl|octet-stream|mp3|mpeg)/i.test(contentType)) {
-        const error = new Error('Dogmazic returned ' + contentType + ' instead of an audio stream.');
-        error.statusCode = 502;
-        throw error;
-      }
-      try { if (response.body) await response.body.cancel(); } catch (_) {}
-      const result = {
-        ok: true,
-        provider: 'Dogmazic Radio',
-        streamUrl: DOGMAZIC_RADIO_STREAM_URL,
-        contentType: contentType || 'audio stream',
-        note: 'Continuous ad-free radio stream; individual song search is not provided by this endpoint.'
+      const results = await funkwhaleSearch('music');
+      const statusPayload = {
+        ok: true, provider: 'Funkwhale / Open Audio',
+        instance: FUNKWHALE_BASE_URL,
+        resultCount: results.length,
+        note: 'Searchable public audio catalogue. Anonymous access depends on the instance settings; only playable records with advertised listen URLs are returned.'
       };
-      cacheSet(cacheKey, result);
-      return sendJson(res, 200, result);
+      cacheSet(cacheKey, statusPayload);
+      return sendJson(res, 200, statusPayload);
     } catch (error) {
       const code = Number(error && error.statusCode) || 502;
-      const message = error && error.name === 'AbortError'
-        ? 'Dogmazic Radio stream endpoint timed out.'
-        : String(error && error.message || 'Dogmazic Radio stream check failed.');
-      console.error('[dogmazic-radio] ' + code + ': ' + message);
-      return sendJson(res, code, { ok: false, provider: 'Dogmazic Radio', error: message });
-    } finally {
-      clearTimeout(timer);
+      const message = String(error && error.message || 'Funkwhale search failed.');
+      console.error('[funkwhale-bridge] ' + code + ': ' + message);
+      return sendJson(res, code, { ok: false, provider: 'Funkwhale / Open Audio', error: message });
     }
   }
 
@@ -953,9 +1007,10 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (requestUrl.pathname.startsWith('/api/audius/') || requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/') || requestUrl.pathname.startsWith('/api/radio/') || requestUrl.pathname.startsWith('/api/freetouse/')) {
+  if (requestUrl.pathname.startsWith('/api/funkwhale/') || requestUrl.pathname.startsWith('/api/audius/') || requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/') || requestUrl.pathname.startsWith('/api/radio/') || requestUrl.pathname.startsWith('/api/freetouse/')) {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
-    const provider = requestUrl.pathname.startsWith('/api/audius/') ? 'audius'
+    const provider = requestUrl.pathname.startsWith('/api/funkwhale/') ? 'funkwhale'
+      : requestUrl.pathname.startsWith('/api/audius/') ? 'audius'
       : requestUrl.pathname.startsWith('/api/ccmixter/') ? 'ccmixter'
       : requestUrl.pathname.startsWith('/api/loc/') ? 'loc'
       : requestUrl.pathname.startsWith('/api/radio/') ? 'radio'
@@ -967,7 +1022,8 @@ const server = http.createServer(async (req, res) => {
     try {
       let results = cacheGet(cacheKey);
       if (!results) {
-        results = provider === 'audius' ? await audiusSearch(query)
+        results = provider === 'funkwhale' ? await funkwhaleSearch(query)
+          : provider === 'audius' ? await audiusSearch(query)
           : provider === 'ccmixter' ? await ccMixterSearch(query)
           : provider === 'loc' ? await libraryOfCongressSearch(query)
           : provider === 'radio' ? await radioBrowserSearch(query)
@@ -975,7 +1031,7 @@ const server = http.createServer(async (req, res) => {
           : await openverseSearch(query);
         cacheSet(cacheKey, results);
       }
-      const providerName = provider === 'audius' ? 'Audius' : provider === 'ccmixter' ? 'ccMixter' : provider === 'loc' ? 'Library of Congress' : provider === 'radio' ? 'Radio Browser' : provider === 'freetouse' ? 'Free To Use' : 'Openverse';
+      const providerName = provider === 'funkwhale' ? 'Funkwhale / Open Audio' : provider === 'audius' ? 'Audius' : provider === 'ccmixter' ? 'ccMixter' : provider === 'loc' ? 'Library of Congress' : provider === 'radio' ? 'Radio Browser' : provider === 'freetouse' ? 'Free To Use' : 'Openverse';
       return sendJson(res, 200, { provider: providerName, results });
     } catch (error) {
       const code = Number(error && error.statusCode) || 502;
