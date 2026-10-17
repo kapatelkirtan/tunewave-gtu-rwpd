@@ -20,7 +20,8 @@
     view: 'home', query: '', results: [], catalogResults: [], queue: [], queueIndex: -1,
     current: null, recent: [], favorites: [], position: 0, volume: 0.8,
     isSeeking: false, installPrompt: null, toastTimer: null, lastSavedAt: 0,
-    recognition: null, isVoiceSearching: false, isRestoring: false, isIdentifying: false, recorder: null, identifyTimer: null, mediaStream: null
+    recognition: null, isVoiceSearching: false, isRestoring: false, isIdentifying: false, recorder: null, identifyTimer: null, mediaStream: null,
+    searchVersion: 0
   };
 
   function readState() {
@@ -385,6 +386,8 @@
       'apple-music': 'https://music.apple.com/in/search?term=' + encoded,
       'amazon-music': 'https://music.amazon.in/search?keywords=' + encoded,
       'soundcloud': 'https://soundcloud.com/search/sounds?q=' + encoded,
+      'audiomack': 'https://audiomack.com/search?q=' + encoded,
+      'hearthis': 'https://hearthis.at/search-music/?q=' + encoded,
       'bandcamp': 'https://bandcamp.com/search?q=' + encoded,
       'free-music-archive': 'https://freemusicarchive.org/search/?quicksearch=' + encoded,
       'gaana': 'https://gaana.com/search/' + pathQuery,
@@ -397,6 +400,8 @@
     });
     const caption = $('#external-music-query');
     if (caption) caption.textContent = 'Search “' + q + '” on these official music services.';
+    const playerCaption = $('#official-player-query');
+    if (playerCaption) playerCaption.textContent = 'Ready to find “' + q + '”. Search a provider below, then paste its track link or official embed code to play it on this page.';
   }
 
   function stopOfficialEmbed() {
@@ -426,14 +431,20 @@
 
     form.addEventListener('submit', event => {
       event.preventDefault();
-      const raw = String(urlInput?.value || '').trim();
+      let raw = String(urlInput?.value || '').trim();
       const provider = String(sourceSelect?.value || 'youtube');
+
+      // Accept the full iframe snippet copied from a provider's Share / Embed dialog.
+      const iframeSrc = raw.match(/<iframe\b[\s\S]*?\bsrc\s*=\s*["']([^"']+)["']/i)
+        || raw.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
+      if (iframeSrc) raw = iframeSrc[1].replace(/&amp;/gi, '&').trim();
+
       let parsed;
       try {
         parsed = new URL(raw);
         if (parsed.protocol !== 'https:') throw new Error('Use an HTTPS link from the official music service.');
       } catch (_) {
-        if (status) status.textContent = 'Paste a valid HTTPS share or official embed URL.';
+        if (status) status.textContent = 'Paste a valid HTTPS track link or the provider’s official iframe embed code.';
         return;
       }
 
@@ -472,18 +483,46 @@
         embedUrl = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(parsed.href) + '&auto_play=false&hide_related=true&show_comments=false&show_user=true&visual=true';
         frameTitle = 'Official SoundCloud player';
       } else if (Object.prototype.hasOwnProperty.call(allowedEmbedHosts, provider)) {
-        const allowedHosts = allowedEmbedHosts[provider];
-        const path = parsed.pathname.toLowerCase();
-        const isEmbedPath = provider === 'audiomack'
+        let path = parsed.pathname.toLowerCase();
+        let isEmbedPath = provider === 'audiomack'
           ? /\/embed\/(song|album|playlist)\//.test(path)
           : provider === 'hearthis'
             ? /\/embed\/?$/.test(path) || /\/embed\//.test(path)
             : /\/embeddedplayer\/(track|album)=\d+/i.test(path);
-        if (!allowedHosts.includes(parsed.hostname.toLowerCase()) || !isEmbedPath) {
+
+        // Convert normal Audiomack and HearThis track share links into their
+        // official player routes. Bandcamp requires its own embed code/URL.
+        const hostOnly = parsed.hostname.toLowerCase().replace(/^www\./, '');
+        if (!isEmbedPath && hostOnly === 'audiomack.com') {
+          const parts = parsed.pathname.split('/').filter(Boolean);
+          if (parts.length >= 2 && !['search', 'embed'].includes(parts[0].toLowerCase())) {
+            const owner = parts[0];
+            let kind = 'song';
+            let slugParts = parts.slice(1);
+            if (slugParts[0]?.toLowerCase() === 'album' && slugParts.length > 1) {
+              kind = 'album'; slugParts = slugParts.slice(1);
+            } else if (slugParts[0]?.toLowerCase() === 'playlist' && slugParts.length > 1) {
+              kind = 'playlist'; slugParts = slugParts.slice(1);
+            }
+            parsed = new URL('https://audiomack.com/embed/' + kind + '/' + encodeURIComponent(owner) + '/' + slugParts.map(encodeURIComponent).join('/'));
+            path = parsed.pathname.toLowerCase();
+            isEmbedPath = /\/embed\/(song|album|playlist)\//.test(path);
+          }
+        } else if (!isEmbedPath && hostOnly === 'hearthis.at') {
+          const parts = parsed.pathname.split('/').filter(Boolean);
+          if (parts.length >= 2 && !['search-music', 'categories', 'tag', 'embed', 'embedlive'].includes(parts[0].toLowerCase())) {
+            parsed = new URL('https://hearthis.at/embed/' + parts.map(encodeURIComponent).join('/') + '/?iframe=true');
+            path = parsed.pathname.toLowerCase();
+            isEmbedPath = /\/embed\//.test(path);
+          }
+        }
+
+        const finalHost = parsed.hostname.toLowerCase();
+        if (!allowedEmbedHosts[provider].includes(finalHost) || !isEmbedPath) {
           const guidance = {
-            audiomack: 'Paste the official Audiomack embed-player URL (look for /embed/song/, /embed/album/, or /embed/playlist/).',
-            hearthis: 'Paste the official HearThis.at widget URL containing /embed/.',
-            bandcamp: 'Paste the official Bandcamp EmbeddedPlayer URL containing /EmbeddedPlayer/track= or /EmbeddedPlayer/album=.'
+            audiomack: 'Search Audiomack for this title, then paste the normal track URL or official embed URL.',
+            hearthis: 'Search HearThis.at for this title, then paste its track URL or official widget embed URL.',
+            bandcamp: 'Open the track or album on Bandcamp, choose Share / Embed, and paste the complete iframe code here. Bandcamp requires its official player URL.'
           };
           if (status) status.textContent = guidance[provider];
           return;
@@ -567,6 +606,7 @@
     const q = query.trim();
     if (!q) { toast('Type the song title you want to hear.'); searchInput.focus(); return; }
     state.query = q;
+    const requestVersion = ++state.searchVersion;
     updateExternalMusicLinks(q);
     $('#results-kicker').textContent = 'SEARCHING CONNECTED MUSIC SOURCES';
     $('#results-title').textContent = `Results for “${q}”`;
@@ -579,6 +619,8 @@
       searchJamendoCatalog(q), searchAudiusCatalog(q), searchArchiveCatalog(q), searchCommonsCatalog(q),
       searchCcmixterCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q), searchFreeToUseCatalog(q), searchFunkwhaleCatalog(q)
     ]);
+    // Ignore slower results if the user has already searched for a newer title.
+    if (requestVersion !== state.searchVersion) return;
     const jamendoTracks = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
     const audiusTracks = audiusResult.status === 'fulfilled' ? audiusResult.value : [];
     const archiveTracks = archiveResult.status === 'fulfilled' ? archiveResult.value : [];
@@ -1002,15 +1044,32 @@
   }
 
   // Main controls and app behavior.
-  searchInput.addEventListener('input', () => updateExternalMusicLinks(searchInput.value));
-  searchForm.addEventListener('submit', event => { event.preventDefault(); searchCatalog(searchInput.value); });
+  let autoSearchTimer = null;
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim();
+    updateExternalMusicLinks(query);
+    clearTimeout(autoSearchTimer);
+    if (query.length < 2) {
+      if (!query) $('#search-hint').textContent = 'Type a song title, say the title, or identify music you hear.';
+      return;
+    }
+    autoSearchTimer = setTimeout(() => {
+      const currentQuery = searchInput.value.trim();
+      if (currentQuery === query && currentQuery !== state.query) searchCatalog(currentQuery);
+    }, 650);
+  });
+  searchForm.addEventListener('submit', event => {
+    event.preventDefault();
+    clearTimeout(autoSearchTimer);
+    searchCatalog(searchInput.value);
+  });
   $('#voice-button').addEventListener('click', startVoiceSearch);
   $('#identify-button').addEventListener('click', identifySongByListening);
   document.addEventListener('click', event => {
     const viewButton = event.target.closest('[data-view]');
     if (viewButton) { navigate(viewButton.dataset.view); return; }
     const queryButton = event.target.closest('[data-query]');
-    if (queryButton) { const query = queryButton.dataset.query; searchInput.value = query; searchCatalog(query); return; }
+    if (queryButton) { const query = queryButton.dataset.query; clearTimeout(autoSearchTimer); searchInput.value = query; searchCatalog(query); return; }
     const playButton = event.target.closest('[data-play-track]');
     if (playButton) {
       const id = playButton.dataset.playTrack;
