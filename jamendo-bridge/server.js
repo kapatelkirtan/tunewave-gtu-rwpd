@@ -21,6 +21,7 @@ const rateBuckets = new Map();
 const responseCache = new Map();
 const CACHE_TTL_MS = 45_000;
 const MAX_CACHE_ENTRIES = 120;
+const DOGMAZIC_RADIO_STREAM_URL = 'https://radio.dogmazic.net:8001/';
 
 // LOC documents a 20 requests/minute limit. Keep calls serialized and spaced,
 // and pause LOC for an hour after a 403/429 instead of repeatedly retrying a block.
@@ -849,7 +850,7 @@ const server = http.createServer(async (req, res) => {
       configured: Boolean(JAMENDO_CLIENT_ID),
       internetArchiveEnabled: true,
       ccMixterEnabled: true,
-      libraryOfCongressEnabled: true,
+      dogmazicRadioEnabled: true,
       radioBrowserEnabled: true,
       openverseEnabled: true,
       freeToUseEnabled: true,
@@ -859,6 +860,58 @@ const server = http.createServer(async (req, res) => {
   }
 
 
+
+  // Dogmazic is an ad-free, openly licensed continuous radio stream. Test the
+  // direct stream endpoint without consuming the stream or requiring account/API credentials.
+  if (requestUrl.pathname === '/api/dogmazic/status') {
+    if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
+    const cacheKey = 'dogmazic:radio:status';
+    const cached = cacheGet(cacheKey);
+    if (cached) return sendJson(res, 200, cached);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 9000);
+    try {
+      const response = await fetch(DOGMAZIC_RADIO_STREAM_URL, {
+        method: 'GET',
+        redirect: 'follow',
+        headers: {
+          'Accept': 'audio/*, application/ogg, application/octet-stream, */*;q=0.5',
+          'User-Agent': 'TuneWave/1.0 (https://tunewave-gtu-rwpd-1.onrender.com)'
+        },
+        signal: controller.signal
+      });
+      if (!response.ok) {
+        const error = new Error('Dogmazic Radio returned HTTP ' + response.status + '.');
+        error.statusCode = 502;
+        throw error;
+      }
+      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+      if (contentType && !/(audio|ogg|mpegurl|octet-stream|mp3|mpeg)/i.test(contentType)) {
+        const error = new Error('Dogmazic returned ' + contentType + ' instead of an audio stream.');
+        error.statusCode = 502;
+        throw error;
+      }
+      try { if (response.body) await response.body.cancel(); } catch (_) {}
+      const result = {
+        ok: true,
+        provider: 'Dogmazic Radio',
+        streamUrl: DOGMAZIC_RADIO_STREAM_URL,
+        contentType: contentType || 'audio stream',
+        note: 'Continuous ad-free radio stream; individual song search is not provided by this endpoint.'
+      };
+      cacheSet(cacheKey, result);
+      return sendJson(res, 200, result);
+    } catch (error) {
+      const code = Number(error && error.statusCode) || 502;
+      const message = error && error.name === 'AbortError'
+        ? 'Dogmazic Radio stream endpoint timed out.'
+        : String(error && error.message || 'Dogmazic Radio stream check failed.');
+      console.error('[dogmazic-radio] ' + code + ': ' + message);
+      return sendJson(res, code, { ok: false, provider: 'Dogmazic Radio', error: message });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   // Lightweight status probe; one query only. LOC requests are globally paced and
   // are paused for an hour after an upstream 403/429 to avoid extending a block.
