@@ -574,23 +574,41 @@
       return;
     }
 
-    const jamendoFailed = jamendoResult.status === 'rejected';
-    const audiusFailed = audiusResult.status === 'rejected';
-    const archiveFailed = archiveResult.status === 'rejected';
-    const commonsFailed = commonsResult.status === 'rejected';
-    const ccmixterFailed = ccmixterResult.status === 'rejected';
-    const locFailed = locResult.status === 'rejected';
-    const openverseFailed = openverseResult.status === 'rejected';
-    const radioFailed = radioResult.status === 'rejected';
-    const freeToUseFailed = freeToUseResult.status === 'rejected';
-    if (!audiusFailed || !jamendoFailed || !archiveFailed || !commonsFailed || !ccmixterFailed || !locFailed || !openverseFailed || !radioFailed || !freeToUseFailed) {
-      resultsArea.innerHTML = `<div class="no-results"><strong>No matching tracks found</strong>Try the full song title with a different spelling, or try another search.</div>`;
+    const providerRuns = [
+      ['Audius', audiusResult], ['Free To Use', freeToUseResult], ['Jamendo', jamendoResult],
+      ['Internet Archive', archiveResult], ['Wikimedia Commons', commonsResult],
+      ['ccMixter', ccmixterResult], ['Library of Congress', locResult],
+      ['Openverse', openverseResult], ['Radio Browser', radioResult]
+    ];
+    const failedProviders = providerRuns
+      .filter(([, result]) => result.status === 'rejected')
+      .map(([name, result]) => name + ': ' + String(result.reason?.message || 'request failed'));
+    const failureSummary = failedProviders.length
+      ? ' Unavailable sources: ' + failedProviders.join('; ') + '.'
+      : '';
+
+    if (tracks.length) {
+      // (Results were already rendered above; this branch is only retained as a safeguard.)
+      $('#search-hint').textContent += failureSummary;
+      return;
+    }
+
+    const successfulProviderCount = providerRuns.length - failedProviders.length;
+    if (successfulProviderCount > 0) {
+      const title = failedProviders.length ? 'No matching tracks — some sources failed' : 'No matching tracks found';
+      const copy = failedProviders.length
+        ? 'Sources that responded returned no tracks for this query. ' + failureSummary + ' Try another spelling or a broader title.'
+        : 'The responding music sources found no results for this query. Try a broader title such as “music”, “jazz”, or “lofi”.';
+      resultsArea.innerHTML = `<div class="no-results"><strong>${escapeHTML(title)}</strong>${escapeHTML(copy)}<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
       $('#result-count').textContent = '';
-      $('#search-hint').textContent = 'No matching results from the providers that responded.';
+      $('#search-hint').textContent = failedProviders.length
+        ? 'Some providers could not be searched. Details: ' + failureSummary
+        : 'No matches from the providers that responded.';
+      $('#retry-search')?.addEventListener('click', () => searchCatalog(q));
     } else {
-      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>All connected music/audio providers failed to return results. Check the provider bridge and network, then retry.<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
+      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>All connected music/audio providers failed. ${escapeHTML(failureSummary)}<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
       $('#result-count').textContent = '';
-      $('#search-hint').textContent = 'All connected search providers failed this time. Openverse also requires optional API credentials in Render.';
+      $('#search-hint').textContent = 'All provider searches failed. Details: ' + failureSummary;
       $('#retry-search')?.addEventListener('click', () => searchCatalog(q));
     }
   }
@@ -1087,7 +1105,7 @@
 
   function probeBridgeSearch(path, timeoutMs = 8500) {
     if (!JAMENDO_BRIDGE_CONFIGURED) return Promise.reject(new Error('bridge-url-missing'));
-    const url = JAMENDO_BRIDGE_BASE + path + '?q=' + encodeURIComponent('TuneWaveStatusProbe');
+    const url = JAMENDO_BRIDGE_BASE + path + '?q=' + encodeURIComponent('music');
     return getJson(url, timeoutMs).then(payload => {
       if (payload && payload.error) throw new Error('provider-search-failed');
       if (payload && payload.ok === true && Number.isFinite(Number(payload.resultCount))) {
@@ -1116,19 +1134,19 @@
     const probes = [
       {
         provider: 'audius', flag: 'audiusEnabled', path: '/api/audius/search',
-        online: count => count ? 'Audius catalogue responded through the bridge · ' + count + ' test matches.' : 'Audius API responded · no test-query matches.'
+        online: count => count ? 'Audius catalogue responded through the bridge · ' + count + ' “music” matches.' : 'Audius API responded · no “music” matches.'
       },
       {
         provider: 'freetouse', flag: 'freeToUseEnabled', path: '/api/freetouse/search',
-        online: count => count ? 'Keyless catalogue responded · ' + count + ' test matches.' : 'Keyless catalogue responded · no test-query matches.'
+        online: count => count ? 'Keyless catalogue responded · ' + count + ' “music” matches.' : 'Keyless catalogue responded · no “music” matches.'
       },
       {
         provider: 'jamendo', needsJamendoKey: true, path: '/api/jamendo/search',
-        online: count => count ? 'Bridge and Jamendo API responded · ' + count + ' test matches.' : 'Jamendo API responded · no test-query matches.'
+        online: count => count ? 'Jamendo API responded · ' + count + ' “music” matches.' : 'Jamendo API responded · no “music” matches.'
       },
       {
         provider: 'archive', flag: 'internetArchiveEnabled', path: '/api/archive/search',
-        online: count => count ? 'Archive search responded · ' + count + ' test matches.' : 'Archive search responded · no test-query matches.'
+        online: count => count ? 'Archive search responded · ' + count + ' “music” matches.' : 'Archive search responded · no “music” matches.'
       },
       {
         provider: 'commons', direct: true,
@@ -1153,7 +1171,7 @@
       },
       {
         provider: 'ccmixter', flag: 'ccMixterEnabled', path: '/api/ccmixter/search',
-        online: count => count ? 'Creative Commons catalogue responded · ' + count + ' test matches.' : 'Catalogue responded · no test-query matches.'
+        online: count => count ? 'Creative Commons catalogue responded · ' + count + ' “music” matches.' : 'Catalogue responded · no test-query matches.'
       },
       {
         provider: 'loc', flag: 'libraryOfCongressEnabled', path: '/api/loc/status',
@@ -1161,11 +1179,11 @@
       },
       {
         provider: 'openverse', flag: 'openverseEnabled', path: '/api/openverse/search',
-        online: count => count ? 'Open audio search responded · ' + count + ' test matches.' : 'Openverse responded · no test-query matches.'
+        online: count => count ? 'Open audio search responded · ' + count + ' “music” matches.' : 'Openverse responded · no “music” matches.'
       },
       {
         provider: 'radio', flag: 'radioBrowserEnabled', path: '/api/radio/search',
-        online: count => count ? 'Live station directory responded · ' + count + ' matches.' : 'Station directory responded · no test-query matches.'
+        online: count => count ? 'Live station directory responded · ' + count + ' matching stations.' : 'Station directory responded · no “music” matches.'
       }
     ];
 
