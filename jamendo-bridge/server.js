@@ -628,21 +628,46 @@ const server = http.createServer(async (req, res) => {
   if (requestUrl.pathname === '/api/loc/status') {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
     try {
-      const statusUrl = new URL('https://www.loc.gov/search/');
-      statusUrl.searchParams.set('q', 'music');
-      statusUrl.searchParams.set('fo', 'json');
-      statusUrl.searchParams.set('c', '1');
-      statusUrl.searchParams.set('fa', 'original-format:sound recording');
-      const payload = await locJson(statusUrl.href);
-      if (!payload || !Array.isArray(payload.results)) {
-        const error = new Error('Library of Congress returned an unexpected search response.');
+      // The LOC API can respond differently as its catalogue services migrate.
+      // Probe both documented endpoints in parallel and only require a valid
+      // JSON API response; zero search matches are not a connectivity failure.
+      const urls = [
+        new URL('https://www.loc.gov/audio/'),
+        new URL('https://www.loc.gov/search/')
+      ];
+      urls[0].searchParams.set('q', 'music');
+      urls[0].searchParams.set('fo', 'json');
+      urls[0].searchParams.set('c', '1');
+      urls[1].searchParams.set('q', 'music');
+      urls[1].searchParams.set('fo', 'json');
+      urls[1].searchParams.set('c', '1');
+      urls[1].searchParams.set('fa', 'original-format:sound recording');
+
+      const attempts = await Promise.allSettled(urls.map(async function(statusUrl) {
+        const payload = await locJson(statusUrl.href);
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload) || payload.error) {
+          throw new Error('LOC returned a non-standard JSON response from ' + statusUrl.pathname);
+        }
+        return {
+          endpoint: statusUrl.pathname,
+          resultCount: Array.isArray(payload.results) ? payload.results.length
+            : Number(payload.total || payload.count || 0)
+        };
+      }));
+      const successful = attempts.find(result => result.status === 'fulfilled');
+      if (!successful) {
+        const details = attempts.map(result => result.status === 'rejected'
+          ? String(result.reason && result.reason.message || 'request failed') : '').filter(Boolean).join('; ');
+        const error = new Error(details || 'Library of Congress search endpoints are unavailable.');
         error.statusCode = 502;
         throw error;
       }
       return sendJson(res, 200, {
         ok: true,
         provider: 'Library of Congress',
-        resultCount: payload.results.length
+        endpoint: successful.value.endpoint,
+        resultCount: successful.value.resultCount,
+        note: 'Valid LOC JSON endpoint response; result count may be zero.'
       });
     } catch (error) {
       const code = Number(error && error.statusCode) || 502;
