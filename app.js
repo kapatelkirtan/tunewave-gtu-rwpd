@@ -1298,7 +1298,6 @@
       {
         provider: 'radio', flag: 'radioBrowserEnabled', path: '/api/radio/search',
         online: count => count ? 'Live station directory responded · ' + count + ' matching stations.' : 'Station directory responded · no “music” matches.'
-      },
       }
     ];
 
