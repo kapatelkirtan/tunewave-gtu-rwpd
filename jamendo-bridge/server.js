@@ -187,21 +187,46 @@ function isMusicArchiveItem(item) {
   const musicTerms = /\b(music|song|songs|soundtrack|jazz|blues|classical|folk|rock|pop|electronic|ambient|instrumental|orchestra|symphony|concert|album|ep|single|reggae|country|hip hop|rap|funk|soul|metal|punk|trance|techno|house|disco|dance|opera|guitar|piano|violin|viola|cello|mandolin|flute|trumpet|saxophone|drum|percussion|choir|choral|celtic|bluegrass|r&b|rhythm and blues|carol|carols|hymn|hymns|rag|ragtime|march|sonata|concerto|quartet|quintet|etude|prelude|nocturne|overture|musical recording|netlabel|musopen|fox trot|foxtrot)\b/i;
   return musicTerms.test(searchableMetadata);
 }
-async function archiveSearch(query) {
-  const url = new URL('https://archive.org/advancedsearch.php');
-  // Keep the broad audio search: the Archive does not consistently tag music with genre subjects.
-  // Relevance filtering happens on each result's title/subject/collection metadata below.
-  url.searchParams.set('q', '(' + query + ') AND mediatype:audio');
-  for (const field of ['identifier', 'title', 'creator', 'year', 'licenseurl', 'rights', 'subject', 'collection']) {
-    url.searchParams.append('fl[]', field);
+function discoverySearchTerms(query) {
+  const raw = String(query || '').trim().replace(/\\s+/g, ' ');
+  if (!raw) return [];
+  const normalized = raw.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const unique = terms => [...new Set(terms.map(term => String(term || '').trim()).filter(Boolean))].slice(0, 4);
+  if (/ultra\\s*funk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(normalized)) {
+    return unique([raw, 'ultrafunk', 'brazilian phonk', 'funk brasileiro']);
   }
-  url.searchParams.set('rows', '100');
-  url.searchParams.set('page', '1');
-  url.searchParams.set('output', 'json');
-  url.searchParams.append('sort[]', 'downloads desc');
-  const payload = await archiveJson(url.href);
-  const docs = Array.isArray(payload?.response?.docs) ? payload.response.docs : [];
-  return docs.filter(isMusicArchiveItem).map(normalizeArchiveSearchItem).filter(Boolean).slice(0, 20);
+  if (/gujarati|gujrati|garba|dandiya/.test(normalized)) {
+    return unique([raw, 'gujarati garba', 'dandiya remix', 'indian folk music']);
+  }
+  if (/bollywood|hindi|desi remix|indian pop|hindustani/.test(normalized)) {
+    return unique([raw, 'hindi indie music', 'bollywood instrumental', 'indian folk music']);
+  }
+  return [raw];
+}
+
+async function archiveSearch(query) {
+  const found = new Map();
+  for (const term of discoverySearchTerms(query)) {
+    const url = new URL('https://archive.org/advancedsearch.php');
+    // Internet Archive tags can be inconsistent, so try aliases for Indian and funk searches.
+    url.searchParams.set('q', '(' + term + ') AND mediatype:audio');
+    for (const field of ['identifier', 'title', 'creator', 'year', 'licenseurl', 'rights', 'subject', 'collection']) {
+      url.searchParams.append('fl[]', field);
+    }
+    url.searchParams.set('rows', '80');
+    url.searchParams.set('page', '1');
+    url.searchParams.set('output', 'json');
+    url.searchParams.append('sort[]', 'downloads desc');
+    const payload = await archiveJson(url.href);
+    const docs = Array.isArray(payload?.response?.docs) ? payload.response.docs : [];
+    for (const doc of docs.filter(isMusicArchiveItem)) {
+      const track = normalizeArchiveSearchItem(doc);
+      if (track && !found.has(track.id)) found.set(track.id, track);
+      if (found.size >= 20) break;
+    }
+    if (found.size >= 20) break;
+  }
+  return [...found.values()].slice(0, 20);
 }
 async function archivePlayableFile(identifier) {
   if (!/^[A-Za-z0-9_-]{3,80}$/.test(identifier)) {
@@ -316,10 +341,17 @@ function xmlAttribute(block, tag, attribute) {
 
 async function freeToUseSearch(query) {
   const normalized = String(query || '').trim();
-  const ultraFunkSearch = /ultra funk|ultrafunk|phonk|funk br|mandelao|automotivo/i.test(normalized);
+  const lowered = normalized.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const ultraFunkSearch = /ultra\\s*funk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(lowered);
+  const gujaratiSearch = /gujarati|gujrati|garba|dandiya/.test(lowered);
+  const hindiSearch = /bollywood|hindi|desi remix|indian pop|hindustani/.test(lowered);
   const terms = ultraFunkSearch
     ? [...new Set([normalized, 'ultrafunk', 'ultra funk', 'phonk', 'brazilian funk', 'funk br', 'mandelao', 'automotivo', 'funk brasileiro'])]
-    : [normalized];
+    : gujaratiSearch
+      ? [...new Set([normalized, 'gujarati music', 'gujarati garba', 'dandiya', 'indian folk music'])]
+      : hindiSearch
+        ? [...new Set([normalized, 'hindi songs', 'bollywood instrumental', 'hindi indie', 'indian pop', 'hindustani music'])]
+        : [normalized];
   const all = [];
   const seen = new Set();
   for (const term of terms) {
@@ -353,35 +385,38 @@ async function freeToUseSearch(query) {
 }
 
 async function ccMixterSearch(query) {
-  const url = new URL('https://ccmixter.org/api/query');
-  url.searchParams.set('tags', query);
-  url.searchParams.set('type', 'any');
-  url.searchParams.set('sort', 'rank');
-  url.searchParams.set('f', 'rss');
-  const response = await sourceFetch(url.href, 'ccMixter', 10000, { headers: { 'Accept': 'application/rss+xml, application/xml, text/xml' } });
-  const xml = await response.text();
-  const items = Array.from(xml.matchAll(/<item\b[\s\S]*?<\/item>/gi), function(match) { return match[0]; });
-  const tracks = [];
-  for (const block of items) {
-    const title = xmlTag(block, 'title');
-    const permalink = trustedHttpsUrl(xmlTag(block, 'link'), ['ccmixter.org']);
-    const enclosure = xmlAttribute(block, 'enclosure', 'url') || xmlAttribute(block, 'media:content', 'url');
-    const streamUrl = trustedHttpsUrl(enclosure, ['ccmixter.org']);
-    if (!title || !permalink || !streamUrl) continue;
-    const rawLicense = xmlAttribute(block, 'cc:license', 'rdf:resource') ||
-      xmlAttribute(block, 'cc:license', 'href') ||
-      ((block.match(/https?:\/\/creativecommons\.org\/licenses\/[^"' <]+/i) || [])[0] || '');
-    const licenseUrl = sanitizeLicenseUrl(rawLicense);
-    tracks.push({
-      id: permalink, title: title.slice(0, 250),
-      creator: (xmlTag(block, 'dc:creator') || xmlTag(block, 'author') || 'ccMixter artist').slice(0, 180),
-      duration: 0, streamUrl: streamUrl, permalink: permalink, licenseUrl: licenseUrl,
-      licenseName: licenseUrl ? 'Creative Commons' : 'Check source page',
-      provider: 'ccMixter'
-    });
-    if (tracks.length >= 20) break;
+  const tracks = new Map();
+  for (const term of discoverySearchTerms(query)) {
+    const url = new URL('https://ccmixter.org/api/query');
+    url.searchParams.set('tags', term);
+    url.searchParams.set('type', 'any');
+    url.searchParams.set('sort', 'rank');
+    url.searchParams.set('f', 'rss');
+    const response = await sourceFetch(url.href, 'ccMixter', 10000, { headers: { 'Accept': 'application/rss+xml, application/xml, text/xml' } });
+    const xml = await response.text();
+    const items = Array.from(xml.matchAll(/<item\\b[\\s\\S]*?<\\/item>/gi), function(match) { return match[0]; });
+    for (const block of items) {
+      const title = xmlTag(block, 'title');
+      const permalink = trustedHttpsUrl(xmlTag(block, 'link'), ['ccmixter.org']);
+      const enclosure = xmlAttribute(block, 'enclosure', 'url') || xmlAttribute(block, 'media:content', 'url');
+      const streamUrl = trustedHttpsUrl(enclosure, ['ccmixter.org']);
+      if (!title || !permalink || !streamUrl || tracks.has(permalink)) continue;
+      const rawLicense = xmlAttribute(block, 'cc:license', 'rdf:resource') ||
+        xmlAttribute(block, 'cc:license', 'href') ||
+        ((block.match(/https?:\\/\\/creativecommons\\.org\\/licenses\\/[^"' <]+/i) || [])[0] || '');
+      const licenseUrl = sanitizeLicenseUrl(rawLicense);
+      tracks.set(permalink, {
+        id: permalink, title: title.slice(0, 250),
+        creator: (xmlTag(block, 'dc:creator') || xmlTag(block, 'author') || 'ccMixter artist').slice(0, 180),
+        duration: 0, streamUrl, permalink, licenseUrl,
+        licenseName: licenseUrl ? 'Creative Commons' : 'Check source page',
+        provider: 'ccMixter'
+      });
+      if (tracks.size >= 20) break;
+    }
+    if (tracks.size >= 20) break;
   }
-  return tracks;
+  return [...tracks.values()].slice(0, 20);
 }
 
 function locRightsOkay(record) {
@@ -483,30 +518,36 @@ async function openverseSearch(query) {
   const headers = (OPENVERSE_CLIENT_ID && OPENVERSE_CLIENT_SECRET)
     ? { 'Authorization': 'Bearer ' + await getOpenverseToken() }
     : {};
-  const url = new URL('https://api.openverse.org/v1/audio/');
-  url.searchParams.set('q', query);
-  url.searchParams.set('page_size', '20');
-  url.searchParams.set('license', 'cc0,pdm,by,by-sa,by-nc,by-nc-sa,by-nd,by-nc-nd');
-  const response = await sourceFetch(url.href, 'Openverse', 10000, { headers: headers });
-  const payload = await response.json();
-  return (Array.isArray(payload && payload.results) ? payload.results : []).map(function(item) {
-    const directUrl = (function() {
-      try { const u = new URL(String(item.url || '')); return u.protocol === 'https:' ? u.href : ''; }
-      catch { return ''; }
-    })();
-    const license = String(item.license_url || '');
-    if (!directUrl || !license || !/creativecommons\.org|publicdomain|creativecommons/i.test(license)) return null;
-    const durationValue = Number(item.duration) || 0;
-    return {
-      id: String(item.id || item.detail_url || directUrl), title: String(item.title || 'Untitled audio').slice(0, 250),
-      creator: String(item.creator || 'Openverse contributor').slice(0, 180),
-      duration: Math.max(0, Math.round(durationValue > 10000 ? durationValue / 1000 : durationValue)),
-      streamUrl: directUrl, permalink: String(item.foreign_landing_url || item.detail_url || ''), licenseUrl: license,
-      licenseName: String(item.license || ''), rights: String(item.attribution || ''), provider: 'Openverse'
-    };
-  }).filter(Boolean).slice(0, 20);
+  const found = new Map();
+  for (const term of discoverySearchTerms(query)) {
+    const url = new URL('https://api.openverse.org/v1/audio/');
+    url.searchParams.set('q', term);
+    url.searchParams.set('page_size', '20');
+    url.searchParams.set('license', 'cc0,pdm,by,by-sa,by-nc,by-nc-sa,by-nd,by-nc-nd');
+    const response = await sourceFetch(url.href, 'Openverse', 10000, { headers });
+    const payload = await response.json();
+    for (const item of Array.isArray(payload && payload.results) ? payload.results : []) {
+      const directUrl = (function() {
+        try { const u = new URL(String(item.url || '')); return u.protocol === 'https:' ? u.href : ''; }
+        catch { return ''; }
+      })();
+      const license = String(item.license_url || '');
+      if (!directUrl || !license || !/creativecommons\\.org|publicdomain|creativecommons/i.test(license)) continue;
+      const durationValue = Number(item.duration) || 0;
+      const track = {
+        id: String(item.id || item.detail_url || directUrl), title: String(item.title || 'Untitled audio').slice(0, 250),
+        creator: String(item.creator || 'Openverse contributor').slice(0, 180),
+        duration: Math.max(0, Math.round(durationValue > 10000 ? durationValue / 1000 : durationValue)),
+        streamUrl: directUrl, permalink: String(item.foreign_landing_url || item.detail_url || ''), licenseUrl: license,
+        licenseName: String(item.license || ''), rights: String(item.attribution || ''), provider: 'Openverse'
+      };
+      if (!found.has(track.id)) found.set(track.id, track);
+      if (found.size >= 20) break;
+    }
+    if (found.size >= 20) break;
+  }
+  return [...found.values()].slice(0, 20);
 }
-
 
 async function radioBrowserSearch(query) {
   const url = new URL('https://de1.api.radio-browser.info/json/stations/search');
@@ -756,7 +797,26 @@ const server = http.createServer(async (req, res) => {
   try {
     let results = cacheGet(cacheKey);
     if (!results) {
-      results = await jamendoRequest(params);
+      if (requestUrl.pathname === '/api/jamendo/search') {
+        const terms = discoverySearchTerms(String(requestUrl.searchParams.get('q') || '').trim());
+        const batches = await Promise.allSettled(terms.map(term => jamendoRequest({ namesearch: term })));
+        const successful = batches.filter(batch => batch.status === 'fulfilled');
+        if (!successful.length) throw batches[0].reason || new Error('Jamendo search failed.');
+        const seen = new Set();
+        results = [];
+        for (const batch of successful) {
+          for (const track of batch.value) {
+            if (track && !seen.has(track.id)) {
+              seen.add(track.id);
+              results.push(track);
+            }
+            if (results.length >= 30) break;
+          }
+          if (results.length >= 30) break;
+        }
+      } else {
+        results = await jamendoRequest(params);
+      }
       cacheSet(cacheKey, results);
     }
     if (requestUrl.pathname === '/api/jamendo/search') return sendJson(res, 200, { provider: 'Jamendo', results });
