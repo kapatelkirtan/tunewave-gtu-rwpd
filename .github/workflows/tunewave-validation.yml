@@ -44,7 +44,7 @@ jobs:
           const html = fs.readFileSync('index.html', 'utf8');
           const providers = [
             'audius', 'freetouse', 'jamendo', 'archive', 'commons',
-            'ccmixter', 'dogmazic', 'openverse', 'radio'
+            'ccmixter', 'funkwhale', 'openverse', 'radio'
           ];
           const missingProviders = providers.filter(provider =>
             !html.includes('id="' + provider + '-connection"') ||
