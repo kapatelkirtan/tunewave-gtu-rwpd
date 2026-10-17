@@ -1047,6 +1047,8 @@
   let autoSearchTimer = null;
   searchInput.addEventListener('input', () => {
     const query = searchInput.value.trim();
+    // Cancel any provider responses for the text that was typed before this edit.
+    state.searchVersion += 1;
     updateExternalMusicLinks(query);
     clearTimeout(autoSearchTimer);
     if (query.length < 2) {
