@@ -197,6 +197,7 @@
   async function searchCcmixterCatalog(query) { return searchBridgeAudioProvider('ccmixter', 'ccMixter', query); }
   async function searchLocCatalog(query) { return searchBridgeAudioProvider('loc', 'Library of Congress', query); }
   async function searchOpenverseCatalog(query) { return searchBridgeAudioProvider('openverse', 'Openverse', query); }
+  async function searchRadioCatalog(query) { return searchBridgeAudioProvider('radio', 'Radio Browser', query); }
   function uniqueTracks(input, normalizer = normalizeJamendoTrack) {
     const data = Array.isArray(input) ? input : (input?.items ?? input?.data ?? input?.tracks ?? input?.results ?? input?.videos ?? []);
     if (!Array.isArray(data)) return [];
@@ -243,7 +244,7 @@
       if (!/^https:\/\//i.test(streamUrl)) throw new Error('Internet Archive did not return a playable audio file.');
       return streamUrl;
     }
-    if (source === 'ccmixter' || source === 'library of congress' || source === 'openverse') {
+    if (source === 'ccmixter' || source === 'library of congress' || source === 'openverse' || source === 'radio browser') {
       const streamUrl = String(track.streamUrl || '');
       if (!/^https:\/\//i.test(streamUrl)) throw new Error('This provider did not return a playable audio file.');
       return streamUrl;
@@ -271,7 +272,7 @@
     const id = escapeHTML(trackId(track));
     const playing = state.current && trackId(state.current) === trackId(track);
     const sourceName = String(track.source || '').toLowerCase();
-    const attribution = (track.licenseUrl || track.sourceUrl) && ['jamendo', 'internet archive', 'wikimedia commons', 'ccmixter', 'openverse', 'library of congress'].includes(sourceName)
+    const attribution = (track.licenseUrl || track.sourceUrl) && ['jamendo', 'internet archive', 'wikimedia commons', 'ccmixter', 'openverse', 'library of congress', 'radio browser'].includes(sourceName)
       ? `<a class="track-license-link" href="${escapeHTML(track.licenseUrl || track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="Open the source page and check this track’s licence">${track.licenseUrl ? 'Licence ↗' : 'Source ↗'}</a>`
       : '<span class="track-license-spacer" aria-hidden="true"></span>';
     return `<div class="track-row${playing ? ' playing' : ''}" data-track-row="${id}">
@@ -280,7 +281,7 @@
         <div class="track-name">${playing ? '♫ ' : ''}${escapeHTML(track.title)}</div><div class="track-artist">${escapeHTML(track.artist)} <span class="source-tag">· ${escapeHTML(track.source || 'Music source')}</span></div>
       </button>
       ${attribution}
-      <span class="track-time">${toDuration(track.duration)}</span>
+      <span class="track-time">${sourceName === 'radio browser' ? 'LIVE' : (Number(track.duration) > 0 ? toDuration(track.duration) : '—')}</span>
       <button class="track-action like${isLiked(track) ? ' liked' : ''}" data-like-track="${id}" aria-label="${isLiked(track) ? 'Unlike' : 'Like'} ${escapeHTML(track.title)}" title="${isLiked(track) ? 'Remove from liked songs' : 'Add to liked songs'}">${isLiked(track) ? '♥' : '♡'}</button>
     </div>`;
   }
@@ -315,9 +316,9 @@
     setLoading('Searching connected music sources…');
     state.view = 'discover'; updateNavigation();
 
-    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, locResult, openverseResult] = await Promise.allSettled([
+    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, locResult, openverseResult, radioResult] = await Promise.allSettled([
       searchJamendoCatalog(q), searchAudiusCatalog(q), searchArchiveCatalog(q), searchCommonsCatalog(q),
-      searchCcmixterCatalog(q), searchLocCatalog(q), searchOpenverseCatalog(q)
+      searchCcmixterCatalog(q), searchLocCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q)
     ]);
     const jamendoTracks = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
     const audiusTracks = audiusResult.status === 'fulfilled' ? audiusResult.value : [];
@@ -326,7 +327,8 @@
     const ccmixterTracks = ccmixterResult.status === 'fulfilled' ? ccmixterResult.value : [];
     const locTracks = locResult.status === 'fulfilled' ? locResult.value : [];
     const openverseTracks = openverseResult.status === 'fulfilled' ? openverseResult.value : [];
-    const combined = [...audiusTracks, ...jamendoTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...locTracks, ...openverseTracks];
+    const radioTracks = radioResult.status === 'fulfilled' ? radioResult.value : [];
+    const combined = [...audiusTracks, ...jamendoTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...locTracks, ...openverseTracks, ...radioTracks];
     const seen = new Set();
     const tracks = combined.filter(track => {
       const key = trackId(track);
@@ -346,7 +348,8 @@
         commonsTracks.length ? `Wikimedia Commons (${commonsTracks.length})` : '',
         ccmixterTracks.length ? `ccMixter (${ccmixterTracks.length})` : '',
         locTracks.length ? `Library of Congress (${locTracks.length})` : '',
-        openverseTracks.length ? `Openverse (${openverseTracks.length})` : ''
+        openverseTracks.length ? `Openverse (${openverseTracks.length})` : '',
+        radioTracks.length ? `Radio Browser (${radioTracks.length} stations)` : ''
       ].filter(Boolean).join(' + ');
       $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}. Open-source audio results include licence/source links; check the original rights page before reuse.`;
       $('#results-kicker').textContent = 'YOUR SEARCH, MULTIPLE SOURCES';
@@ -361,12 +364,13 @@
     const ccmixterFailed = ccmixterResult.status === 'rejected';
     const locFailed = locResult.status === 'rejected';
     const openverseFailed = openverseResult.status === 'rejected';
-    if (!audiusFailed || !jamendoFailed || !archiveFailed || !commonsFailed || !ccmixterFailed || !locFailed || !openverseFailed) {
+    const radioFailed = radioResult.status === 'rejected';
+    if (!audiusFailed || !jamendoFailed || !archiveFailed || !commonsFailed || !ccmixterFailed || !locFailed || !openverseFailed || !radioFailed) {
       resultsArea.innerHTML = `<div class="no-results"><strong>No matching tracks found</strong>Try the full song title with a different spelling, or try another search.</div>`;
       $('#result-count').textContent = '';
       $('#search-hint').textContent = 'No matching results from the providers that responded.';
     } else {
-      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>All connected music providers failed to return results. Check the provider bridge and network, then retry.<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
+      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>All connected music/audio providers failed to return results. Check the provider bridge and network, then retry.<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
       $('#result-count').textContent = '';
       $('#search-hint').textContent = 'All connected search providers failed this time. Openverse also requires optional API credentials in Render.';
       $('#retry-search')?.addEventListener('click', () => searchCatalog(q));
