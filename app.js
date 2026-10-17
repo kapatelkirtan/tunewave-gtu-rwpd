@@ -722,6 +722,7 @@
     $('#bottom-title').textContent = track?.title || 'TuneWave is ready';
     $('#bottom-artist').textContent = track?.artist || 'Search, select, and press play';
     $('#now-status').textContent = audio.paused ? (track ? 'READY TO PLAY' : 'READY WHEN YOU ARE') : 'PLAYING FROM OPEN SOURCE';
+    document.documentElement.classList.toggle('tw-is-playing', !audio.paused);
     const img = normalizeImageURL(track?.artwork);
     $('#now-art-wrap').innerHTML = `<img src="${escapeHTML(img)}" alt="" onerror="this.onerror=null;this.src='icon-512.png'"><div class="art-shine"></div>`;
     $('#bottom-art').innerHTML = `<img src="${escapeHTML(img)}" alt="" onerror="this.onerror=null;this.src='icon-192.png'">`;
