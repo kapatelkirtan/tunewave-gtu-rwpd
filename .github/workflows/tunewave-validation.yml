@@ -1,0 +1,65 @@
+name: TuneWave validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check service-worker.js
+          node --check jamendo-bridge/server.js
+          node --check server.js
+
+      - name: Verify required files and provider dashboard
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const required = [
+            'index.html', 'app.js', 'style.css', 'config.js',
+            'manifest.webmanifest', 'service-worker.js',
+            'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
+            'jamendo-bridge/server.js', 'jamendo-bridge/package.json'
+          ];
+          const missing = required.filter(file => !fs.existsSync(file));
+          if (missing.length) {
+            console.error('Missing required files:', missing.join(', '));
+            process.exit(1);
+          }
+
+          const html = fs.readFileSync('index.html', 'utf8');
+          const providers = [
+            'audius', 'freetouse', 'jamendo', 'archive', 'commons',
+            'ccmixter', 'loc', 'openverse', 'radio'
+          ];
+          const missingProviders = providers.filter(provider =>
+            !html.includes('id="' + provider + '-connection"') ||
+            !html.includes('id="' + provider + '-status"')
+          );
+          if (missingProviders.length) {
+            console.error('Provider status cards missing:', missingProviders.join(', '));
+            process.exit(1);
+          }
+
+          for (const id of ['external-music-links', 'refresh-connections', 'search-form', 'audio-player']) {
+            if (!html.includes('id="' + id + '"')) {
+              console.error('Required UI element is missing:', id);
+              process.exit(1);
+            }
+          }
+          console.log('TuneWave files and provider UI checks passed.');
+          NODE
