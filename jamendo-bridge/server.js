@@ -316,8 +316,9 @@ function xmlAttribute(block, tag, attribute) {
 
 async function freeToUseSearch(query) {
   const normalized = String(query || '').trim();
-  const terms = /ultra\s*funk|ultrafunk|phonk|funk\s*br/i.test(normalized)
-    ? [...new Set([normalized, 'ultrafunk', 'ultra funk', 'phonk', 'brazilian funk'])]
+  const ultraFunkSearch = /ultra funk|ultrafunk|phonk|funk br|mandelao|automotivo/i.test(normalized);
+  const terms = ultraFunkSearch
+    ? [...new Set([normalized, 'ultrafunk', 'ultra funk', 'phonk', 'brazilian funk', 'funk br', 'mandelao', 'automotivo', 'funk brasileiro'])]
     : [normalized];
   const all = [];
   const seen = new Set();
