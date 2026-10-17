@@ -256,6 +256,7 @@
     return tracks;
   }
   async function searchCcmixterCatalog(query) { return searchBridgeAudioProvider('ccmixter', 'ccMixter', query); }
+  async function searchFunkwhaleCatalog(query) { return searchBridgeAudioProvider('funkwhale', 'Funkwhale / Open Audio', query); }
   async function searchOpenverseCatalog(query) { return searchBridgeAudioProvider('openverse', 'Openverse', query); }
   async function searchRadioCatalog(query) { return searchBridgeAudioProvider('radio', 'Radio Browser', query); }
   function uniqueTracks(input, normalizer = normalizeJamendoTrack) {
@@ -279,12 +280,14 @@
 
   async function resolveStreamURL(track) {
     const source = String(track?.source || '').toLowerCase();
-    if (source === 'dogmazic radio') {
+    if (source === 'funkwhale / open audio' || source === 'funkwhale') {
       const streamUrl = String(track.streamUrl || '');
-      if (!/^https:\/\/radio\.dogmazic\.net:8001\//i.test(streamUrl)) {
-        throw new Error('Dogmazic Radio did not provide its verified HTTPS stream URL.');
+      let parsed;
+      try { parsed = new URL(streamUrl); } catch (_) { throw new Error('Funkwhale did not provide a valid stream URL.'); }
+      if (parsed.protocol !== 'https:' || parsed.hostname !== 'open.audio' || !/^\/api\/v[12]\/listen\//.test(parsed.pathname)) {
+        throw new Error('Funkwhale did not provide a verified public audio stream.');
       }
-      return streamUrl;
+      return parsed.href;
     }
     if (source === 'audius') {
       const id = String(track.audiusId ?? track.track_id ?? track.id ?? '').trim();
@@ -346,7 +349,7 @@
     const id = escapeHTML(trackId(track));
     const playing = state.current && trackId(state.current) === trackId(track);
     const sourceName = String(track.source || '').toLowerCase();
-    const attribution = (track.licenseUrl || track.sourceUrl) && ['jamendo', 'internet archive', 'wikimedia commons', 'ccmixter', 'openverse', 'radio browser', 'dogmazic radio', 'audiomack'].includes(sourceName)
+    const attribution = (track.licenseUrl || track.sourceUrl) && ['jamendo', 'internet archive', 'wikimedia commons', 'ccmixter', 'openverse', 'radio browser', 'funkwhale', 'funkwhale / open audio', 'audiomack'].includes(sourceName)
       ? `<a class="track-license-link" href="${escapeHTML(track.licenseUrl || track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="Open the source page and check this track’s licence">${track.licenseUrl ? 'Licence ↗' : 'Source ↗'}</a>`
       : '<span class="track-license-spacer" aria-hidden="true"></span>';
     return `<div class="track-row${playing ? ' playing' : ''}" data-track-row="${id}">
@@ -355,7 +358,7 @@
         <div class="track-name">${playing ? '♫ ' : ''}${escapeHTML(track.title)}</div><div class="track-artist">${escapeHTML(track.artist)} <span class="source-tag">· ${escapeHTML(track.source || 'Music source')}</span></div>
       </button>
       ${attribution}
-      <span class="track-time">${sourceName === 'radio browser' || sourceName === 'dogmazic radio' ? 'LIVE' : (Number(track.duration) > 0 ? toDuration(track.duration) : '—')}</span>
+      <span class="track-time">${sourceName === 'radio browser' ? 'LIVE' : (Number(track.duration) > 0 ? toDuration(track.duration) : '—')}</span>
       <button class="track-action like${isLiked(track) ? ' liked' : ''}" data-like-track="${id}" aria-label="${isLiked(track) ? 'Unlike' : 'Like'} ${escapeHTML(track.title)}" title="${isLiked(track) ? 'Remove from liked songs' : 'Add to liked songs'}">${isLiked(track) ? '♥' : '♡'}</button>
     </div>`;
   }
@@ -544,9 +547,9 @@
     setLoading('Searching connected music sources…');
     state.view = 'discover'; updateNavigation();
 
-    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, openverseResult, radioResult, freeToUseResult] = await Promise.allSettled([
+    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, openverseResult, radioResult, freeToUseResult, funkwhaleResult] = await Promise.allSettled([
       searchJamendoCatalog(q), searchAudiusCatalog(q), searchArchiveCatalog(q), searchCommonsCatalog(q),
-      searchCcmixterCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q), searchFreeToUseCatalog(q)
+      searchCcmixterCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q), searchFreeToUseCatalog(q), searchFunkwhaleCatalog(q)
     ]);
     const jamendoTracks = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
     const audiusTracks = audiusResult.status === 'fulfilled' ? audiusResult.value : [];
@@ -556,7 +559,8 @@
     const openverseTracks = openverseResult.status === 'fulfilled' ? openverseResult.value : [];
     const radioTracks = radioResult.status === 'fulfilled' ? radioResult.value : [];
     const freeToUseTracks = freeToUseResult.status === 'fulfilled' ? freeToUseResult.value : [];
-    const combined = [...audiusTracks, ...freeToUseTracks, ...jamendoTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...openverseTracks, ...radioTracks];
+    const funkwhaleTracks = funkwhaleResult.status === 'fulfilled' ? funkwhaleResult.value : [];
+    const combined = [...audiusTracks, ...freeToUseTracks, ...jamendoTracks, ...funkwhaleTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...openverseTracks, ...radioTracks];
     const seen = new Set();
     const tracks = combined.filter(track => {
       const key = trackId(track);
@@ -565,7 +569,7 @@
     }).slice(0, 55);
 
     const providerRuns = [
-      ['Audius', audiusResult], ['Free To Use', freeToUseResult], ['Jamendo', jamendoResult],
+      ['Audius', audiusResult], ['Free To Use', freeToUseResult], ['Jamendo', jamendoResult], ['Funkwhale / Open Audio', funkwhaleResult],
       ['Internet Archive', archiveResult], ['Wikimedia Commons', commonsResult],
       ['ccMixter', ccmixterResult],
       ['Openverse', openverseResult], ['Radio Browser', radioResult]
@@ -586,6 +590,7 @@
         audiusTracks.length ? `Audius (${audiusTracks.length})` : '',
         freeToUseTracks.length ? `Free To Use (${freeToUseTracks.length})` : '',
         jamendoTracks.length ? `Jamendo (${jamendoTracks.length})` : '',
+        funkwhaleTracks.length ? `Funkwhale / Open Audio (${funkwhaleTracks.length})` : '',
         archiveTracks.length ? `Internet Archive (${archiveTracks.length})` : '',
         commonsTracks.length ? `Wikimedia Commons (${commonsTracks.length})` : '',
         ccmixterTracks.length ? `ccMixter (${ccmixterTracks.length})` : '',
@@ -1005,24 +1010,6 @@
     const queueButton = event.target.closest('[data-queue-track]');
     if (queueButton && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); queueButton.click(); }
   });
-  $('#play-dogmazic-radio')?.addEventListener('click', () => {
-    const streamUrl = 'https://radio.dogmazic.net:8001/';
-    const track = {
-      uid: 'dogmazic-radio:live',
-      id: 'dogmazic-radio-live',
-      title: 'Dogmazic Radio · Free-licence music',
-      artist: 'Dogmazic / Musique Libre!',
-      duration: 0,
-      artwork: '',
-      permalink: 'https://radio.dogmazic.net/',
-      sourceUrl: 'https://www.dogmazic.net/?lang=en',
-      licenseUrl: 'https://www.dogmazic.net/?lang=en',
-      streamUrl,
-      source: 'Dogmazic Radio',
-      live: true
-    };
-    playTrack(track);
-  });
   $('#main-play-button').addEventListener('click', () => togglePlayback());
   $('#bottom-play-button').addEventListener('click', () => togglePlayback());
   $('#prev-button').addEventListener('click', () => playRelative(-1));
@@ -1197,8 +1184,8 @@
         online: count => count ? 'Creative Commons catalogue responded · ' + count + ' “music” matches.' : 'Catalogue responded · no “music” matches.'
       },
       {
-        provider: 'dogmazic', flag: 'dogmazicRadioEnabled', path: '/api/dogmazic/status', statusOnly: true,
-        online: () => 'Ad-free, open-licence music radio stream is reachable · tap Listen to start playback.'
+        provider: 'funkwhale', flag: 'funkwhaleEnabled', path: '/api/funkwhale/search',
+        online: count => count ? 'Funkwhale / Open Audio responded · ' + count + ' playable “music” matches.' : 'Funkwhale / Open Audio responded · no “music” matches.'
       },
       {
         provider: 'openverse', flag: 'openverseEnabled', path: '/api/openverse/search',
@@ -1233,22 +1220,14 @@
             paintProviderStatus(probe.provider, 'setup', 'This route is not enabled in the current bridge build.');
             return { provider: probe.provider, state: 'setup' };
           }
-          if (probe.statusOnly) {
-            const payload = await getBridgeJson(JAMENDO_BRIDGE_BASE + probe.path, 12000);
-            if (!payload || payload.ok !== true || !/^https:\/\/radio\.dogmazic\.net:8001\//i.test(String(payload.streamUrl || ''))) {
-              throw new Error(String(payload?.error || 'Dogmazic radio stream endpoint did not verify.'));
-            }
-            count = 1;
-          } else {
-            count = await probeBridgeSearch(probe.path);
-          }
+          count = await probeBridgeSearch(probe.path, probe.provider === 'funkwhale' ? 15000 : 8500);
         }
         paintProviderStatus(probe.provider, 'online', probe.online(count));
         return { provider: probe.provider, state: 'online' };
       } catch (error) {
         const detail = String(error && error.message || '');
-        const description = probe.provider === 'dogmazic'
-          ? (detail || 'Dogmazic radio stream could not be reached. You can still open its official radio page.')
+        const description = probe.provider === 'funkwhale'
+          ? (detail || 'Public Funkwhale / Open Audio search is unavailable. The instance may require an account or be offline.')
           : 'Search endpoint did not respond · check provider bridge/API.';
         paintProviderStatus(probe.provider, 'offline', description);
         return { provider: probe.provider, state: 'offline' };
