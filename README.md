@@ -23,3 +23,10 @@ This archive is **root-ready**: `index.html`, `manifest.webmanifest`, `service-w
 A PWA install is not an APK download. A website cannot automatically install to every operating system without a confirmation. Background playback and lock-screen controls depend on each browser/OS and the provider's stream. This does not guarantee background playback on every device.
 
 The existing music player and “Made By Kirtan Ka.patel” footer are retained. The service worker caches the site shell only, not music tracks.
+
+
+## Music sources and Free To Use
+
+TuneWave searches Free To Use alongside Audius and the other connected audio catalogs. Free To Use's official API requires no account or API key: https://freetouse.com/api. The bridge queries its public search endpoint and uses only results with a valid HTTPS MP3 URL and a non-premium track flag. Searches for Ultra Funk/phonk try related spellings, but the provider may not have every track or remix.
+
+Free listening is not a blanket permission to redistribute or monetize the music. Review the provider's current license and conditions before using tracks outside personal listening: https://freetouse.com/license. Free To Use documents that commercial use may require a paid license.
