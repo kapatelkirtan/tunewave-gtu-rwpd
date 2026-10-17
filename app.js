@@ -256,19 +256,26 @@
   }
   async function searchAudiusCatalog(query) {
     const searchOne = async term => {
-      const url = `${AUDIUS_API_BASE}/tracks/search?query=${encodeURIComponent(term)}&limit=30&filter_tracks=public&gate_condition=ungated&app_name=${encodeURIComponent(AUDIUS_APP_NAME)}`;
+      const url = AUDIUS_API_BASE + '/tracks/search?query=' + encodeURIComponent(term) + '&limit=30&filter_tracks=public&gate_condition=ungated&app_name=' + encodeURIComponent(AUDIUS_APP_NAME);
       const payload = await getJson(url, 8500);
       return uniqueTracks(payload?.data ?? payload, normalizeAudiusTrack);
     };
     const normalizedQuery = String(query || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-    const isUltraFunkSearch = /ultra\s*funk|ultrafunk|brazilian\s*funk|phonk|funk\s*br/.test(normalizedQuery);
-    if (!isUltraFunkSearch) return (await searchOne(query)).slice(0, 30);
-
-    // Audius is public for read-only search and does not need a separate consumer key.
-    // Try common genre spellings so users can find more Ultra Funk/phonk results.
-    const terms = [...new Set([query, 'ultrafunk', 'ultra funk', 'brazilian phonk', 'funk br', 'phonk'])];
-    const results = await Promise.allSettled(terms.map(searchOne));
-    return uniqueTracks(results.filter(r => r.status === 'fulfilled').flatMap(r => r.value), normalizeAudiusTrack).slice(0, 45);
+    const ultraFunkSearch = /ultra funk|ultrafunk|brazilian funk|phonk|funk br|mandelao|automotivo/.test(normalizedQuery);
+    const gujaratiSearch = /gujarati|gujrati|garba|dandiya/.test(normalizedQuery);
+    const hindiSearch = /bollywood|hindi songs?|desi remix|indian pop/.test(normalizedQuery);
+    let terms;
+    if (ultraFunkSearch) {
+      terms = [query, 'ultrafunk', 'ultra funk', 'brazilian phonk', 'funk br', 'phonk', 'mandelao', 'automotivo', 'funk brasileiro'];
+    } else if (gujaratiSearch) {
+      terms = [query, 'gujarati songs', 'gujarati garba', 'gujarati folk', 'garba remix', 'dandiya remix'];
+    } else if (hindiSearch) {
+      terms = [query, 'bollywood songs', 'hindi songs', 'hindi remix', 'bollywood remix', 'desi remix'];
+    } else {
+      return (await searchOne(query)).slice(0, 30);
+    }
+    const results = await Promise.allSettled([...new Set(terms)].map(searchOne));
+    return uniqueTracks(results.filter(result => result.status === 'fulfilled').flatMap(result => result.value), normalizeAudiusTrack).slice(0, 45);
   }
   async function resolveStreamURL(track) {
     const source = String(track?.source || '').toLowerCase();
@@ -356,6 +363,26 @@
     $('#result-count').textContent = `${tracks.length} ${tracks.length === 1 ? 'track' : 'tracks'}`;
   }
 
+  function updateExternalMusicLinks(query) {
+    const q = String(query ?? searchInput.value ?? '').trim() || 'ultrafunk';
+    const encoded = encodeURIComponent(q);
+    const pathQuery = encoded.replace(/%20/g, '-');
+    const destinations = {
+      'youtube-music': 'https://music.youtube.com/search?q=' + encoded,
+      'jiosaavn': 'https://www.jiosaavn.com/search/song/' + pathQuery,
+      'spotify': 'https://open.spotify.com/search/' + encoded,
+      'apple-music': 'https://music.apple.com/in/search?term=' + encoded,
+      'amazon-music': 'https://music.amazon.in/search?keywords=' + encoded,
+      'soundcloud': 'https://soundcloud.com/search/sounds?q=' + encoded
+    };
+    $('[data-external-provider]').forEach(link => {
+      const target = destinations[link.dataset.externalProvider];
+      if (target) link.href = target;
+    });
+    const caption = $('#external-music-query');
+    if (caption) caption.textContent = 'Search “' + q + '” on these official music services.';
+  }
+
   async function getJson(url, timeoutMs = 14000) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -369,6 +396,7 @@
     const q = query.trim();
     if (!q) { toast('Type the song title you want to hear.'); searchInput.focus(); return; }
     state.query = q;
+    updateExternalMusicLinks(q);
     $('#results-kicker').textContent = 'SEARCHING CONNECTED MUSIC SOURCES';
     $('#results-title').textContent = `Results for “${q}”`;
     $('#search-hint').textContent = 'Searching connected music sources…';
@@ -788,6 +816,7 @@
   }
 
   // Main controls and app behavior.
+  searchInput.addEventListener('input', () => updateExternalMusicLinks(searchInput.value));
   searchForm.addEventListener('submit', event => { event.preventDefault(); searchCatalog(searchInput.value); });
   $('#voice-button').addEventListener('click', startVoiceSearch);
   $('#identify-button').addEventListener('click', identifySongByListening);
@@ -1088,6 +1117,7 @@
   $('#refresh-connections')?.addEventListener('click', checkProviderConnections);
 
   $('#year').textContent = String(new Date().getFullYear());
+  updateExternalMusicLinks(searchInput.value || 'ultrafunk');
   readState();
   restoreSession();
   checkProviderConnections();
