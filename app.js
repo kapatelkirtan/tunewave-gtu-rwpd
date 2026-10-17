@@ -901,49 +901,177 @@
     updateNavigation();
   }
 
-  function paintJamendoStatus(connected, description, label) {
-    const card = $('#jamendo-connection');
+  let providerCheckInProgress = false;
+
+  function paintProviderStatus(provider, connectionState, description) {
+    const card = $('#' + provider + '-connection');
     if (!card) return;
-    card.classList.toggle('source-connection-live', Boolean(connected));
-    card.classList.toggle('source-connection-warning', !connected);
-    $('#jamendo-description').textContent = description;
+    card.classList.remove('source-connection-live', 'source-connection-warning',
+      'source-connection-checking', 'source-connection-offline', 'source-connection-setup');
+    const status = $('#' + provider + '-status');
     const indicator = card.querySelector('.connection-indicator');
-    if (indicator) indicator.classList.toggle('connection-indicator-muted', !connected);
-    const status = $('#jamendo-status');
-    status.textContent = label;
-    status.classList.toggle('connection-status-warning', !connected);
-  }
-  function paintAudiomackStatus(connected, description, label) {
-    const card = $('#audiomack-connection');
-    if (!card) return;
-    card.classList.toggle('source-connection-live', Boolean(connected));
-    card.classList.toggle('source-connection-warning', !connected);
-    const desc = $('#audiomack-description');
-    if (desc) desc.textContent = description;
-    const indicator = card.querySelector('.connection-indicator');
-    if (indicator) indicator.classList.toggle('connection-indicator-muted', !connected);
-    const status = $('#audiomack-status');
-    if (status) { status.textContent = label; status.classList.toggle('connection-status-warning', !connected); }
-  }
-  async function checkJamendoBridge() {
-    if (!JAMENDO_BRIDGE_CONFIGURED) {
-      paintJamendoStatus(false, 'Needs Jamendo bridge URL in config.js', 'SETUP');
-      return;
+    const labels = { online: 'ONLINE', checking: 'CHECKING', setup: 'SETUP', offline: 'OFFLINE' };
+    if (connectionState === 'online') card.classList.add('source-connection-live');
+    else if (connectionState === 'checking') card.classList.add('source-connection-checking');
+    else if (connectionState === 'setup') card.classList.add('source-connection-setup');
+    else card.classList.add('source-connection-warning', 'source-connection-offline');
+    if (indicator) indicator.classList.toggle('connection-indicator-muted', connectionState !== 'online');
+    const descriptionEl = $('#' + provider + '-description');
+    if (descriptionEl) descriptionEl.textContent = description;
+    if (status) {
+      status.textContent = labels[connectionState] || 'CHECK';
+      status.classList.toggle('connection-status-warning', connectionState !== 'online');
+      status.classList.toggle('connection-status-online', connectionState === 'online');
+      status.classList.toggle('connection-status-checking', connectionState === 'checking');
     }
-    try {
-      const health = await getJson(`${JAMENDO_BRIDGE_BASE}/health`, 4500);
-      if (health?.ok && health?.configured) paintJamendoStatus(true, 'Bridge online · Jamendo search/stream', 'READY');
-      else if (health?.ok) paintJamendoStatus(false, 'Add JAMENDO_CLIENT_ID in Render environment', 'CONFIG');
-      else paintJamendoStatus(false, 'Bridge responded but is not ready', 'CHECK');
-    } catch (_) {
-      paintJamendoStatus(false, 'Bridge unreachable · check Render service', 'OFFLINE');
-    }
+    card.dataset.connectionState = connectionState;
   }
+
+  function probeBridgeSearch(path, timeoutMs = 8500) {
+    if (!JAMENDO_BRIDGE_CONFIGURED) return Promise.reject(new Error('bridge-url-missing'));
+    const url = JAMENDO_BRIDGE_BASE + path + '?q=' + encodeURIComponent('TuneWaveStatusProbe');
+    return getJson(url, timeoutMs).then(payload => {
+      if (payload && payload.error) throw new Error('provider-search-failed');
+      if (!payload || !Array.isArray(payload.results)) throw new Error('unexpected-provider-response');
+      return payload.results.length;
+    });
+  }
+
+  async function checkProviderConnections() {
+    if (providerCheckInProgress) return;
+    providerCheckInProgress = true;
+    const refresh = $('#refresh-connections');
+    const summary = $('#connection-summary');
+    if (refresh) refresh.disabled = true;
+    if (refresh) refresh.classList.add('is-checking');
+    const cards = $$('.source-connection[data-provider]');
+    cards.forEach(card => paintProviderStatus(card.dataset.provider, 'checking', 'Testing live search endpoint…'));
+    if (summary) summary.textContent = 'PROBING ' + cards.length + ' SOURCES';
+
+    const healthPromise = JAMENDO_BRIDGE_CONFIGURED
+      ? getJson(JAMENDO_BRIDGE_BASE + '/health', 6500).catch(() => null)
+      : Promise.resolve(null);
+
+    const probes = [
+      {
+        provider: 'audius',
+        check: async () => {
+          const url = new URL(AUDIUS_API_BASE + '/tracks/search');
+          url.searchParams.set('query', 'TuneWaveStatusProbe');
+          url.searchParams.set('limit', '1');
+          url.searchParams.set('filter_tracks', 'public');
+          url.searchParams.set('app_name', AUDIUS_APP_NAME);
+          const payload = await getJson(url.href, 7500);
+          if (!payload || !Array.isArray(payload.data)) throw new Error('invalid response');
+          return payload.data.length;
+        },
+        online: count => count ? 'Public API responded · search results available.' : 'Public API responded · no test-query matches.'
+      },
+      {
+        provider: 'freetouse', flag: 'freeToUseEnabled', path: '/api/freetouse/search',
+        online: count => count ? 'Keyless catalogue responded · ' + count + ' test matches.' : 'Keyless catalogue responded · no test-query matches.'
+      },
+      {
+        provider: 'jamendo', needsJamendoKey: true, path: '/api/jamendo/search',
+        online: count => count ? 'Bridge and Jamendo API responded · ' + count + ' test matches.' : 'Jamendo API responded · no test-query matches.'
+      },
+      {
+        provider: 'archive', flag: 'internetArchiveEnabled', path: '/api/archive/search',
+        online: count => count ? 'Archive search responded · ' + count + ' test matches.' : 'Archive search responded · no test-query matches.'
+      },
+      {
+        provider: 'commons', direct: true,
+        check: async () => {
+          const url = new URL('https://commons.wikimedia.org/w/api.php');
+          url.searchParams.set('action', 'query');
+          url.searchParams.set('format', 'json');
+          url.searchParams.set('origin', '*');
+          url.searchParams.set('generator', 'search');
+          url.searchParams.set('gsrsearch', 'filetype:audio TuneWaveStatusProbe');
+          url.searchParams.set('gsrnamespace', '6');
+          url.searchParams.set('gsrlimit', '1');
+          url.searchParams.set('prop', 'imageinfo');
+          url.searchParams.set('iiprop', 'url');
+          const payload = await getJson(url.href, 7500);
+          if (!payload || payload.error || !payload.query) throw new Error('invalid response');
+          return Object.keys(payload.query.pages || {}).length;
+        },
+        online: count => count ? 'Wikimedia API responded · audio page found.' : 'Wikimedia API responded · no test-query matches.'
+      },
+      {
+        provider: 'ccmixter', flag: 'ccMixterEnabled', path: '/api/ccmixter/search',
+        online: count => count ? 'Creative Commons catalogue responded · ' + count + ' test matches.' : 'Catalogue responded · no test-query matches.'
+      },
+      {
+        provider: 'loc', flag: 'libraryOfCongressEnabled', path: '/api/loc/search',
+        online: count => count ? 'Historical audio search responded · ' + count + ' test matches.' : 'Library API responded · no test-query matches.'
+      },
+      {
+        provider: 'openverse', flag: 'openverseEnabled', path: '/api/openverse/search',
+        online: count => count ? 'Open audio search responded · ' + count + ' test matches.' : 'Openverse responded · no test-query matches.'
+      },
+      {
+        provider: 'radio', flag: 'radioBrowserEnabled', path: '/api/radio/search',
+        online: count => count ? 'Live station directory responded · ' + count + ' matches.' : 'Station directory responded · no test-query matches.'
+      }
+    ];
+
+    const results = await Promise.all(probes.map(async probe => {
+      try {
+        let count;
+        if (probe.direct || probe.provider === 'audius') {
+          count = await probe.check();
+        } else {
+          if (!JAMENDO_BRIDGE_CONFIGURED) {
+            paintProviderStatus(probe.provider, 'setup', 'Add the bridge URL to config.js.');
+            return { provider: probe.provider, state: 'setup' };
+          }
+          const health = await healthPromise;
+          if (!health || !health.ok) {
+            paintProviderStatus(probe.provider, 'offline', 'TuneWave provider bridge is unreachable.');
+            return { provider: probe.provider, state: 'offline' };
+          }
+          if (probe.needsJamendoKey && !health.configured) {
+            paintProviderStatus(probe.provider, 'setup', 'Add JAMENDO_CLIENT_ID to the bridge environment on Render.');
+            return { provider: probe.provider, state: 'setup' };
+          }
+          if (probe.flag && health[probe.flag] !== true) {
+            paintProviderStatus(probe.provider, 'setup', 'This route is not enabled in the current bridge build.');
+            return { provider: probe.provider, state: 'setup' };
+          }
+          count = await probeBridgeSearch(probe.path);
+        }
+        paintProviderStatus(probe.provider, 'online', probe.online(count));
+        return { provider: probe.provider, state: 'online' };
+      } catch (_) {
+        paintProviderStatus(probe.provider, 'offline', 'Search endpoint did not respond · check provider bridge/API.');
+        return { provider: probe.provider, state: 'offline' };
+      }
+    }));
+
+    const onlineCount = results.filter(result => result.state === 'online').length;
+    const setupCount = results.filter(result => result.state === 'setup').length;
+    if (summary) {
+      summary.textContent = onlineCount + ' / ' + results.length + ' ONLINE';
+      summary.title = setupCount ? setupCount + ' provider(s) need setup.' : 'Live search endpoint checks completed.';
+      summary.classList.toggle('connection-summary-warning', onlineCount < results.length);
+    }
+    const note = $('#provider-note');
+    if (note) {
+      const checkedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      note.textContent = 'Checked at ' + checkedAt + '. ONLINE means the search endpoint answered this test; it does not guarantee every title exists or every stream will play. Provider catalogues and usage licences vary.';
+    }
+    if (refresh) refresh.disabled = false;
+    if (refresh) refresh.classList.remove('is-checking');
+    providerCheckInProgress = false;
+  }
+
+  $('#refresh-connections')?.addEventListener('click', checkProviderConnections);
 
   $('#year').textContent = String(new Date().getFullYear());
   readState();
   restoreSession();
-  checkJamendoBridge();
+  checkProviderConnections();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
   }
