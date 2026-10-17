@@ -27,14 +27,14 @@ The existing music player and “Made By Kirtan Ka.patel” footer are retained.
 
 ## Music sources and Free To Use
 
-TuneWave uses public/free audio sources. Dogmazic Radio is a separate live-stream source, not an individual-track search API.
+TuneWave uses public/free audio sources. Funkwhale / Open Audio is a searchable independent catalogue; it is separate from commercial streaming services and depends on anonymous access being enabled by the instance.
 
 - Audius: direct streaming for publicly playable tracks.
 - Free To Use: direct playback for eligible tracks under its licence.
 - Jamendo: official API through the server-side bridge.
 - Internet Archive, Wikimedia Commons, ccMixter and Openverse: results depend on rights metadata and source availability.
 - Radio Browser: live radio stations rather than a searchable catalogue of individual songs.
-- Dogmazic Radio: a continuous ad-free stream of independently published music. Its catalogue is not guaranteed to contain commercial Bollywood, Hindi, Gujarati or every Ultra Funk track.
+- Funkwhale / Open Audio: a searchable catalogue of public playable uploads, with direct stream URLs when the hosting instance allows anonymous reads. Track catalogues and rights vary by upload; it is not guaranteed to have every commercial Bollywood, Hindi, Gujarati or Ultra Funk track.
 
 
 TuneWave searches Free To Use alongside Audius and the other connected audio catalogs. Free To Use's official API requires no account or API key: https://freetouse.com/api. The bridge queries its public search endpoint and uses only results with a valid HTTPS MP3 URL and a non-premium track flag. Searches for Ultra Funk/phonk try related spellings, but the provider may not have every track or remix.
