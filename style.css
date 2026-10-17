@@ -141,3 +141,31 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
  .provider-companion{align-items:flex-start;gap:7px}.provider-companion a{margin-left:0}
 }
 @media(prefers-reduced-motion:reduce){.status-kicker-dot,.source-connection-checking .connection-indicator,.connection-refresh.is-checking:first-letter{animation:none!important}}
+
+
+/* Official music service search shortcuts — not counted as in-player APIs */
+.external-music-panel{position:relative;isolation:isolate;overflow:hidden;margin:18px 0 17px;padding:18px;border:1px solid rgba(133,151,255,.18);border-radius:20px;background:radial-gradient(ellipse at 90% 0%,rgba(151,94,255,.12),transparent 34%),linear-gradient(140deg,rgba(14,19,39,.78),rgba(10,14,29,.8));box-shadow:inset 0 1px rgba(255,255,255,.035)}
+.external-music-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:13px}
+.external-music-heading .section-kicker{display:flex;align-items:center;gap:7px;margin:0 0 8px;font-size:8px;letter-spacing:1.6px;color:#a9a3e4}
+.external-music-heading h2{margin:0;font:800 clamp(16px,1.6vw,20px)/1.2 Manrope,sans-serif;letter-spacing:-.45px;color:#f1f3ff}
+.external-music-heading p:not(.section-kicker){margin:6px 0 0;font-size:10px;line-height:1.45;color:#969fbd}
+.external-link-label{flex:0 0 auto;margin-top:2px;border:1px solid rgba(157,130,255,.2);border-radius:7px;background:rgba(133,104,222,.075);padding:5px 7px;color:#bcaaff;font-size:7px;font-weight:900;letter-spacing:1px;white-space:nowrap}
+.external-music-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.external-music-link{display:grid;grid-template-columns:33px minmax(0,1fr) 12px;align-items:center;gap:9px;min-width:0;min-height:57px;padding:9px;border:1px solid rgba(136,153,255,.14);border-radius:13px;background:rgba(20,25,48,.6);text-decoration:none;transition:transform .18s,border-color .18s,background .18s}
+.external-music-link:hover{transform:translateY(-2px);border-color:rgba(84,245,255,.34);background:rgba(28,36,65,.78)}
+.external-brand-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;border:1px solid rgba(165,174,255,.2);background:linear-gradient(140deg,rgba(111,105,233,.24),rgba(40,52,90,.16));color:#e8e5ff;font-size:9px;font-weight:900;letter-spacing:-.4px}
+.external-youtube .external-brand-icon{background:linear-gradient(140deg,rgba(255,73,88,.25),rgba(128,42,65,.16));color:#ffb4ba}
+.external-saavn .external-brand-icon{background:linear-gradient(140deg,rgba(45,209,159,.23),rgba(36,93,99,.15));color:#a4ffe1}
+.external-spotify .external-brand-icon{background:linear-gradient(140deg,rgba(47,226,128,.22),rgba(30,105,81,.15));color:#a3ffbf}
+.external-apple .external-brand-icon{background:linear-gradient(140deg,rgba(212,115,255,.22),rgba(99,71,163,.15));color:#f0c7ff}
+.external-amazon .external-brand-icon{background:linear-gradient(140deg,rgba(70,193,247,.22),rgba(47,95,157,.15));color:#b1e9ff}
+.external-soundcloud .external-brand-icon{background:linear-gradient(140deg,rgba(255,151,67,.22),rgba(168,91,48,.15));color:#ffd0a1}
+.external-link-copy{display:grid;gap:4px;min-width:0}
+.external-link-copy strong{overflow-wrap:anywhere;color:#edf0ff;font-size:10px;line-height:1.2;font-weight:800}
+.external-link-copy small{overflow-wrap:anywhere;color:#9099b8;font-size:8px;line-height:1.3}
+.external-open{color:#8eeef7;font-size:12px;text-align:right}
+.external-music-note{margin:12px 2px 0;color:#7f89a9;font-size:9px;line-height:1.55}
+@media(max-width:1180px){.external-music-links{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.external-music-panel{padding:14px 12px;border-radius:17px}.external-music-heading{flex-direction:column;gap:7px}.external-music-links{grid-template-columns:repeat(2,minmax(0,1fr))}.external-link-label{margin:0}}
+@media(max-width:430px){.external-music-links{grid-template-columns:1fr}.external-music-link{min-height:53px}.external-link-copy strong{font-size:11px}.external-link-copy small{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.external-music-link{transition:none}.external-music-link:hover{transform:none}}
