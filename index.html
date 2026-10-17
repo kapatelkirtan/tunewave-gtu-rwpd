@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
-  <script defer src="app.js?v=20261018-14"></script>
+  <script defer src="app.js?v=20261018-15"></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -200,8 +200,9 @@
             <p class="official-player-search-help">Choose a result in YouTube Music or Spotify, copy its link, paste it above, and select the matching service. The embedded player follows the service’s own playback and access rules.</p>
           </div>
           <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Paste a YouTube / YouTube Music or Spotify link to load its official player here. Ads, sign-in or premium rules, full-track access, and background playback are controlled by the service and your device.</p>
+          <p class="official-player-search-help" id="official-player-fulltrack-help" hidden>If Spotify plays only a short preview, try opening this page in the latest Chrome, Firefox, Edge, or Safari with encrypted media enabled. You can also <a id="official-player-open-link" href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer">open this song directly in Spotify ↗</a>. Full-track access is determined by Spotify and your account.</p>
           <div id="official-player-stage" class="official-player-stage" hidden>
-            <iframe id="official-player-frame" title="Official embedded music player" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; clipboard-write; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" hidden></iframe>
+            <iframe id="official-player-frame" title="Official embedded music player" width="100%" height="352" frameborder="0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen hidden></iframe>
           </div>
         </section>
         <div class="genre-chips" aria-label="Popular searches">
