@@ -94,46 +94,53 @@
               <button type="button" class="connection-refresh" id="refresh-connections" title="Check music provider connections again">↻ <span>Refresh</span></button>
             </div>
           </div>
+          <div class="provider-fit-guide" role="note">
+            <strong>CATALOGUE FIT FOR YOUR GOAL</strong>
+            <span><b>Ultra Funk / phonk:</b> try Audius first for independent creator uploads and remixes.</span>
+            <span><b>Free full-track independent music:</b> try Free To Use and Jamendo, subject to each track’s licence and the site’s intended use.</span>
+            <span><b>Hindi / Gujarati / commercial Bollywood:</b> the official destination links below may find more titles, but they are not direct full-track APIs inside TuneWave.</span>
+            <small>No connected provider guarantees every commercial song with full-length, ad-free, no-premium and lock-screen playback all for free. ONLINE means the endpoint responded, not that a particular genre or track is available.</small>
+          </div>
           <div class="source-connections" id="source-connections" aria-label="Live music provider connection status">
             <div class="source-connection source-connection-checking" id="audius-connection" data-provider="audius">
               <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-audius" aria-hidden="true">AU</span>
-              <div><strong>Audius</strong><small id="audius-description">Checking public search API…</small></div><span class="connection-status" id="audius-status">CHECKING</span>
+              <div><strong>Audius</strong><small id="audius-description">Checking public search API…</small><span class="provider-fit">Best fit: independent uploads, remixes and Ultra Funk/phonk-style searches; coverage depends on artist uploads.</span></div><span class="connection-status" id="audius-status">CHECKING</span>
             </div>
             <div class="source-connection source-connection-checking" id="freetouse-connection" data-provider="freetouse">
               <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-freetouse" aria-hidden="true">FT</span>
-              <div><strong>Free To Use</strong><small id="freetouse-description">Checking keyless music catalogue…</small></div><span class="connection-status" id="freetouse-status">CHECKING</span>
+              <div><strong>Free To Use</strong><small id="freetouse-description">Checking keyless music catalogue…</small><span class="provider-fit">Full-track royalty-free catalogue; no API key. Primarily creator music, not a mainstream Bollywood library.</span></div><span class="connection-status" id="freetouse-status">CHECKING</span>
             </div>
             <div class="source-connection source-connection-checking" id="jamendo-connection" data-provider="jamendo">
               <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-jamendo" aria-hidden="true">JM</span>
-              <div><strong>Jamendo</strong><small id="jamendo-description">Checking bridge and API setup…</small></div><span class="connection-status" id="jamendo-status">CHECKING</span>
+              <div><strong>Jamendo</strong><small id="jamendo-description">Checking bridge and API setup…</small><span class="provider-fit">Full-track independent/Creative Commons music; API use is non-commercial by default.</span></div><span class="connection-status" id="jamendo-status">CHECKING</span>
             </div>
             <div class="source-connection source-connection-checking" id="archive-connection" data-provider="archive">
               <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-archive" aria-hidden="true">IA</span>
-              <div><strong>Internet Archive</strong><small id="archive-description">Checking audio search endpoint…</small></div><span class="connection-status" id="archive-status">CHECKING</span>
+              <div><strong>Internet Archive</strong><small id="archive-description">Checking audio search endpoint…</small><span class="provider-fit">Open/public-domain and archival audio; unlikely to cover most current Bollywood hits.</span></div><span class="connection-status" id="archive-status">CHECKING</span>
             </div>
             <div class="source-connection source-connection-checking" id="commons-connection" data-provider="commons">
               <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-commons" aria-hidden="true">WC</span>
-              <div><strong>Wikimedia Commons</strong><small id="commons-description">Checking free-licence audio search…</small></div><span class="connection-status" id="commons-status">CHECKING</span>
+              <div><strong>Wikimedia Commons</strong><small id="commons-description">Checking free-licence audio search…</small><span class="provider-fit">Direct audio with open/public-domain licensing metadata; mostly niche, educational and archival material.</span></div><span class="connection-status" id="commons-status">CHECKING</span>
             </div>
             <div class="source-connection source-connection-checking" id="ccmixter-connection" data-provider="ccmixter">
               <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-ccmixter" aria-hidden="true">cc</span>
-              <div><strong>ccMixter</strong><small id="ccmixter-description">Checking Creative Commons catalogue…</small></div><span class="connection-status" id="ccmixter-status">CHECKING</span>
+              <div><strong>ccMixter</strong><small id="ccmixter-description">Checking Creative Commons catalogue…</small><span class="provider-fit">Creative Commons remixes and independent music; not a broad commercial film-song catalogue.</span></div><span class="connection-status" id="ccmixter-status">CHECKING</span>
             </div>
             <div class="source-connection source-connection-checking" id="funkwhale-connection" data-provider="funkwhale">
               <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-funkwhale" aria-hidden="true">FW</span>
-              <div><strong>Funkwhale / Open Audio</strong><small id="funkwhale-description">Checking public searchable audio catalogue…</small></div><span class="connection-status connection-status-checking" id="funkwhale-status">CHECKING</span>
+              <div><strong>Funkwhale / Open Audio</strong><small id="funkwhale-description">Checking public searchable audio catalogue…</small><span class="provider-fit">Public-upload full tracks when the instance allows anonymous listening; catalogue varies by community.</span></div><span class="connection-status connection-status-checking" id="funkwhale-status">CHECKING</span>
             </div>
             <div class="source-connection source-connection-checking" id="openverse-connection" data-provider="openverse">
               <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-openverse" aria-hidden="true">OV</span>
-              <div><strong>Openverse</strong><small id="openverse-description">Checking open-licence audio search…</small></div><span class="connection-status" id="openverse-status">CHECKING</span>
+              <div><strong>Openverse</strong><small id="openverse-description">Checking open-licence audio search…</small><span class="provider-fit">Searches open-licensed audio across sources; availability and direct playability vary by item.</span></div><span class="connection-status" id="openverse-status">CHECKING</span>
             </div>
             <div class="source-connection source-connection-checking" id="radio-connection" data-provider="radio">
               <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-radio" aria-hidden="true">RB</span>
-              <div><strong>Radio Browser</strong><small id="radio-description">Checking live station directory…</small></div><span class="connection-status" id="radio-status">CHECKING</span>
+              <div><strong>Radio Browser</strong><small id="radio-description">Checking live station directory…</small><span class="provider-fit">Live radio stations only—not searchable individual tracks; station programming varies.</span></div><span class="connection-status" id="radio-status">CHECKING</span>
             </div>
           </div>
           <div class="provider-footer">
-            <p class="provider-note" id="provider-note">A provider is marked ONLINE only after its search endpoint responds. An online API may return no matching Ultra Funk tracks; results and playback rights still depend on each source.</p>
+            <p class="provider-note" id="provider-note">Provider health and catalogue coverage are different. Audius is the most relevant first search for independent Ultra Funk/phonk uploads; Free To Use and Jamendo focus on licensed independent music. Internet Archive, Wikimedia Commons, ccMixter and Openverse are open-license/archival sources, while Radio Browser supplies live stations rather than individual-song search. Check track licences; commercial Bollywood coverage and ad-free background playback are not guaranteed.</p>
             <div class="provider-companion"><span class="companion-tag">SEPARATE DESKTOP APP</span><span>Nuclear is not connected to TuneWave’s web player.</span><a href="https://nuclearplayer.com/" target="_blank" rel="noopener noreferrer">Get Nuclear ↗</a></div>
           </div>
         </section>
