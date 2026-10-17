@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tunewave-shell-v60';
+const CACHE_NAME = 'tunewave-shell-v61';
 const APP_SHELL = [
   './', './index.html', './style.css', './app.js', './config.js', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png'
