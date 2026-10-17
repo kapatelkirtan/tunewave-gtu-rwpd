@@ -66,3 +66,8 @@ Audiomack offers free embeddable players for creator uploads and its API include
 ## Removed catalogue-only providers
 
 Deezer preview search and MusicBrainz metadata search have been removed from TuneWave. Deezer's public search integration returned short preview clips, while MusicBrainz does not host audio. TuneWave keeps its existing free/open catalogue providers, but their available music and playback rights vary by track; they cannot guarantee every commercial Bollywood, Gujarati, Hindi, or Ultra Funk release.
+
+
+## Official mainstream search shortcuts added
+
+TuneWave now includes query-aware outbound search links for Gaana, Hungama Music, and Saregama alongside the existing official-service links. These are external search shortcuts, not API playback integrations: playback happens on each service's own site/app, and free-tier availability, advertisements, subscription requirements, regional restrictions, and lock-screen playback are controlled by that service. No provider is represented as guaranteeing ad-free full-length commercial songs inside TuneWave.
