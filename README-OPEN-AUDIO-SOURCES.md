@@ -1,6 +1,6 @@
 # TuneWave open-audio providers
 
-TuneWave combines Audius, Jamendo, Internet Archive, Wikimedia Commons, ccMixter, rights-filtered Library of Congress audio, and Radio Browser live music stations. Openverse support is included and now uses anonymous API access by default. Registering credentials is optional if you need higher API rate limits.
+TuneWave combines Audius, Jamendo, Internet Archive, Wikimedia Commons, ccMixter, rights-filtered Library of Congress audio, Radio Browser live music stations, and Audiomack through its official API connector. Openverse uses anonymous API access by default.
 
 ## Deployment
 
@@ -44,11 +44,11 @@ A list of 20 music websites is not equivalent to 20 usable streaming APIs. Free 
 - **Radio Browser**: searches its public station directory and adds direct HTTPS streams for live music stations. These are station streams rather than individual indexed songs; the station operator controls the playlist, ads, stream availability, and rights.
 
 
-## Audiomack: Ultra Funk and phonk search
+## Official Audiomack provider: Ultra Funk and phonk
 
-TuneWave now includes an optional Audiomack search/playback connector. The frontend searches for track metadata through the server-side bridge, and the bridge resolves a fresh stream URL only when a listener presses Play; Audiomack stream URLs are short-lived. The connector uses Audiomack's documented API endpoints and OAuth 1.0a consumer signing rather than scraping their website.
+Audiomack is a first-class TuneWave provider with search and in-page playback via the official API. The frontend searches for track metadata through the server-side bridge, and the bridge resolves a fresh stream URL only when a listener presses Play; Audiomack stream URLs are short-lived. The connector uses Audiomack's documented API endpoints and OAuth 1.0a consumer signing rather than scraping their website.
 
-### Enable Audiomack
+### Activate the official Audiomack connection
 
 1. Open the official [Audiomack API documentation](https://audiomack.com/data-api/docs) and follow its API access / consumer-credential process. You need a valid **consumer key** and **consumer secret**. Audiomack may require its approval to issue credentials; the code cannot bypass that.
 2. In Render, open the `tunewave-jamendo-bridge` service and go to **Environment**.
@@ -56,7 +56,7 @@ TuneWave now includes an optional Audiomack search/playback connector. The front
    - `AUDIOMACK_CONSUMER_KEY`
    - `AUDIOMACK_CONSUMER_SECRET`
 4. Save and redeploy the bridge.
-5. Open `/health` on the bridge and check `"audiomackEnabled":true`. Then open TuneWave and search `ultrafunk`, `ultra funk`, or `Brazilian phonk`.
+5. Open `/health` on the bridge and check `"audiomackEnabled":true`. Until the official credentials are approved and configured, the Audiomack provider is listed in TuneWave but will show `SETUP` and cannot return API search results. Then open TuneWave and search `ultrafunk`, `ultra funk`, or `Brazilian phonk`.
 
 Keep both values server-side. Never add them to `app.js`, `config.js`, or public GitHub content.
 
