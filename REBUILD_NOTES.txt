@@ -1,0 +1,5 @@
+TuneWave website rebuild — Audius + Jamendo
+
+New provider layer: official Audius REST API plus Jamendo tracks API through a server-side bridge.
+Nuclear remains documented as a desktop app, not misrepresented as a hosted web provider.
+See README_DEPLOY.txt for the two-part Render setup and Jamendo licensing notes.

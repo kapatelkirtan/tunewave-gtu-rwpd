@@ -1,0 +1,15 @@
+TuneWave web-provider architecture: Audius + Jamendo
+
+Audius is integrated directly through the documented REST API for search and track streaming.
+
+Jamendo is integrated through the documented /v3.0/tracks API. TuneWave calls a small server-side bridge. Set JAMENDO_CLIENT_ID as an environment variable on the separate Render bridge service. The bridge returns track metadata, an HTTPS playback URL, a source page, and the licence URL where available. The browser never receives the Jamendo client_id.
+
+Nuclear is not an active TuneWave provider. Nuclear is a desktop music player with an in-app plugin API. Its plugin API controls/extends an installed Nuclear player; it is not a public hosted music catalogue + browser streaming API for arbitrary website visitors. Do not expose a local Nuclear HTTP/MCP endpoint on the public internet. If a suitable provider must serve every TuneWave visitor, use an actual hosted music provider such as Jamendo rather than calling Nuclear a provider.
+
+Jamendo's API terms allow non-commercial use by default; commercial, monetized or ad-supported use requires confirmation/licensing from Jamendo. Follow each track's own licence and provide attribution/source details.
+
+Official references:
+- Audius: https://docs.audius.co/api/
+- Jamendo Tracks API: https://developer.jamendo.com/v3.0/tracks
+- Jamendo API terms: https://devportal.jamendo.com/api_terms_of_use
+- Nuclear: https://docs.nuclearplayer.com/nuclear
