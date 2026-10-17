@@ -170,29 +170,22 @@ function isMusicArchiveItem(item) {
     .filter(Boolean).join(' ');
   const collection = (Array.isArray(item?.collection) ? item.collection : [item?.collection])
     .filter(Boolean).join(' ');
-  const searchable = `${title} ${subjects} ${collection}`;
-  // Prefer catalogue entries actually described as music; exclude spoken-word/audio-book results.
-  const spokenWord = /\\b(audiobook|audio book|librivox|speech|sermon|lecture|radio show|radio program|old time radio|dramatization|novel|short stories|interview|news broadcast|quran recitation)\\b/i;
-  const musicTerms = /\\b(music|song|songs|soundtrack|jazz|blues|classical|folk|rock|pop|electronic|ambient|instrumental|orchestra|symphony|concert|album|reggae|country|hip[- ]?hop|rap|funk|soul|metal|punk|trance|techno|house|disco|dance|opera|guitar|piano|violin|choir|choral|celtic|bluegrass|r&b|rhythm and blues)\\b/i;
+  const searchable = title + ' ' + subjects + ' ' + collection;
+  // Search result metadata varies; use real word boundaries and allow common traditional music labels.
+  const spokenWord = /\b(audiobook|audio book|librivox|speech|sermon|lecture|radio show|radio program|old time radio|dramatization|novel|short stories|interview|news broadcast|quran recitation)\b/i;
+  const musicTerms = /\b(music|song|songs|soundtrack|jazz|blues|classical|folk|rock|pop|electronic|ambient|instrumental|orchestra|symphony|concert|album|reggae|country|hip[- ]?hop|rap|funk|soul|metal|punk|trance|techno|house|disco|dance|opera|guitar|piano|violin|choir|choral|celtic|bluegrass|r&b|rhythm and blues|carol|carols|hymn|hymns|sing[- ]?along|musical recording)\b/i;
   return !spokenWord.test(title) && musicTerms.test(searchable);
 }
 
 async function archiveSearch(query) {
   const url = new URL('https://archive.org/advancedsearch.php');
-  const musicSubjects = [
-    'subject:music', 'subject:song', 'subject:songs', 'subject:instrumental',
-    'subject:jazz', 'subject:blues', 'subject:classical', 'subject:folk',
-    'subject:rock', 'subject:pop', 'subject:electronic', 'subject:ambient',
-    'subject:reggae', 'subject:country', 'subject:hip-hop', 'subject:rap',
-    'subject:soundtrack', 'subject:orchestra', 'subject:opera', 'subject:funk',
-    'subject:soul', 'subject:metal', 'subject:punk', 'subject:disco',
-    'subject:bluegrass', 'subject:choir'
-  ].join(' OR ');
-  url.searchParams.set('q', `(${query}) AND mediatype:audio AND (${musicSubjects}) NOT (subject:audiobook OR subject:speech OR subject:sermon)`);
+  // Keep the broad audio search: the Archive does not consistently tag music with genre subjects.
+  // Relevance filtering happens on each result's title/subject/collection metadata below.
+  url.searchParams.set('q', '(' + query + ') AND mediatype:audio');
   for (const field of ['identifier', 'title', 'creator', 'year', 'licenseurl', 'rights', 'subject', 'collection']) {
     url.searchParams.append('fl[]', field);
   }
-  url.searchParams.set('rows', '50');
+  url.searchParams.set('rows', '100');
   url.searchParams.set('page', '1');
   url.searchParams.set('output', 'json');
   url.searchParams.append('sort[]', 'downloads desc');
@@ -200,7 +193,6 @@ async function archiveSearch(query) {
   const docs = Array.isArray(payload?.response?.docs) ? payload.response.docs : [];
   return docs.filter(isMusicArchiveItem).map(normalizeArchiveSearchItem).filter(Boolean).slice(0, 20);
 }
-
 async function archivePlayableFile(identifier) {
   if (!/^[A-Za-z0-9_-]{3,80}$/.test(identifier)) {
     const error = new Error('Invalid Internet Archive item identifier.');
