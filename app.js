@@ -433,7 +433,6 @@
   function setupOfficialPlayer() {
     const form = $('#official-player-form');
     if (!form) return;
-    const sourceSelect = $('#official-player-source');
     const urlInput = $('#official-player-url');
     const frame = $('#official-player-frame');
     const stage = $('#official-player-stage');
@@ -442,7 +441,7 @@
     form.addEventListener('submit', event => {
       event.preventDefault();
       let raw = String(urlInput?.value || '').trim();
-      const provider = String(sourceSelect?.value || 'youtube');
+      const provider = 'youtube';
 
       // Accept the URL from an official embed iframe as well as a normal share link.
       const iframeSrc = raw.match(/<iframe\\b[\\s\\S]*?\\bsrc\\s*=\\s*["']([^"']+)["']/i)
