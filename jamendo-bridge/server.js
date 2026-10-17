@@ -462,6 +462,50 @@ async function openverseSearch(query) {
   }).filter(Boolean).slice(0, 20);
 }
 
+
+async function radioBrowserSearch(query) {
+  const url = new URL('https://de1.api.radio-browser.info/json/stations/search');
+  url.searchParams.set('name', query);
+  url.searchParams.set('limit', '20');
+  url.searchParams.set('hidebroken', 'true');
+  url.searchParams.set('order', 'clickcount');
+  url.searchParams.set('reverse', 'true');
+  const response = await sourceFetch(url.href, 'Radio Browser', 10000);
+  const stations = await response.json();
+  if (!Array.isArray(stations)) return [];
+  return stations.map(function(station) {
+    let streamUrl = '';
+    let permalink = '';
+    let artwork = '';
+    try {
+      const stream = new URL(String(station.url_resolved || station.url || ''));
+      if (stream.protocol === 'https:' && !stream.username && !stream.password) streamUrl = stream.href;
+    } catch {}
+    try {
+      const home = new URL(String(station.homepage || ''));
+      if (home.protocol === 'https:' && !home.username && !home.password) permalink = home.href;
+    } catch {}
+    try {
+      const icon = new URL(String(station.favicon || ''));
+      if (icon.protocol === 'https:' && !icon.username && !icon.password) artwork = icon.href;
+    } catch {}
+    if (!streamUrl || !station.stationuuid || !station.name) return null;
+    return {
+      id: String(station.stationuuid),
+      title: String(station.name).slice(0, 250),
+      creator: [String(station.country || ''), String(station.tags || '')].filter(Boolean).join(' · ') || 'Online radio station',
+      duration: 0,
+      streamUrl: streamUrl,
+      permalink: permalink || 'https://www.radio-browser.info/',
+      artwork: artwork,
+      rights: 'Live radio stream; music rights and availability are managed by the station operator.',
+      provider: 'Radio Browser',
+      codec: String(station.codec || ''),
+      bitrate: Number(station.bitrate) || 0
+    };
+  }).filter(Boolean).slice(0, 20);
+}
+
 async function jamendoRequest(params) {
   if (!JAMENDO_CLIENT_ID) {
     const error = new Error('Jamendo bridge is missing the JAMENDO_CLIENT_ID environment variable.');
@@ -525,15 +569,17 @@ const server = http.createServer(async (req, res) => {
       internetArchiveEnabled: true,
       ccMixterEnabled: true,
       libraryOfCongressEnabled: true,
+      radioBrowserEnabled: true,
       openverseEnabled: Boolean(OPENVERSE_CLIENT_ID && OPENVERSE_CLIENT_SECRET)
     });
   }
 
 
-  if (requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/')) {
+  if (requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/') || requestUrl.pathname.startsWith('/api/radio/')) {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
     const provider = requestUrl.pathname.startsWith('/api/ccmixter/') ? 'ccmixter'
-      : requestUrl.pathname.startsWith('/api/loc/') ? 'loc' : 'openverse';
+      : requestUrl.pathname.startsWith('/api/loc/') ? 'loc'
+      : requestUrl.pathname.startsWith('/api/radio/') ? 'radio' : 'openverse';
     if (requestUrl.pathname !== '/api/' + provider + '/search') return sendJson(res, 404, { error: 'Route not found.' });
     const query = String(requestUrl.searchParams.get('q') || '').trim().replace(/\s+/g, ' ');
     if (!query || query.length > 100) return sendJson(res, 400, { error: 'Provide a search query between 1 and 100 characters.' });
@@ -543,10 +589,11 @@ const server = http.createServer(async (req, res) => {
       if (!results) {
         results = provider === 'ccmixter' ? await ccMixterSearch(query)
           : provider === 'loc' ? await libraryOfCongressSearch(query)
+          : provider === 'radio' ? await radioBrowserSearch(query)
           : await openverseSearch(query);
         cacheSet(cacheKey, results);
       }
-      const providerName = provider === 'ccmixter' ? 'ccMixter' : provider === 'loc' ? 'Library of Congress' : 'Openverse';
+      const providerName = provider === 'ccmixter' ? 'ccMixter' : provider === 'loc' ? 'Library of Congress' : provider === 'radio' ? 'Radio Browser' : 'Openverse';
       return sendJson(res, 200, { provider: providerName, results });
     } catch (error) {
       const code = Number(error && error.statusCode) || 502;
