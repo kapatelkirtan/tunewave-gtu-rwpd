@@ -386,7 +386,10 @@
       'amazon-music': 'https://music.amazon.in/search?keywords=' + encoded,
       'soundcloud': 'https://soundcloud.com/search/sounds?q=' + encoded,
       'bandcamp': 'https://bandcamp.com/search?q=' + encoded,
-      'free-music-archive': 'https://freemusicarchive.org/search/?quicksearch=' + encoded
+      'free-music-archive': 'https://freemusicarchive.org/search/?quicksearch=' + encoded,
+      'gaana': 'https://gaana.com/search/' + pathQuery,
+      'hungama': 'https://www.hungama.com/search/?q=' + encoded,
+      'saregama': 'https://www.saregama.com/search/song?s=' + encoded
     };
     $$('[data-external-provider]').forEach(link => {
       const target = destinations[link.dataset.externalProvider];
