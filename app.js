@@ -432,6 +432,7 @@
       renderTrackList(tracks);
       const providers = [
         audiusTracks.length ? `Audius (${audiusTracks.length})` : '',
+        freeToUseTracks.length ? `Free To Use (${freeToUseTracks.length})` : '',
         jamendoTracks.length ? `Jamendo (${jamendoTracks.length})` : '',
         archiveTracks.length ? `Internet Archive (${archiveTracks.length})` : '',
         commonsTracks.length ? `Wikimedia Commons (${commonsTracks.length})` : '',
@@ -454,7 +455,8 @@
     const locFailed = locResult.status === 'rejected';
     const openverseFailed = openverseResult.status === 'rejected';
     const radioFailed = radioResult.status === 'rejected';
-    if (!audiusFailed || !jamendoFailed || !archiveFailed || !commonsFailed || !ccmixterFailed || !locFailed || !openverseFailed || !radioFailed) {
+    const freeToUseFailed = freeToUseResult.status === 'rejected';
+    if (!audiusFailed || !jamendoFailed || !archiveFailed || !commonsFailed || !ccmixterFailed || !locFailed || !openverseFailed || !radioFailed || !freeToUseFailed) {
       resultsArea.innerHTML = `<div class="no-results"><strong>No matching tracks found</strong>Try the full song title with a different spelling, or try another search.</div>`;
       $('#result-count').textContent = '';
       $('#search-hint').textContent = 'No matching results from the providers that responded.';
