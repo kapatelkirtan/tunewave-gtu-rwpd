@@ -172,6 +172,32 @@
     return { uid: 'commons:' + page.pageid, id: String(page.pageid), commonsId: String(page.pageid), title: title.slice(0, 250), artist: artist.slice(0, 180), duration: 0, artwork: '', permalink: sourceUrl, sourceUrl, licenseUrl: license, licenseName, streamUrl: url, source: 'Wikimedia Commons' };
   }
 
+
+  function normalizeAudiomackBridgeTrack(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const id = String(raw.id || raw.music_id || '').trim();
+    if (!/^\d{1,20}$/.test(id)) return null;
+    const permalink = String(raw.permalink || 'https://audiomack.com/');
+    if (!/^https:\/\/audiomack\.com\//i.test(permalink)) return null;
+    return {
+      uid: 'audiomack:' + id, id, audiomackId: id,
+      title: String(raw.title || 'Untitled track').trim(),
+      artist: String(raw.creator || raw.artist || 'Audiomack artist').trim(),
+      duration: Math.max(0, Number(raw.duration || 0)),
+      artwork: String(raw.artwork || ''),
+      permalink, sourceUrl: permalink,
+      streamUrl: '', source: 'Audiomack'
+    };
+  }
+  async function searchAudiomackCatalog(query) {
+    if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('The music provider bridge is not configured.');
+    const payload = await getJson(JAMENDO_BRIDGE_BASE + '/api/audiomack/search?q=' + encodeURIComponent(query), 12000);
+    const data = Array.isArray(payload && payload.results) ? payload.results : [];
+    const tracks = uniqueTracks(data, normalizeAudiomackBridgeTrack).slice(0, 20);
+    if (!tracks.length && payload && payload.error) throw new Error(String(payload.error));
+    return tracks;
+  }
+
   function normalizeBridgeAudioTrack(raw, source) {
     if (!raw || typeof raw !== 'object') return null;
     const id = String(raw.id || raw.identifier || raw.permalink || '').trim();
@@ -244,6 +270,14 @@
       if (!/^https:\/\//i.test(streamUrl)) throw new Error('Internet Archive did not return a playable audio file.');
       return streamUrl;
     }
+    if (source === 'audiomack') {
+      const id = String(track.audiomackId || track.id || '').trim();
+      if (!/^\d{1,20}$/.test(id) || !JAMENDO_BRIDGE_CONFIGURED) throw new Error('Audiomack playback needs its configured provider bridge.');
+      const payload = await getJson(JAMENDO_BRIDGE_BASE + '/api/audiomack/track/' + encodeURIComponent(id), 12000);
+      const streamUrl = String(payload && payload.track && payload.track.streamUrl || '');
+      if (!/^https:\/\//i.test(streamUrl)) throw new Error('Audiomack did not return a playable stream for this track.');
+      return streamUrl;
+    }
     if (source === 'ccmixter' || source === 'library of congress' || source === 'openverse' || source === 'radio browser') {
       const streamUrl = String(track.streamUrl || '');
       if (!/^https:\/\//i.test(streamUrl)) throw new Error('This provider did not return a playable audio file.');
@@ -272,7 +306,7 @@
     const id = escapeHTML(trackId(track));
     const playing = state.current && trackId(state.current) === trackId(track);
     const sourceName = String(track.source || '').toLowerCase();
-    const attribution = (track.licenseUrl || track.sourceUrl) && ['jamendo', 'internet archive', 'wikimedia commons', 'ccmixter', 'openverse', 'library of congress', 'radio browser'].includes(sourceName)
+    const attribution = (track.licenseUrl || track.sourceUrl) && ['jamendo', 'internet archive', 'wikimedia commons', 'ccmixter', 'openverse', 'library of congress', 'radio browser', 'audiomack'].includes(sourceName)
       ? `<a class="track-license-link" href="${escapeHTML(track.licenseUrl || track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="Open the source page and check this track’s licence">${track.licenseUrl ? 'Licence ↗' : 'Source ↗'}</a>`
       : '<span class="track-license-spacer" aria-hidden="true"></span>';
     return `<div class="track-row${playing ? ' playing' : ''}" data-track-row="${id}">
@@ -316,9 +350,9 @@
     setLoading('Searching connected music sources…');
     state.view = 'discover'; updateNavigation();
 
-    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, locResult, openverseResult, radioResult] = await Promise.allSettled([
+    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, locResult, openverseResult, radioResult, audiomackResult] = await Promise.allSettled([
       searchJamendoCatalog(q), searchAudiusCatalog(q), searchArchiveCatalog(q), searchCommonsCatalog(q),
-      searchCcmixterCatalog(q), searchLocCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q)
+      searchCcmixterCatalog(q), searchLocCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q), searchAudiomackCatalog(q)
     ]);
     const jamendoTracks = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
     const audiusTracks = audiusResult.status === 'fulfilled' ? audiusResult.value : [];
@@ -328,7 +362,8 @@
     const locTracks = locResult.status === 'fulfilled' ? locResult.value : [];
     const openverseTracks = openverseResult.status === 'fulfilled' ? openverseResult.value : [];
     const radioTracks = radioResult.status === 'fulfilled' ? radioResult.value : [];
-    const combined = [...audiusTracks, ...jamendoTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...locTracks, ...openverseTracks, ...radioTracks];
+    const audiomackTracks = audiomackResult.status === 'fulfilled' ? audiomackResult.value : [];
+    const combined = [...audiusTracks, ...jamendoTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...locTracks, ...openverseTracks, ...radioTracks, ...audiomackTracks];
     const seen = new Set();
     const tracks = combined.filter(track => {
       const key = trackId(track);
@@ -349,7 +384,8 @@
         ccmixterTracks.length ? `ccMixter (${ccmixterTracks.length})` : '',
         locTracks.length ? `Library of Congress (${locTracks.length})` : '',
         openverseTracks.length ? `Openverse (${openverseTracks.length})` : '',
-        radioTracks.length ? `Radio Browser (${radioTracks.length} stations)` : ''
+        radioTracks.length ? `Radio Browser (${radioTracks.length} stations)` : '',
+        audiomackTracks.length ? `Audiomack (${audiomackTracks.length})` : ''
       ].filter(Boolean).join(' + ');
       $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}. Open-source audio results include licence/source links; check the original rights page before reuse.`;
       $('#results-kicker').textContent = 'YOUR SEARCH, MULTIPLE SOURCES';
@@ -365,7 +401,8 @@
     const locFailed = locResult.status === 'rejected';
     const openverseFailed = openverseResult.status === 'rejected';
     const radioFailed = radioResult.status === 'rejected';
-    if (!audiusFailed || !jamendoFailed || !archiveFailed || !commonsFailed || !ccmixterFailed || !locFailed || !openverseFailed || !radioFailed) {
+    const audiomackFailed = audiomackResult.status === 'rejected';
+    if (!audiusFailed || !jamendoFailed || !archiveFailed || !commonsFailed || !ccmixterFailed || !locFailed || !openverseFailed || !radioFailed || !audiomackFailed) {
       resultsArea.innerHTML = `<div class="no-results"><strong>No matching tracks found</strong>Try the full song title with a different spelling, or try another search.</div>`;
       $('#result-count').textContent = '';
       $('#search-hint').textContent = 'No matching results from the providers that responded.';
