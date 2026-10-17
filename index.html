@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
-  <script defer src="app.js?v=20261017-13"></script>
+  <script defer src="app.js?v=20261018-14"></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -177,7 +177,7 @@
             <div>
               <p class="section-kicker"><span class="status-kicker-dot"></span> OFFICIAL PLAYER CONNECTIONS</p>
               <h2 id="official-embed-title">Find a song, play it here</h2>
-              <p>TuneWave automatically searches its connected catalogues as you type. For Audiomack, HearThis.at, and Bandcamp, search the provider below, then paste a track URL or official embed code to play its player on this page.</p>
+              <p>Paste a YouTube / YouTube Music video or playlist link, or a Spotify track, album, or playlist link, to load that service’s official player right here.</p>
             </div>
             <span class="external-link-label">EMBEDDED PLAYERS</span>
           </div>
@@ -185,25 +185,21 @@
             <label class="sr-only" for="official-player-source">Music service</label>
             <select id="official-player-source" name="source">
               <option value="youtube">YouTube / YouTube Music</option>
-              <option value="soundcloud">SoundCloud</option>
-              <option value="audiomack">Audiomack official embed URL</option>
-              <option value="hearthis">HearThis.at official embed URL</option>
-              <option value="bandcamp">Bandcamp official embed URL</option>
+              <option value="spotify">Spotify</option>
             </select>
             <label class="sr-only" for="official-player-url">Official track URL</label>
-            <input id="official-player-url" name="trackUrl" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Paste a track URL or the complete official iframe embed code…" required>
+            <input id="official-player-url" name="trackUrl" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Paste a YouTube / YouTube Music or Spotify link…" required>
             <button type="submit" class="search-submit">Play here ↗</button>
           </form>
-          <div class="official-provider-searches" aria-label="Search tracks on official music providers">
-            <p id="official-player-query">Search a title above; these provider searches follow your query.</p>
+          <div class="official-provider-searches" aria-label="Search tracks on YouTube Music and Spotify">
+            <p id="official-player-query">Search a title above, or paste a song link to load its official player.</p>
             <div class="official-provider-search-links">
-              <a data-external-provider="audiomack" href="https://audiomack.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on Audiomack ↗</a>
-              <a data-external-provider="hearthis" href="https://hearthis.at/search-music/?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on HearThis.at ↗</a>
-              <a data-external-provider="bandcamp" href="https://bandcamp.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on Bandcamp ↗</a>
+              <a data-external-provider="youtube-music" href="https://music.youtube.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on YouTube Music ↗</a>
+              <a data-external-provider="spotify" href="https://open.spotify.com/search/ultrafunk" target="_blank" rel="noopener noreferrer">Find on Spotify ↗</a>
             </div>
-            <p class="official-provider-search-help">Audiomack and HearThis.at share links may be converted to their official embeds. For Bandcamp, paste the embed code from Share / Embed. These are provider-hosted players; their search pages and player restrictions remain controlled by each service.</p>
+            <p class="official-player-search-help">Choose a result in YouTube Music or Spotify, copy its link, paste it above, and select the matching service. The embedded player follows the service’s own playback and access rules.</p>
           </div>
-          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Search results from TuneWave’s connected catalogs play directly in the built-in player. Official embedded players appear here in the page, but their ads, sign-in rules, full-track access, and lock-screen support are controlled by the provider.</p>
+          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Paste a YouTube / YouTube Music or Spotify link to load its official player here. Ads, sign-in or premium rules, full-track access, and background playback are controlled by the service and your device.</p>
           <div id="official-player-stage" class="official-player-stage" hidden>
             <iframe id="official-player-frame" title="Official embedded music player" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; clipboard-write; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" hidden></iframe>
           </div>
