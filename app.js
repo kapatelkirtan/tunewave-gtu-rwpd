@@ -237,9 +237,20 @@
     });
   }
   async function searchAudiusCatalog(query) {
-    const url = `${AUDIUS_API_BASE}/tracks/search?query=${encodeURIComponent(query)}&limit=30&filter_tracks=public&gate_condition=ungated&app_name=${encodeURIComponent(AUDIUS_APP_NAME)}`;
-    const payload = await getJson(url, 8500);
-    return uniqueTracks(payload?.data ?? payload, normalizeAudiusTrack).slice(0, 30);
+    const searchOne = async term => {
+      const url = `${AUDIUS_API_BASE}/tracks/search?query=${encodeURIComponent(term)}&limit=30&filter_tracks=public&gate_condition=ungated&app_name=${encodeURIComponent(AUDIUS_APP_NAME)}`;
+      const payload = await getJson(url, 8500);
+      return uniqueTracks(payload?.data ?? payload, normalizeAudiusTrack);
+    };
+    const normalizedQuery = String(query || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const isUltraFunkSearch = /ultra\s*funk|ultrafunk|brazilian\s*funk|phonk|funk\s*br/.test(normalizedQuery);
+    if (!isUltraFunkSearch) return (await searchOne(query)).slice(0, 30);
+
+    // Audius is public for read-only search and does not need a separate consumer key.
+    // Try common genre spellings so users can find more Ultra Funk/phonk results.
+    const terms = [...new Set([query, 'ultrafunk', 'ultra funk', 'brazilian phonk', 'funk br', 'phonk'])];
+    const results = await Promise.allSettled(terms.map(searchOne));
+    return uniqueTracks(results.filter(r => r.status === 'fulfilled').flatMap(r => r.value), normalizeAudiusTrack).slice(0, 45);
   }
   async function resolveStreamURL(track) {
     const source = String(track?.source || '').toLowerCase();
@@ -350,9 +361,9 @@
     setLoading('Searching connected music sources…');
     state.view = 'discover'; updateNavigation();
 
-    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, locResult, openverseResult, radioResult, audiomackResult] = await Promise.allSettled([
+    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, locResult, openverseResult, radioResult] = await Promise.allSettled([
       searchJamendoCatalog(q), searchAudiusCatalog(q), searchArchiveCatalog(q), searchCommonsCatalog(q),
-      searchCcmixterCatalog(q), searchLocCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q), searchAudiomackCatalog(q)
+      searchCcmixterCatalog(q), searchLocCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q)
     ]);
     const jamendoTracks = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
     const audiusTracks = audiusResult.status === 'fulfilled' ? audiusResult.value : [];
@@ -362,8 +373,7 @@
     const locTracks = locResult.status === 'fulfilled' ? locResult.value : [];
     const openverseTracks = openverseResult.status === 'fulfilled' ? openverseResult.value : [];
     const radioTracks = radioResult.status === 'fulfilled' ? radioResult.value : [];
-    const audiomackTracks = audiomackResult.status === 'fulfilled' ? audiomackResult.value : [];
-    const combined = [...audiusTracks, ...jamendoTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...locTracks, ...openverseTracks, ...radioTracks, ...audiomackTracks];
+    const combined = [...audiusTracks, ...jamendoTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...locTracks, ...openverseTracks, ...radioTracks];
     const seen = new Set();
     const tracks = combined.filter(track => {
       const key = trackId(track);
@@ -384,8 +394,7 @@
         ccmixterTracks.length ? `ccMixter (${ccmixterTracks.length})` : '',
         locTracks.length ? `Library of Congress (${locTracks.length})` : '',
         openverseTracks.length ? `Openverse (${openverseTracks.length})` : '',
-        radioTracks.length ? `Radio Browser (${radioTracks.length} stations)` : '',
-        audiomackTracks.length ? `Audiomack (${audiomackTracks.length})` : ''
+        radioTracks.length ? `Radio Browser (${radioTracks.length} stations)` : ''
       ].filter(Boolean).join(' + ');
       $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}. Open-source audio results include licence/source links; check the original rights page before reuse.`;
       $('#results-kicker').textContent = 'YOUR SEARCH, MULTIPLE SOURCES';
@@ -401,8 +410,7 @@
     const locFailed = locResult.status === 'rejected';
     const openverseFailed = openverseResult.status === 'rejected';
     const radioFailed = radioResult.status === 'rejected';
-    const audiomackFailed = audiomackResult.status === 'rejected';
-    if (!audiusFailed || !jamendoFailed || !archiveFailed || !commonsFailed || !ccmixterFailed || !locFailed || !openverseFailed || !radioFailed || !audiomackFailed) {
+    if (!audiusFailed || !jamendoFailed || !archiveFailed || !commonsFailed || !ccmixterFailed || !locFailed || !openverseFailed || !radioFailed) {
       resultsArea.innerHTML = `<div class="no-results"><strong>No matching tracks found</strong>Try the full song title with a different spelling, or try another search.</div>`;
       $('#result-count').textContent = '';
       $('#search-hint').textContent = 'No matching results from the providers that responded.';
@@ -904,7 +912,6 @@
   async function checkJamendoBridge() {
     if (!JAMENDO_BRIDGE_CONFIGURED) {
       paintJamendoStatus(false, 'Needs Jamendo bridge URL in config.js', 'SETUP');
-      paintAudiomackStatus(false, 'Needs provider bridge URL in config.js', 'SETUP');
       return;
     }
     try {
@@ -912,12 +919,8 @@
       if (health?.ok && health?.configured) paintJamendoStatus(true, 'Bridge online · Jamendo search/stream', 'READY');
       else if (health?.ok) paintJamendoStatus(false, 'Add JAMENDO_CLIENT_ID in Render environment', 'CONFIG');
       else paintJamendoStatus(false, 'Bridge responded but is not ready', 'CHECK');
-      if (health?.ok && health?.audiomackEnabled) paintAudiomackStatus(true, 'Bridge online · Audiomack search/stream', 'READY');
-      else if (health?.ok) paintAudiomackStatus(false, 'Add Audiomack consumer credentials in Render', 'SETUP');
-      else paintAudiomackStatus(false, 'Bridge responded but is not ready', 'CHECK');
     } catch (_) {
       paintJamendoStatus(false, 'Bridge unreachable · check Render service', 'OFFLINE');
-      paintAudiomackStatus(false, 'Bridge unreachable · check Render service', 'OFFLINE');
     }
   }
 
