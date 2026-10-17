@@ -256,7 +256,6 @@
     return tracks;
   }
   async function searchCcmixterCatalog(query) { return searchBridgeAudioProvider('ccmixter', 'ccMixter', query); }
-  async function searchLocCatalog(query) { return searchBridgeAudioProvider('loc', 'Library of Congress', query); }
   async function searchOpenverseCatalog(query) { return searchBridgeAudioProvider('openverse', 'Openverse', query); }
   async function searchRadioCatalog(query) { return searchBridgeAudioProvider('radio', 'Radio Browser', query); }
   function uniqueTracks(input, normalizer = normalizeJamendoTrack) {
@@ -1240,14 +1239,6 @@
               throw new Error(String(payload?.error || 'Dogmazic radio stream endpoint did not verify.'));
             }
             count = 1;
-          } else if (probe.provider === 'loc') {
-            try {
-              // The lightweight status route is preferred, but fall back to the existing
-              // search route if the bridge has not yet deployed that route.
-              count = await probeBridgeSearch(probe.path, 15000);
-            } catch (_) {
-              count = await probeBridgeSearch('/api/loc/search', 15000);
-            }
           } else {
             count = await probeBridgeSearch(probe.path);
           }
