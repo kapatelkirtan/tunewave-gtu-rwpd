@@ -1044,12 +1044,26 @@
             paintProviderStatus(probe.provider, 'setup', 'This route is not enabled in the current bridge build.');
             return { provider: probe.provider, state: 'setup' };
           }
-          count = await probeBridgeSearch(probe.path);
+          if (probe.provider === 'loc') {
+            try {
+              // The lightweight status route is preferred, but fall back to the existing
+              // search route if the bridge has not yet deployed that route.
+              count = await probeBridgeSearch(probe.path, 15000);
+            } catch (_) {
+              count = await probeBridgeSearch('/api/loc/search', 15000);
+            }
+          } else {
+            count = await probeBridgeSearch(probe.path);
+          }
         }
         paintProviderStatus(probe.provider, 'online', probe.online(count));
         return { provider: probe.provider, state: 'online' };
-      } catch (_) {
-        paintProviderStatus(probe.provider, 'offline', 'Search endpoint did not respond · check provider bridge/API.');
+      } catch (error) {
+        const detail = String(error && error.message || '');
+        const description = probe.provider === 'loc'
+          ? (detail.includes('404') ? 'LOC status route missing · retrying its search route did not work.' : 'LOC endpoints failed through the bridge · check the Render service logs.')
+          : 'Search endpoint did not respond · check provider bridge/API.';
+        paintProviderStatus(probe.provider, 'offline', description);
         return { provider: probe.provider, state: 'offline' };
       }
     }));
