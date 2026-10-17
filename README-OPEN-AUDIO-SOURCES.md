@@ -1,6 +1,6 @@
-# TuneWave: Audius + Jamendo + Internet Archive
+# TuneWave open-audio providers
 
-TuneWave searches Audius and Jamendo, plus Internet Archive audio items that identify a Creative Commons or public-domain rights statement. The Archive integration uses the existing server-side bridge; no new API key is needed.
+TuneWave combines Audius, Jamendo, Internet Archive, Wikimedia Commons, ccMixter, and rights-filtered Library of Congress audio. Openverse support is included but remains disabled until you add its API client credentials to the Render bridge service.
 
 ## Deployment
 
@@ -22,3 +22,27 @@ After deployment, test:
 ## Wikimedia Commons integration
 
 TuneWave also searches Wikimedia Commons through its public MediaWiki API. Results are limited to audio files with metadata indicating Creative Commons, public-domain, or another free licence, and the player uses the file URL supplied by Commons. Browser support varies by audio format (especially Ogg/Opus), so some results may not play in every browser. Open the Commons file page and confirm attribution/licence terms before reuse. No API key is required.
+
+
+## Additional providers added
+
+- **ccMixter**: uses the public ccMixter Query API RSS response and only returns entries where an audio enclosure and a source page are present. Results include a licence link when the feed provides one. Feed structure/availability can change.
+- **Library of Congress**: searches its public JSON audio endpoint. The connector only returns a playable file when it finds direct audio resources and metadata explicitly indicates public domain, Creative Commons, or no known restrictions. Coverage is primarily historical and archival.
+- **Openverse**: audio search is integrated behind a server-side OAuth client-credentials flow. It is intentionally disabled by default until the two Render environment variables below are set.
+
+## Enable Openverse on Render
+
+1. Register an application / API credentials with Openverse using its official API documentation: https://api.openverse.org/v1/
+2. In the Render dashboard, open the `tunewave-jamendo-bridge` service and add:
+   - `OPENVERSE_CLIENT_ID`
+   - `OPENVERSE_CLIENT_SECRET`
+3. Save the changes and redeploy the bridge. Do not put the client secret in `app.js`, `config.js`, or any other browser-visible file.
+4. Check `/health` for `"openverseEnabled":true`, then search a term in TuneWave.
+
+Openverse API documentation: https://api.openverse.org/v1/ . Credentials are required for the connector as implemented here.
+
+## Rights, formats, and realistic limits
+
+These connectors broaden search but do not guarantee every result plays in every browser. Some historical audio has restrictions, some direct URLs can expire or disappear, and browser codec support varies. Check the specific source/track licence, attribution requirements, and intended-use terms before reuse.
+
+A list of 20 music websites is not equivalent to 20 usable streaming APIs. Free Music Archive explicitly states its API is shut down and hotlinking its hosted music is not allowed without permission, so it was deliberately not wired as a direct stream provider. Services such as Spotify, Apple Music, YouTube, SoundCloud, and Bandcamp require their own playback/embed flows, user subscriptions, API credentials, or approval; they must not be scraped or bypassed to extract audio.
