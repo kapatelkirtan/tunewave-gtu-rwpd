@@ -321,25 +321,59 @@ async function sourceFetch(url, sourceName, timeoutMs = 10000, options = {}) {
   } finally { clearTimeout(timer); }
 }
 
-async function audiusSearch(query) {
-  const url = new URL('https://api.audius.co/v1/tracks/search');
-  url.searchParams.set('query', String(query || '').trim());
-  url.searchParams.set('limit', '30');
-  url.searchParams.set('filter_tracks', 'public');
-  url.searchParams.set('gate_condition', 'ungated');
-  url.searchParams.set('app_name', 'TuneWave');
-  const response = await sourceFetch(url.href, 'Audius', 10000);
-  const payload = await response.json();
-  if (payload?.error) {
-    const error = new Error('Audius rejected the search request.');
-    error.statusCode = 502;
-    throw error;
+function audiusSearchTerms(query) {
+  const raw = String(query || '').trim();
+  const normalized = raw.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (/ultra funk|ultrafunk|brazilian funk|phonk|funk br|mandelao|automotivo/.test(normalized)) {
+    return [...new Set([raw, 'ultrafunk', 'ultra funk', 'brazilian phonk', 'funk br', 'phonk', 'mandelao', 'automotivo', 'funk brasileiro', 'funk automotivo', 'phonk funk'])];
   }
-  const tracks = Array.isArray(payload?.data) ? payload.data : [];
-  return tracks.map(track => {
-    const id = String(track?.id || track?.track_id || '').trim();
-    if (!id) return null;
-    const user = track?.user && typeof track.user === 'object' ? track.user : {};
+  if (/gujarati|gujrati|garba|dandiya/.test(normalized)) {
+    return [...new Set([raw, 'gujarati songs', 'gujarati garba', 'gujarati folk', 'garba remix', 'dandiya remix', 'gujarati DJ remix', 'navratri garba'])];
+  }
+  if (/bollywood|hindi songs?|desi remix|indian pop/.test(normalized)) {
+    return [...new Set([raw, 'bollywood songs', 'hindi songs', 'hindi remix', 'bollywood remix', 'desi remix', 'hindi indie', 'bollywood instrumental', 'indian pop'])];
+  }
+  return [raw];
+}
+
+async function audiusSearch(query) {
+  const terms = audiusSearchTerms(query);
+  const batches = await Promise.allSettled(terms.map(async term => {
+    const url = new URL('https://api.audius.co/v1/tracks/search');
+    url.searchParams.set('query', term);
+    url.searchParams.set('limit', '30');
+    url.searchParams.set('filter_tracks', 'public');
+    url.searchParams.set('gate_condition', 'ungated');
+    url.searchParams.set('app_name', 'TuneWave');
+    const response = await sourceFetch(url.href, 'Audius', 10000);
+    const payload = await response.json();
+    if (payload?.error) {
+      const error = new Error('Audius rejected the search request.');
+      error.statusCode = 502;
+      throw error;
+    }
+    if (!Array.isArray(payload?.data)) throw new Error('Audius returned an unexpected search response.');
+    return payload.data;
+  }));
+
+  const successful = batches.filter(batch => batch.status === 'fulfilled');
+  if (!successful.length) throw batches[0]?.reason || new Error('Audius search failed.');
+  const unique = [];
+  const seen = new Set();
+  for (const batch of successful) {
+    for (const track of batch.value) {
+      const id = String(track?.id || track?.track_id || '').trim();
+      if (!id || seen.has(id) || track.is_streamable === false) continue;
+      seen.add(id);
+      unique.push(track);
+      if (unique.length >= 45) break;
+    }
+    if (unique.length >= 45) break;
+  }
+
+  return unique.slice(0, 45).map(track => {
+    const id = String(track.id || track.track_id || '').trim();
+    const user = track.user && typeof track.user === 'object' ? track.user : {};
     return {
       id,
       title: String(track.title || 'Untitled track').slice(0, 250),
@@ -352,7 +386,7 @@ async function audiusSearch(query) {
         handle: String(user.handle || '').slice(0, 180)
       }
     };
-  }).filter(Boolean);
+  });
 }
 
 function firstText(value) {
