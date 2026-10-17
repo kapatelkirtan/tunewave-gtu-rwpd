@@ -63,3 +63,13 @@ TuneWave does not inject its own audio ads into the built-in HTML audio player. 
 TuneWave now lets a listener paste an HTTPS YouTube/YouTube Music video or playlist URL, or a full SoundCloud track/playlist URL, and load that service's official embedded player on the page. This uses the official embed players rather than extracting or re-hosting audio. It is a playback fallback for tracks that are not present in TuneWave's open catalogues; it is not a direct integration into TuneWave's HTML-audio queue. Searching YouTube/SoundCloud is still done through the official search links, and the selected result URL is then pasted into the embed form.
 
 The embedded platforms control their own advertisements, login/premium checks, geographic availability, and player behavior. TuneWave cannot remove their ads, bypass their terms, or guarantee lock-screen/background playback through embedded players. For direct HTML-audio playback with TuneWave's Media Session controls, use results from its connected catalogues, where available. No one free service reliably provides every Ultra Funk remix and mainstream Hindi/Gujarati/Bollywood recording with all of ad-free, no-premium, and background/lock-screen playback.
+
+
+## Automatic song search and official in-page players
+
+- Typing at least two characters in TuneWave's main search box automatically searches its connected playable catalogues after a short pause. Pressing Enter or the Search button still works.
+- Results from connected audio catalogues are played in TuneWave's built-in audio player and can use TuneWave's queue and browser Media Session controls when the source supplies a direct playable stream.
+- Audiomack, HearThis.at and Bandcamp are handled using their official provider-hosted embedded players. The query-aware links update as a listener types; these providers do not expose a common public search API that TuneWave can call without provider credentials/permissions. To play their selected track on the TuneWave page, search the provider, then paste the track URL or official embed code into the player form.
+- Audiomack and HearThis.at standard share URLs are converted to official embed paths where the URL format supports it. For Bandcamp, paste the iframe code copied from the track/album's Share / Embed action; its official player requires the track/album ID.
+- Embedded players remain controlled by their provider, including advertisements, access restrictions, full-track availability and lock-screen support. An embedded track is not added to TuneWave's HTML-audio queue or guaranteed to expose TuneWave's lock-screen controls.
+- Rapid typing won't let a slow response for an older query overwrite the results for the latest query.
