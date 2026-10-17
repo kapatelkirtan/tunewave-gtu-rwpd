@@ -2,12 +2,9 @@
 
 const http = require('node:http');
 const { URL } = require('node:url');
-const crypto = require('node:crypto');
 
 const PORT = Number(process.env.PORT || 10000);
 const JAMENDO_CLIENT_ID = String(process.env.JAMENDO_CLIENT_ID || '').trim();
-const AUDIOMACK_CONSUMER_KEY = String(process.env.AUDIOMACK_CONSUMER_KEY || '').trim();
-const AUDIOMACK_CONSUMER_SECRET = String(process.env.AUDIOMACK_CONSUMER_SECRET || '').trim();
 const DEFAULT_ORIGIN = 'https://tunewave-gtu-rwpd-1.onrender.com';
 const ALLOWED_ORIGINS = new Set(
   String(process.env.ALLOWED_ORIGINS || DEFAULT_ORIGIN)
@@ -550,132 +547,6 @@ async function radioBrowserSearch(query) {
 }
 
 
-function oauthEncode(value) {
-  return encodeURIComponent(String(value)).replace(/[!'()*]/g, function(char) {
-    return '%' + char.charCodeAt(0).toString(16).toUpperCase();
-  });
-}
-async function audiomackHttp(method, path, params = {}) {
-  if (!AUDIOMACK_CONSUMER_KEY || !AUDIOMACK_CONSUMER_SECRET) {
-    const error = new Error('Audiomack is not configured. Add AUDIOMACK_CONSUMER_KEY and AUDIOMACK_CONSUMER_SECRET to the Render bridge environment.');
-    error.statusCode = 503;
-    throw error;
-  }
-  const url = new URL('https://api.audiomack.com' + path);
-  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value));
-  const oauth = {
-    oauth_consumer_key: AUDIOMACK_CONSUMER_KEY,
-    oauth_nonce: crypto.randomBytes(16).toString('hex'),
-    oauth_signature_method: 'HMAC-SHA1',
-    oauth_timestamp: String(Math.floor(Date.now() / 1000)),
-    oauth_version: '1.0'
-  };
-  const normalized = [
-    ...Array.from(url.searchParams.entries()),
-    ...Object.entries(oauth)
-  ].map(function(pair) { return [oauthEncode(pair[0]), oauthEncode(pair[1])]; })
-    .sort(function(a, b) { return a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]); })
-    .map(function(pair) { return pair[0] + '=' + pair[1]; }).join('&');
-  const baseUrl = url.origin + url.pathname;
-  const signatureBase = method.toUpperCase() + '&' + oauthEncode(baseUrl) + '&' + oauthEncode(normalized);
-  oauth.oauth_signature = crypto.createHmac('sha1', oauthEncode(AUDIOMACK_CONSUMER_SECRET) + '&').update(signatureBase).digest('base64');
-  const authorization = 'OAuth ' + Object.keys(oauth).sort().map(function(key) {
-    return oauthEncode(key) + '="' + oauthEncode(oauth[key]) + '"';
-  }).join(', ');
-  const controller = new AbortController();
-  const timer = setTimeout(function() { controller.abort(); }, 10000);
-  try {
-    const response = await fetch(url.href, {
-      method: method.toUpperCase(),
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': authorization,
-        'User-Agent': 'TuneWave-Audiomack-Bridge/1.0'
-      }
-    });
-    if (!response.ok) {
-      const error = new Error('Audiomack API returned HTTP ' + response.status + '.');
-      error.statusCode = response.status === 429 ? 429 : (response.status === 401 || response.status === 403 ? 503 : 502);
-      throw error;
-    }
-    return response;
-  } catch (error) {
-    if (error.statusCode) throw error;
-    const wrapped = new Error(error && error.name === 'AbortError' ? 'Audiomack API timed out.' : 'Could not reach Audiomack API.');
-    wrapped.statusCode = 502;
-    throw wrapped;
-  } finally { clearTimeout(timer); }
-}
-function audiomackItemUrl(item) {
-  const direct = trustedHttpsUrl(item && (item.url || item.permalink), ['audiomack.com']);
-  if (direct) return direct;
-  const artist = item && item.artist && typeof item.artist === 'object' ? item.artist : {};
-  const artistSlug = String(artist.url_slug || item.artist_slug || item.artistUrlSlug || '').trim();
-  const songSlug = String(item && (item.url_slug || item.slug) || '').trim();
-  if (/^[A-Za-z0-9_.-]+$/.test(artistSlug) && /^[A-Za-z0-9_.-]+$/.test(songSlug)) {
-    return 'https://audiomack.com/' + encodeURIComponent(artistSlug) + '/song/' + encodeURIComponent(songSlug);
-  }
-  return 'https://audiomack.com/';
-}
-function normalizeAudiomackItem(item) {
-  if (!item || typeof item !== 'object') return null;
-  const id = String(item.id || item.music_id || '').trim();
-  if (!/^\d{1,20}$/.test(id)) return null;
-  const kind = String(item.type || item.kind || '').toLowerCase();
-  if (kind && !['song', 'track', 'music'].includes(kind)) return null;
-  const artist = item.artist && typeof item.artist === 'object' ? item.artist : {};
-  const title = String(item.title || item.name || '').trim();
-  if (!title) return null;
-  const artwork = trustedHttpsUrl(item.image || item.artwork || '', ['audiomack.com']);
-  const durationRaw = Number(item.duration) || 0;
-  const streamUrl = trustedHttpsUrl(item.streaming_url || '', ['audiomack.com']);
-  return {
-    id: id,
-    title: title.slice(0, 250),
-    creator: String(artist.name || item.artist_name || (typeof item.artist === 'string' ? item.artist : '') || 'Audiomack artist').slice(0, 180),
-    duration: Math.max(0, durationRaw),
-    artwork: artwork,
-    permalink: audiomackItemUrl(item),
-    streamUrl: streamUrl,
-    provider: 'Audiomack'
-  };
-}
-async function audiomackSearch(query) {
-  const response = await audiomackHttp('GET', '/v1/search', { q: query, show: 'songs', sort: 'relevance', limit: 20 });
-  const payload = await response.json();
-  const results = Array.isArray(payload && payload.results) ? payload.results
-    : Array.isArray(payload && payload.data) ? payload.data : [];
-  const unique = new Set();
-  return results.map(normalizeAudiomackItem).filter(function(track) {
-    if (!track || unique.has(track.id)) return false;
-    unique.add(track.id);
-    // Search responses may contain short-lived URLs; resolve just before playback instead.
-    track.streamUrl = '';
-    return true;
-  }).slice(0, 20);
-}
-async function audiomackPlayableTrack(id) {
-  if (!/^\d{1,20}$/.test(String(id || ''))) {
-    const error = new Error('Invalid Audiomack track ID.');
-    error.statusCode = 400;
-    throw error;
-  }
-  const response = await audiomackHttp('POST', '/v1/music/' + encodeURIComponent(id) + '/play', { session: crypto.randomUUID() });
-  const raw = await response.text();
-  let payload;
-  try { payload = JSON.parse(raw); } catch { payload = raw; }
-  const candidate = typeof payload === 'string' ? payload
-    : payload && (payload.streaming_url || payload.streamUrl || payload.url || payload.results && payload.results.streaming_url);
-  const streamUrl = trustedHttpsUrl(candidate, ['audiomack.com']);
-  if (!streamUrl) {
-    const error = new Error('Audiomack did not return a playable stream URL for this track.');
-    error.statusCode = 502;
-    throw error;
-  }
-  return { id: String(id), streamUrl: streamUrl };
-}
-
 async function jamendoRequest(params) {
   if (!JAMENDO_CLIENT_ID) {
     const error = new Error('Jamendo bridge is missing the JAMENDO_CLIENT_ID environment variable.');
@@ -740,7 +611,6 @@ const server = http.createServer(async (req, res) => {
       ccMixterEnabled: true,
       libraryOfCongressEnabled: true,
       radioBrowserEnabled: true,
-      audiomackEnabled: Boolean(AUDIOMACK_CONSUMER_KEY && AUDIOMACK_CONSUMER_SECRET),
       openverseEnabled: true,
       freeToUseEnabled: true,
       openverseAuthEnabled: Boolean(OPENVERSE_CLIENT_ID && OPENVERSE_CLIENT_SECRET)
@@ -748,32 +618,6 @@ const server = http.createServer(async (req, res) => {
   }
 
 
-
-  if (requestUrl.pathname.startsWith('/api/audiomack/')) {
-    if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
-    try {
-      if (requestUrl.pathname === '/api/audiomack/search') {
-        const query = String(requestUrl.searchParams.get('q') || '').trim().replace(/\s+/g, ' ');
-        if (!query || query.length > 100) return sendJson(res, 400, { error: 'Provide a search query between 1 and 100 characters.' });
-        const cacheKey = 'audiomack:search:' + query.toLowerCase();
-        let results = cacheGet(cacheKey);
-        if (!results) {
-          results = await audiomackSearch(query);
-          cacheSet(cacheKey, results);
-        }
-        return sendJson(res, 200, { provider: 'Audiomack', results: results });
-      }
-      const match = requestUrl.pathname.match(/^\/api\/audiomack\/track\/([0-9]{1,20})$/);
-      if (!match) return sendJson(res, 404, { error: 'Route not found.' });
-      // Play URLs can expire within seconds, so do not cache the resolved stream URL.
-      const track = await audiomackPlayableTrack(match[1]);
-      return sendJson(res, 200, { provider: 'Audiomack', track: track });
-    } catch (error) {
-      const code = Number(error && error.statusCode) || 502;
-      console.error('[audiomack-bridge] ' + code + ': ' + String(error && error.message || 'request failed'));
-      return sendJson(res, code, { error: String(error && error.message || 'Audiomack request failed.') });
-    }
-  }
 
   if (requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/') || requestUrl.pathname.startsWith('/api/radio/') || requestUrl.pathname.startsWith('/api/freetouse/')) {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
