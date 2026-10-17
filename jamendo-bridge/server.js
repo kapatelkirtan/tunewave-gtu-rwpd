@@ -321,6 +321,40 @@ async function sourceFetch(url, sourceName, timeoutMs = 10000, options = {}) {
   } finally { clearTimeout(timer); }
 }
 
+async function audiusSearch(query) {
+  const url = new URL('https://api.audius.co/v1/tracks/search');
+  url.searchParams.set('query', String(query || '').trim());
+  url.searchParams.set('limit', '30');
+  url.searchParams.set('filter_tracks', 'public');
+  url.searchParams.set('gate_condition', 'ungated');
+  url.searchParams.set('app_name', 'TuneWave');
+  const response = await sourceFetch(url.href, 'Audius', 10000);
+  const payload = await response.json();
+  if (payload?.error) {
+    const error = new Error('Audius rejected the search request.');
+    error.statusCode = 502;
+    throw error;
+  }
+  const tracks = Array.isArray(payload?.data) ? payload.data : [];
+  return tracks.map(track => {
+    const id = String(track?.id || track?.track_id || '').trim();
+    if (!id) return null;
+    const user = track?.user && typeof track.user === 'object' ? track.user : {};
+    return {
+      id,
+      title: String(track.title || 'Untitled track').slice(0, 250),
+      duration: Math.max(0, Number(track.duration) || 0),
+      permalink: String(track.permalink || ''),
+      artwork: track.artwork && typeof track.artwork === 'object' ? track.artwork : {},
+      is_streamable: track.is_streamable !== false,
+      user: {
+        name: String(user.name || '').slice(0, 180),
+        handle: String(user.handle || '').slice(0, 180)
+      }
+    };
+  }).filter(Boolean);
+}
+
 function firstText(value) {
   if (Array.isArray(value)) return firstText(value[0]);
   if (value && typeof value === 'object') return String(value.value || value.name || '');
@@ -736,6 +770,7 @@ const server = http.createServer(async (req, res) => {
       radioBrowserEnabled: true,
       openverseEnabled: true,
       freeToUseEnabled: true,
+      audiusEnabled: true,
       openverseAuthEnabled: Boolean(OPENVERSE_CLIENT_ID && OPENVERSE_CLIENT_SECRET)
     });
   }
@@ -795,9 +830,10 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/') || requestUrl.pathname.startsWith('/api/radio/') || requestUrl.pathname.startsWith('/api/freetouse/')) {
+  if (requestUrl.pathname.startsWith('/api/audius/') || requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/') || requestUrl.pathname.startsWith('/api/radio/') || requestUrl.pathname.startsWith('/api/freetouse/')) {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
-    const provider = requestUrl.pathname.startsWith('/api/ccmixter/') ? 'ccmixter'
+    const provider = requestUrl.pathname.startsWith('/api/audius/') ? 'audius'
+      : requestUrl.pathname.startsWith('/api/ccmixter/') ? 'ccmixter'
       : requestUrl.pathname.startsWith('/api/loc/') ? 'loc'
       : requestUrl.pathname.startsWith('/api/radio/') ? 'radio'
       : requestUrl.pathname.startsWith('/api/freetouse/') ? 'freetouse' : 'openverse';
@@ -808,14 +844,15 @@ const server = http.createServer(async (req, res) => {
     try {
       let results = cacheGet(cacheKey);
       if (!results) {
-        results = provider === 'ccmixter' ? await ccMixterSearch(query)
+        results = provider === 'audius' ? await audiusSearch(query)
+          : provider === 'ccmixter' ? await ccMixterSearch(query)
           : provider === 'loc' ? await libraryOfCongressSearch(query)
           : provider === 'radio' ? await radioBrowserSearch(query)
           : provider === 'freetouse' ? await freeToUseSearch(query)
           : await openverseSearch(query);
         cacheSet(cacheKey, results);
       }
-      const providerName = provider === 'ccmixter' ? 'ccMixter' : provider === 'loc' ? 'Library of Congress' : provider === 'radio' ? 'Radio Browser' : provider === 'freetouse' ? 'Free To Use' : 'Openverse';
+      const providerName = provider === 'audius' ? 'Audius' : provider === 'ccmixter' ? 'ccMixter' : provider === 'loc' ? 'Library of Congress' : provider === 'radio' ? 'Radio Browser' : provider === 'freetouse' ? 'Free To Use' : 'Openverse';
       return sendJson(res, 200, { provider: providerName, results });
     } catch (error) {
       const code = Number(error && error.statusCode) || 502;
