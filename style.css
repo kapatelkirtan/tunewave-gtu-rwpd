@@ -827,3 +827,100 @@ button,input,summary,a{-webkit-tap-highlight-color:transparent}
   .hero-spectrum i,.tw-is-playing .equalizer-mini i{animation:none!important}
   .shelf-cover,.track-row,.track-action,.hero-cta{transition:none!important}
 }
+
+
+/* TUNEWAVE FUTURE DECK — laptop-first music player */
+@media (min-width:1101px) {
+  .app-shell{grid-template-columns:252px minmax(0,1fr);max-width:1920px}
+  .sidebar{padding:27px 19px 22px;border-right-color:rgba(154,149,255,.14);background:radial-gradient(ellipse at 8% 0%,rgba(112,72,255,.09),transparent 45%),rgba(7,8,17,.93)}
+  .brand{padding-bottom:32px}
+  .main-area{padding:0 clamp(24px,3vw,48px) 132px;max-width:1710px}
+  .topbar{position:sticky;top:0;z-index:35;height:69px;margin:0 calc(-1 * clamp(24px,3vw,48px));padding:0 clamp(24px,3vw,48px);background:rgba(8,8,18,.86);border-bottom:1px solid rgba(183,169,255,.12);backdrop-filter:blur(24px) saturate(1.2)}
+  .welcome-row{min-height:0;padding:22px 0 14px;gap:22px}
+  .welcome-row>div:first-child{max-width:780px}
+  .welcome-row h1{max-width:700px;font-size:clamp(35px,3.15vw,49px);line-height:1.02;letter-spacing:-.068em}
+  .eyebrow{margin-bottom:10px;font-size:8px}
+  .welcome-copy{margin-top:9px;max-width:520px;font-size:11px;line-height:1.55}
+  .hero-capabilities{margin-top:12px;gap:6px}
+  .hero-capabilities span{padding:6px 9px;font-size:8px;background:rgba(17,17,35,.5)}
+  .hero-actions{margin-top:12px}
+  .hero-cta{min-height:37px;padding:0 13px;font-size:9px}
+  .hero-art{flex:0 0 188px;width:188px;height:174px;margin-right:10px;transform:translateY(3px)}
+  .hero-art>img{width:106px;height:106px;border-radius:27px}
+  .hero-caption{font-size:8px}
+  .search-section{margin:0 0 18px;padding:17px 18px 13px;border:1px solid rgba(163,143,255,.15);border-radius:22px;background:radial-gradient(ellipse at 100% 0%,rgba(255,102,217,.045),transparent 42%),linear-gradient(135deg,rgba(17,17,33,.73),rgba(9,14,27,.68));box-shadow:0 16px 44px rgba(0,0,0,.13),inset 0 1px rgba(255,255,255,.025)}
+  .search-intro{margin-bottom:10px}
+  .search-intro h2{font-size:clamp(19px,1.5vw,23px)}
+  .search-box{min-height:57px;border-radius:15px;padding:6px 7px 6px 16px;gap:10px;box-shadow:0 10px 28px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.04)}
+  .search-box input{font-size:12px}
+  .voice-button{height:39px;border-radius:11px}
+  .search-submit{height:39px;border-radius:11px;padding:0 15px}
+  .identify-row{margin-top:9px;gap:10px}
+  .identify-button{min-height:47px;padding:7px 11px;border-radius:12px}
+  .identify-glyph{width:29px;height:29px;font-size:18px}
+  .identify-copy strong{font-size:10px}
+  .identify-copy small,.identify-status{font-size:8px}
+  .search-meta{margin:7px 4px 9px;font-size:8px}
+  .genre-label-row{margin:10px 3px 8px}
+  .genre-label-row>span:last-child{font-size:8px}
+  .genre-chips{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:7px;padding:1px 1px 7px;margin-bottom:0;scrollbar-width:thin;scrollbar-color:rgba(167,139,250,.32) transparent}
+  .genre-chip{flex:0 0 auto;min-height:30px;padding:7px 10px;font-size:8px}
+  .content-grid{grid-template-columns:minmax(0,1.63fr) minmax(300px,.83fr);gap:clamp(18px,2.1vw,30px);margin-top:10px}
+  .panel-section{margin:4px 0 27px}
+  .section-heading{margin-bottom:12px}
+  .section-heading h2,.queue-heading h2{font-size:clamp(19px,1.6vw,23px)}
+  .empty-discover{min-height:156px;gap:15px;padding:19px;border-radius:19px}
+  .empty-art{width:65px;height:65px;flex-basis:65px;border-radius:19px}
+  .empty-discover h3{font-size:14px}
+  .empty-discover p{font-size:10px}
+  .empty-discover .outline-button{margin-left:auto}
+  .right-column{gap:12px}
+  .now-card{padding:18px;border-radius:24px;background:radial-gradient(ellipse at 0% 0%,rgba(84,245,255,.11),transparent 43%),radial-gradient(ellipse at 100% 12%,rgba(255,102,217,.12),transparent 44%),linear-gradient(155deg,rgba(24,20,48,.98),rgba(10,13,26,.98))}
+  .now-topline{margin-bottom:10px}
+  .now-art-wrap{width:min(100%,248px);max-height:none;aspect-ratio:1;margin:0 auto 13px;border-radius:18px}
+  .now-status{margin:8px 0;font-size:8px}
+  .now-card>h3{font-size:19px;margin:0 0 4px}
+  .now-artist{font-size:10px}
+  .now-inline-controls{margin:13px 0 12px}
+  .now-progress{height:4px;border-radius:99px}
+  .now-time{margin-top:6px;font-size:8px}
+  .now-tags{margin-top:10px;font-size:8px}
+  .tip-card{padding:13px}
+  .tip-card h3{font-size:11px}
+  .tip-card p{font-size:9px;line-height:1.5}
+  .queue-card{padding:15px;border-radius:18px}
+  .queue-heading h2{font-size:18px}
+  .queue-row{padding:7px}
+  .home-shelves{gap:28px;margin:30px 0 38px}
+  .shelf-heading{margin-bottom:12px}
+  .shelf-heading h2{font-size:clamp(19px,1.7vw,24px)}
+  .shelf-rail{grid-auto-columns:minmax(128px,1fr);gap:12px}
+  .shelf-card>strong{font-size:10px}
+  .shelf-card>small{font-size:8px}
+  .official-embed-panel{margin-top:22px}
+  .bottom-player{left:252px;min-height:81px;padding:11px 26px calc(11px + env(safe-area-inset-bottom));grid-template-columns:minmax(180px,.9fr) minmax(230px,1.2fr) minmax(120px,.55fr);gap:18px;background:rgba(8,9,20,.9);border-top-color:rgba(147,133,255,.23);box-shadow:0 -14px 45px rgba(0,0,0,.22),0 0 36px rgba(84,245,255,.025)}
+  .bottom-art{border-radius:13px}
+  .bottom-play{box-shadow:0 0 0 4px rgba(255,255,255,.045),0 0 23px rgba(84,245,255,.1)}
+  .sound-wave{color:#8f8bff}
+}
+@media (min-width:1101px) and (max-height:790px) {
+  .welcome-row{padding-top:15px;padding-bottom:10px}
+  .hero-art{transform:scale(.9);transform-origin:center right}
+  .search-section{padding-top:13px;padding-bottom:10px}
+  .search-intro-note,.search-meta{display:none}
+  .content-grid{margin-top:6px}
+  .now-art-wrap{width:min(100%,218px)}
+  .now-card{padding:15px}
+  .right-column{gap:9px}
+  .tip-card{display:none}
+}
+@media (min-width:1101px) and (max-width:1250px) {
+  .main-area{padding-left:22px;padding-right:22px}
+  .topbar{margin-left:-22px;margin-right:-22px;padding-left:22px;padding-right:22px}
+  .app-shell{grid-template-columns:225px minmax(0,1fr)}
+  .bottom-player{left:225px;padding-left:17px;padding-right:17px;gap:12px;grid-template-columns:minmax(150px,.9fr) minmax(205px,1.15fr) minmax(92px,.5fr)}
+  .content-grid{grid-template-columns:minmax(0,1.35fr) minmax(270px,.9fr);gap:15px}
+  .hero-art{flex-basis:160px;width:160px;margin-right:0}
+  .hero-art>img{width:96px;height:96px}
+  .hero-capabilities span{font-size:7px;padding:6px 7px}
+}
