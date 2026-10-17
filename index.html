@@ -165,6 +165,8 @@
             <a class="external-music-link external-soundcloud" data-external-provider="soundcloud" href="https://soundcloud.com/search/sounds?q=ultrafunk" target="_blank" rel="noopener noreferrer">
               <span class="external-brand-icon" aria-hidden="true">SC</span><span class="external-link-copy"><strong>SoundCloud</strong><small>Independent mixes · phonk</small></span><span class="external-open" aria-hidden="true">↗</span>
             </a>
+            <a class="external-music-link" data-external-provider="audiomack" href="https://audiomack.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer"><span class="external-brand-icon" aria-hidden="true">AM</span><span class="external-link-copy"><strong>Audiomack</strong><small>Hip-hop · remixes · independent music</small></span><span class="external-open" aria-hidden="true">↗</span></a>
+            <a class="external-music-link" data-external-provider="hearthis" href="https://hearthis.at/" target="_blank" rel="noopener noreferrer"><span class="external-brand-icon" aria-hidden="true">HT</span><span class="external-link-copy"><strong>HearThis.at</strong><small>DJ mixes · remixes · independent uploads</small></span><span class="external-open" aria-hidden="true">↗</span></a>
             <a class="external-music-link" data-external-provider="bandcamp" href="https://bandcamp.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">
               <span class="external-brand-icon" aria-hidden="true">BC</span><span class="external-link-copy"><strong>Bandcamp</strong><small>Independent artists · remixes</small></span><span class="external-open" aria-hidden="true">↗</span>
             </a>
@@ -187,19 +189,22 @@
           <div class="external-music-heading">
             <div>
               <p class="section-kicker"><span class="status-kicker-dot"></span> OFFICIAL PLAYER CONNECTIONS</p>
-              <h2 id="official-embed-title">Play a track from YouTube or SoundCloud</h2>
-              <p>Open one of the official search links above, choose a track, then paste its share URL below to play it here.</p>
+              <h2 id="official-embed-title">Official music players</h2>
+              <p>Choose YouTube, SoundCloud, Audiomack, HearThis.at, or Bandcamp. Paste a share URL for YouTube/SoundCloud; for Audiomack, HearThis.at, and Bandcamp, paste the provider’s official embed-player URL.</p>
             </div>
             <span class="external-link-label">EMBEDDED PLAYERS</span>
           </div>
           <form id="official-player-form" class="official-player-form">
             <label class="sr-only" for="official-player-source">Music service</label>
             <select id="official-player-source" name="source">
-              <option value="youtube">YouTube / YouTube Music video</option>
-              <option value="soundcloud">SoundCloud track or playlist</option>
+              <option value="youtube">YouTube / YouTube Music</option>
+              <option value="soundcloud">SoundCloud</option>
+              <option value="audiomack">Audiomack official embed URL</option>
+              <option value="hearthis">HearThis.at official embed URL</option>
+              <option value="bandcamp">Bandcamp official embed URL</option>
             </select>
             <label class="sr-only" for="official-player-url">Official track URL</label>
-            <input id="official-player-url" name="trackUrl" type="url" inputmode="url" autocomplete="url" placeholder="Paste an official track URL…" required>
+            <input id="official-player-url" name="trackUrl" type="url" inputmode="url" autocomplete="url" placeholder="Paste an official share or embed URL…" required>
             <button type="submit" class="search-submit">Play here ↗</button>
           </form>
           <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">These are official embedded players. Their ads, sign-in requirements and playback rules still apply; TuneWave cannot make their content ad-free or guarantee lock-screen playback.</p>
