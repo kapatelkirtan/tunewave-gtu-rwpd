@@ -177,7 +177,7 @@
             <div>
               <p class="section-kicker"><span class="status-kicker-dot"></span> OFFICIAL PLAYER CONNECTIONS</p>
               <h2 id="official-embed-title">Find a song, play it here</h2>
-              <p>Paste a YouTube / YouTube Music video or playlist link, or a Spotify track, album, or playlist link, to load that service’s official player right here.</p>
+              <p>Paste a YouTube or YouTube Music video or playlist link to load its official player right here.</p>
             </div>
             <span class="external-link-label">EMBEDDED PLAYERS</span>
           </div>
@@ -185,22 +185,20 @@
             <label class="sr-only" for="official-player-source">Music service</label>
             <select id="official-player-source" name="source">
               <option value="youtube">YouTube / YouTube Music</option>
-              <option value="spotify">Spotify</option>
             </select>
             <label class="sr-only" for="official-player-url">Official track URL</label>
-            <input id="official-player-url" name="trackUrl" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Paste a YouTube / YouTube Music or Spotify link…" required>
+            <input id="official-player-url" name="trackUrl" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Paste a YouTube / YouTube Music link…" required>
             <button type="submit" class="search-submit">Play here ↗</button>
           </form>
-          <div class="official-provider-searches" aria-label="Search tracks on YouTube Music and Spotify">
+          <div class="official-provider-searches" aria-label="Search tracks on YouTube Music">
             <p id="official-player-query">Search a title above, or paste a song link to load its official player.</p>
             <div class="official-provider-search-links">
               <a data-external-provider="youtube-music" href="https://music.youtube.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on YouTube Music ↗</a>
-              <a data-external-provider="spotify" href="https://open.spotify.com/search/ultrafunk" target="_blank" rel="noopener noreferrer">Find on Spotify ↗</a>
             </div>
-            <p class="official-player-search-help">Choose a result in YouTube Music or Spotify, copy its link, paste it above, and select the matching service. The embedded player follows the service’s own playback and access rules.</p>
+            <p class="official-player-search-help">Choose a result in YouTube or YouTube Music, copy its video or playlist link, and paste it above. Playback and access follow the service’s own rules.</p>
           </div>
-          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Paste a YouTube / YouTube Music or Spotify link to load its official player here. Ads, sign-in or premium rules, full-track access, and background playback are controlled by the service and your device.</p>
-          <p class="official-player-search-help" id="official-player-fulltrack-help" hidden>If Spotify plays only a short preview, try opening this page in the latest Chrome, Firefox, Edge, or Safari with encrypted media enabled. You can also <a id="official-player-open-link" href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer">open this song directly in Spotify ↗</a>. Full-track access is determined by Spotify and your account.</p>
+          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Paste a YouTube / YouTube Music video or playlist link to load its official player here. Ads, sign-in rules, full-track access, and background playback are controlled by the service and your device.</p>
+
           <div id="official-player-stage" class="official-player-stage" hidden>
             <iframe id="official-player-frame" title="Official embedded music player" width="100%" height="352" frameborder="0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen hidden></iframe>
           </div>
