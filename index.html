@@ -9,7 +9,7 @@
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20261018-22">
+  <link rel="stylesheet" href="style.css?v=20261018-23">
   <script src="config.js"></script>
   <script defer src="app.js?v=20261018-17"></script>
 </head>
@@ -67,9 +67,14 @@
             <span><b>02</b> Voice search</span>
             <span><b>03</b> Identify a song</span>
           </div>
+          <div class="hero-actions" aria-label="Quick music actions">
+            <button type="button" class="hero-cta hero-cta-primary" data-view="discover">Explore music <span aria-hidden="true">↗</span></button>
+            <button type="button" class="hero-cta hero-cta-secondary" data-query="Ultra Funk">Try Ultra Funk <span aria-hidden="true">♫</span></button>
+          </div>
         </div>
         <div class="hero-art" aria-label="TuneWave music artwork">
           <div class="hero-glow"></div>
+          <div class="hero-spectrum" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           <div class="hero-ring ring-a"></div><div class="hero-ring ring-b"></div>
           <img src="icon-192.png" alt="TuneWave music emblem">
           <div class="hero-note note-one">♫</div><div class="hero-note note-two">♪</div>
@@ -114,33 +119,7 @@
            <button class="genre-chip chip-blue" data-query="Hindi Indie Music">Hindi Indie Music</button>
         </div>
 
-        <section class="official-embed-panel" aria-labelledby="official-embed-title">
-          <div class="external-music-heading">
-            <div>
-              <p class="section-kicker"><span class="status-kicker-dot"></span> OFFICIAL PLAYER CONNECTIONS</p>
-              <h2 id="official-embed-title">Find a song, play it here</h2>
-              <p>Paste a YouTube or YouTube Music video or playlist link to load its official player right here.</p>
-            </div>
-            <span class="external-link-label">EMBEDDED PLAYERS</span>
-          </div>
-          <form id="official-player-form" class="official-player-form">
-            <label class="sr-only" for="official-player-url">Official track URL</label>
-            <input id="official-player-url" name="trackUrl" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Paste YouTube/YouTube music link here to play song :" required>
-            <button type="submit" class="search-submit">Play here ↗</button>
-          </form>
-          <div class="official-provider-searches" aria-label="Search tracks on YouTube Music">
-            <p id="official-player-query">Search a title above, or paste a song link to load its official player.</p>
-            <div class="official-provider-search-links">
-              <a data-external-provider="youtube-music" href="https://music.youtube.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on YouTube Music ↗</a>
-            </div>
-            <p class="official-player-search-help">Choose a result in YouTube or YouTube Music, copy its video or playlist link, and paste it above. Playback and access follow the service’s own rules.</p>
-          </div>
-          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Paste a YouTube / YouTube Music video or playlist link to load its official player here. Ads, sign-in rules, full-track access, and background playback are controlled by the service and your device.</p>
-
-          <div id="official-player-stage" class="official-player-stage" hidden>
-            <iframe id="official-player-frame" title="Official embedded music player" width="100%" height="352" frameborder="0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen hidden></iframe>
-          </div>
-        </section>
+        
       </section>
 
 <section class="home-shelves" id="home-shelves" aria-label="Browse songs by title">
@@ -175,6 +154,34 @@
           </div>
         </section>
       </section>
+
+      <section class="official-embed-panel" aria-labelledby="official-embed-title">
+          <div class="external-music-heading">
+            <div>
+              <p class="section-kicker"><span class="status-kicker-dot"></span> OFFICIAL PLAYER CONNECTIONS</p>
+              <h2 id="official-embed-title">Find a song, play it here</h2>
+              <p>Paste a YouTube or YouTube Music video or playlist link to load its official player right here.</p>
+            </div>
+            <span class="external-link-label">EMBEDDED PLAYERS</span>
+          </div>
+          <form id="official-player-form" class="official-player-form">
+            <label class="sr-only" for="official-player-url">Official track URL</label>
+            <input id="official-player-url" name="trackUrl" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Paste YouTube/YouTube music link here to play song :" required>
+            <button type="submit" class="search-submit">Play here ↗</button>
+          </form>
+          <div class="official-provider-searches" aria-label="Search tracks on YouTube Music">
+            <p id="official-player-query">Search a title above, or paste a song link to load its official player.</p>
+            <div class="official-provider-search-links">
+              <a data-external-provider="youtube-music" href="https://music.youtube.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on YouTube Music ↗</a>
+            </div>
+            <p class="official-player-search-help">Choose a result in YouTube or YouTube Music, copy its video or playlist link, and paste it above. Playback and access follow the service’s own rules.</p>
+          </div>
+          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Paste a YouTube / YouTube Music video or playlist link to load its official player here. Ads, sign-in rules, full-track access, and background playback are controlled by the service and your device.</p>
+
+          <div id="official-player-stage" class="official-player-stage" hidden>
+            <iframe id="official-player-frame" title="Official embedded music player" width="100%" height="352" frameborder="0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen hidden></iframe>
+          </div>
+        </section>
 
       <div class="content-grid">
         <section class="feed-column">
