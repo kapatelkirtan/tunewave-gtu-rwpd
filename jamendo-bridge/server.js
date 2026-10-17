@@ -317,6 +317,43 @@ function xmlAttribute(block, tag, attribute) {
   return match ? decodeXml(match[1]) : '';
 }
 
+async function freeToUseSearch(query) {
+  const normalized = String(query || '').trim();
+  const terms = /ultra\s*funk|ultrafunk|phonk|funk\s*br/i.test(normalized)
+    ? [...new Set([normalized, 'ultrafunk', 'ultra funk', 'phonk', 'brazilian funk'])]
+    : [normalized];
+  const all = [];
+  const seen = new Set();
+  for (const term of terms) {
+    const url = new URL('https://api.freetouse.com/v3/music/tracks/search');
+    url.searchParams.set('query', term);
+    url.searchParams.set('limit', '20');
+    const response = await sourceFetch(url.href, 'Free To Use', 10000);
+    const payload = await response.json();
+    const records = Array.isArray(payload && payload.data) ? payload.data : [];
+    for (const item of records) {
+      const id = String(item && item.id || '').trim();
+      const streamUrl = trustedHttpsUrl(item && item.files && item.files.mp3, ['freetouse.com']);
+      if (!id || !streamUrl || item.is_premium === true || seen.has(id)) continue;
+      seen.add(id);
+      const artistList = Array.isArray(item.artists) ? item.artists : [];
+      const artist = artistList.map(entry => Array.isArray(entry) ? entry[1] : entry)
+        .map(entry => typeof entry === 'object' && entry ? entry.name : String(entry || ''))
+        .filter(Boolean).join(', ') || 'Free To Use artist';
+      const thumbnail = item.thumbnails && (item.thumbnails.md || item.thumbnails.sm || item.thumbnails.lg) || '';
+      all.push({
+        id, title: String(item.title || 'Untitled track').slice(0, 250),
+        creator: artist.slice(0, 180), duration: Number(item.duration) || 0,
+        artwork: trustedHttpsUrl(thumbnail, ['freetouse.com']) || '',
+        streamUrl, permalink: 'https://freetouse.com/',
+        licenseUrl: 'https://freetouse.com/license', licenseName: 'Free To Use License',
+        provider: 'Free To Use'
+      });
+    }
+  }
+  return all.slice(0, 25);
+}
+
 async function ccMixterSearch(query) {
   const url = new URL('https://ccmixter.org/api/query');
   url.searchParams.set('tags', query);
@@ -705,6 +742,7 @@ const server = http.createServer(async (req, res) => {
       radioBrowserEnabled: true,
       audiomackEnabled: Boolean(AUDIOMACK_CONSUMER_KEY && AUDIOMACK_CONSUMER_SECRET),
       openverseEnabled: true,
+      freeToUseEnabled: true,
       openverseAuthEnabled: Boolean(OPENVERSE_CLIENT_ID && OPENVERSE_CLIENT_SECRET)
     });
   }
@@ -737,11 +775,12 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/') || requestUrl.pathname.startsWith('/api/radio/')) {
+  if (requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/') || requestUrl.pathname.startsWith('/api/radio/') || requestUrl.pathname.startsWith('/api/freetouse/')) {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
     const provider = requestUrl.pathname.startsWith('/api/ccmixter/') ? 'ccmixter'
       : requestUrl.pathname.startsWith('/api/loc/') ? 'loc'
-      : requestUrl.pathname.startsWith('/api/radio/') ? 'radio' : 'openverse';
+      : requestUrl.pathname.startsWith('/api/radio/') ? 'radio'
+      : requestUrl.pathname.startsWith('/api/freetouse/') ? 'freetouse' : 'openverse';
     if (requestUrl.pathname !== '/api/' + provider + '/search') return sendJson(res, 404, { error: 'Route not found.' });
     const query = String(requestUrl.searchParams.get('q') || '').trim().replace(/\s+/g, ' ');
     if (!query || query.length > 100) return sendJson(res, 400, { error: 'Provide a search query between 1 and 100 characters.' });
@@ -752,10 +791,11 @@ const server = http.createServer(async (req, res) => {
         results = provider === 'ccmixter' ? await ccMixterSearch(query)
           : provider === 'loc' ? await libraryOfCongressSearch(query)
           : provider === 'radio' ? await radioBrowserSearch(query)
+          : provider === 'freetouse' ? await freeToUseSearch(query)
           : await openverseSearch(query);
         cacheSet(cacheKey, results);
       }
-      const providerName = provider === 'ccmixter' ? 'ccMixter' : provider === 'loc' ? 'Library of Congress' : provider === 'radio' ? 'Radio Browser' : 'Openverse';
+      const providerName = provider === 'ccmixter' ? 'ccMixter' : provider === 'loc' ? 'Library of Congress' : provider === 'radio' ? 'Radio Browser' : provider === 'freetouse' ? 'Free To Use' : 'Openverse';
       return sendJson(res, 200, { provider: providerName, results });
     } catch (error) {
       const code = Number(error && error.statusCode) || 502;
