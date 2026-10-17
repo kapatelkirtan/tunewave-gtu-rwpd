@@ -172,16 +172,19 @@ function isMusicArchiveItem(item) {
   const collection = (Array.isArray(item?.collection) ? item.collection : [item?.collection])
     .filter(Boolean).join(' ');
 
-  // Normalize underscores/hyphens so IDs such as christmas_carols_2006_librivox
-  // are reliably recognized as spoken-word uploads.
-  const normalizedIdAndCollection = (identifier + ' ' + collection).toLowerCase().replace(/[_-]+/g, ' ');
-  const normalizedTitle = title.toLowerCase().replace(/[_-]+/g, ' ');
-  const searchableMetadata = (title + ' ' + subjects + ' ' + collection).replace(/[_-]+/g, ' ');
+  // Normalize separators; many Archive identifiers encode words without spaces.
+  const normalize = value => String(value || '').toLowerCase().replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\s+/g, ' ');
+  const normalizedIdAndCollection = normalize(identifier + ' ' + collection);
+  const normalizedTitle = normalize(title);
+  const searchableMetadata = normalize(title + ' ' + subjects + ' ' + collection);
 
-  const spokenWord = /\b(audiobook|audio book|librivox|speech|sermon|lecture|radio show|radio program|old time radio|dramatization|novel|short stories|interview|news broadcast|quran recitation|selected letters|how to sing|stories of great composers|performing arts|nonfiction collection|audio bible)\b/i;
-  if (spokenWord.test(normalizedIdAndCollection) || spokenWord.test(normalizedTitle)) return false;
+  // Specific spoken-word, broadcast, radio drama, nature and effects collections.
+  const nonMusic = /\b(audiobook|audio book|librivox|speech|sermon|lecture|radio show|radio program|old time radio|radio drama|radio mystery|mystery theater|mystery theatre|dramatization|novel|short stories|interview|news broadcast|quran recitation|selected letters|how to sing|stories of great composers|performing arts|nonfiction collection|audio bible|complete broadcast|broadcast day|harry lime|animal sounds?|nature sounds?|field recordings?|sound effects?)\b/i;
+  if (nonMusic.test(normalizedIdAndCollection) || nonMusic.test(normalizedTitle)) return false;
+  // This Archive item is a LibriVox spoken reading despite not including "librivox" in its identifier.
+  if (normalizedIdAndCollection.includes('carol collection 0912') || normalizedTitle === 'christmas carol collection 2009') return false;
 
-  const musicTerms = /\b(music|song|songs|soundtrack|jazz|blues|classical|folk|rock|pop|electronic|ambient|instrumental|orchestra|symphony|concert|album|ep|single|reggae|country|hip hop|rap|funk|soul|metal|punk|trance|techno|house|disco|dance|opera|guitar|piano|violin|viola|cello|mandolin|flute|trumpet|saxophone|drum|percussion|choir|choral|celtic|bluegrass|r&b|rhythm and blues|carol|carols|hymn|hymns|rag|ragtime|march|sonata|concerto|quartet|quintet|etude|prelude|nocturne|overture|musical recording|netlabel|musopen)\b/i;
+  const musicTerms = /\b(music|song|songs|soundtrack|jazz|blues|classical|folk|rock|pop|electronic|ambient|instrumental|orchestra|symphony|concert|album|ep|single|reggae|country|hip hop|rap|funk|soul|metal|punk|trance|techno|house|disco|dance|opera|guitar|piano|violin|viola|cello|mandolin|flute|trumpet|saxophone|drum|percussion|choir|choral|celtic|bluegrass|r&b|rhythm and blues|carol|carols|hymn|hymns|rag|ragtime|march|sonata|concerto|quartet|quintet|etude|prelude|nocturne|overture|musical recording|netlabel|musopen|fox trot|foxtrot)\b/i;
   return musicTerms.test(searchableMetadata);
 }
 async function archiveSearch(query) {
