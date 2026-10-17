@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f1f0eb">
+  <meta name="theme-color" content="#070a0e">
   <meta name="description" content="TuneWave — find songs by title, voice, or by listening to a short music sample.">
   <title>TuneWave — Listening, Reimagined</title>
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20261018-37">
+  <link rel="stylesheet" href="style.css?v=20261018-38">
   <script src="config.js"></script>
   <script defer src="app.js?v=20261018-18"></script>
 </head>
@@ -57,12 +57,23 @@
         </div>
       </header>
 
-      <div class="launch-deck" id="launch-deck">
+      
+
+
+
+
+      
+
+      
+
+<div class="content-grid">
+        <section class="feed-column">
+<div class="launch-deck" id="launch-deck">
 <section class="welcome-row" id="welcome-row">
         <div>
-          <p class="eyebrow"><span class="eyebrow-line"></span> TUNEWAVE LISTENING SYSTEM / NOISE OFF</p>
-          <h1>Hear the<br><span>unexpected.</span></h1>
-          <p class="welcome-copy">Your personal audio console for discovering new sounds, identifying what’s playing, and keeping the next great track within reach.</p>
+          <p class="eyebrow"><span class="eyebrow-line"></span> TUNEWAVE / SPATIAL AUDIO CONSOLE</p>
+          <h1>Enter the<br><span>sound field.</span></h1>
+          <p class="welcome-copy">A live listening instrument for chasing new sounds, identifying a track in the room, and keeping your next obsession close.</p>
           <div class="hero-capabilities" aria-label="Ways to find music">
             <span><b>01</b> Search by title</span>
             <span><b>02</b> Voice search</span>
@@ -86,7 +97,7 @@
         <div class="search-intro">
           <div>
             <p class="section-kicker">LIVE MUSIC SEARCH</p>
-            <h2>Find your next sound.</h2>
+            <h2>Search the sound field.</h2>
           </div>
           <span class="search-intro-note"><span class="live-dot"></span> Search open catalogues</span>
         </div>
@@ -123,15 +134,6 @@
       </section>
 </div>
 
-
-
-
-      
-
-      
-
-<div class="content-grid">
-        <section class="feed-column">
           
 
           
@@ -163,8 +165,8 @@
           
         </section>
 
-        <aside class="right-column">
-          <section class="now-card">
+        <aside class="right-column" id="listening-rail">
+<section class="now-card">
             <div class="now-topline"><span class="section-kicker">NOW PLAYING</span><span class="equalizer-mini" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
             <div class="now-art-wrap" id="now-art-wrap"><div class="now-art-placeholder"><span>♫</span></div><div class="art-shine"></div></div>
             <p class="now-status" id="now-status">READY WHEN YOU ARE</p>
@@ -179,15 +181,15 @@
             <div class="now-time"><span id="now-time-current">0:00</span><span id="now-time-duration">0:00</span></div>
             <div class="now-tags"><span><i class="live-dot"></i> In-page player</span><span>♪ Open source streams</span></div>
           </section>
-          <section class="tip-card">
-            <div class="tip-icon">☾</div>
-            <div><h3>Keep the music close</h3><p>On supported phones and browsers, lock-screen controls can let you pause, resume, or skip while TuneWave plays.</p></div>
-          </section>
-          <section class="queue-card">
+<section class="queue-card">
             <div class="section-heading queue-heading"><div><p class="section-kicker">UP NEXT</p><h2>Your queue</h2></div><button class="tiny-action" id="clear-queue-button" title="Clear queue" aria-label="Clear queue">×</button></div>
             <div id="queue-list" class="queue-list"><p class="queue-empty">Play a search result to start your queue.</p></div>
           </section>
-        </aside>
+<section class="tip-card">
+            <div class="tip-icon">☾</div>
+            <div><h3>Keep the music close</h3><p>On supported phones and browsers, lock-screen controls can let you pause, resume, or skip while TuneWave plays.</p></div>
+          </section>
+</aside>
       </div>
 
       
