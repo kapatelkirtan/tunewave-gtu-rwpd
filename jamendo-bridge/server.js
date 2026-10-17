@@ -686,6 +686,111 @@ async function openverseSearch(query) {
   return [...found.values()].slice(0, 20);
 }
 
+
+async function deezerSearch(query) {
+  // Deezer's public API provides metadata and usually a short preview, not unrestricted full songs.
+  const terms = discoverySearchTerms(query).slice(0, 3);
+  const batches = await Promise.allSettled(terms.map(async term => {
+    const url = new URL('https://api.deezer.com/search/track');
+    url.searchParams.set('q', term);
+    url.searchParams.set('limit', '15');
+    const response = await sourceFetch(url.href, 'Deezer', 10000);
+    const payload = await response.json();
+    if (payload?.error || !Array.isArray(payload?.data)) {
+      const error = new Error('Deezer returned an unexpected search response.');
+      error.statusCode = 502;
+      throw error;
+    }
+    return payload.data;
+  }));
+  const successful = batches.filter(batch => batch.status === 'fulfilled');
+  if (!successful.length) throw batches[0]?.reason || new Error('Deezer search failed.');
+  const tracks = new Map();
+  for (const batch of successful) {
+    for (const item of batch.value) {
+      const id = String(item?.id || '').trim();
+      const previewUrl = trustedHttpsUrl(item?.preview, ['dzcdn.net']);
+      if (!id || !previewUrl || tracks.has(id)) continue;
+      const artist = item.artist && typeof item.artist === 'object' ? item.artist : {};
+      const album = item.album && typeof item.album === 'object' ? item.album : {};
+      tracks.set(id, {
+        id,
+        title: String(item.title || 'Untitled track').slice(0, 250),
+        artist: String(artist.name || 'Unknown artist').slice(0, 180),
+        album: String(album.title || '').slice(0, 180),
+        duration: 30,
+        artwork: trustedHttpsUrl(album.cover_medium || album.cover || album.cover_small || '', ['dzcdn.net']),
+        streamUrl: previewUrl,
+        previewUrl,
+        previewOnly: true,
+        permalink: 'https://www.deezer.com/track/' + encodeURIComponent(id),
+        source: 'Deezer',
+        rights: 'Short Deezer preview; full-track playback is not provided by this public search endpoint.'
+      });
+      if (tracks.size >= 20) break;
+    }
+    if (tracks.size >= 20) break;
+  }
+  return [...tracks.values()].slice(0, 20);
+}
+
+let musicBrainzNextRequestAt = 0;
+let musicBrainzQueue = Promise.resolve();
+
+async function musicBrainzFetchJson(url) {
+  const run = async () => {
+    const waitMs = Math.max(0, musicBrainzNextRequestAt - Date.now());
+    if (waitMs) await new Promise(resolve => setTimeout(resolve, waitMs));
+    musicBrainzNextRequestAt = Date.now() + 1100;
+    const response = await sourceFetch(url, 'MusicBrainz', 10000, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'TuneWave/1.0 (https://tunewave-gtu-rwpd-1.onrender.com/)'
+      }
+    });
+    return response.json();
+  };
+  const task = musicBrainzQueue.then(run, run);
+  musicBrainzQueue = task.then(() => undefined, () => undefined);
+  return task;
+}
+
+async function musicBrainzSearch(query) {
+  // Metadata only: MusicBrainz indexes recordings but does not host audio files.
+  const url = new URL('https://musicbrainz.org/ws/2/recording/');
+  url.searchParams.set('query', String(query || '').trim());
+  url.searchParams.set('fmt', 'json');
+  url.searchParams.set('limit', '8');
+  const payload = await musicBrainzFetchJson(url.href);
+  if (!payload || !Array.isArray(payload.recordings)) {
+    const error = new Error('MusicBrainz returned an unexpected metadata response.');
+    error.statusCode = 502;
+    throw error;
+  }
+  return payload.recordings.map(recording => {
+    const id = String(recording.id || '').trim();
+    if (!id) return null;
+    const credits = Array.isArray(recording['artist-credit']) ? recording['artist-credit'] : [];
+    const artist = credits.map(part => {
+      if (typeof part === 'string') return part;
+      return String(part?.name || part?.artist?.name || '') + String(part?.joinphrase || '');
+    }).join('').trim();
+    const release = Array.isArray(recording.releases) ? recording.releases[0] : null;
+    const yearMatch = String(release?.date || '').match(/^\d{4}/);
+    return {
+      id,
+      title: String(recording.title || 'Untitled recording').slice(0, 250),
+      artist: String(artist || 'Unknown artist').slice(0, 180),
+      release: String(release?.title || '').slice(0, 180),
+      year: yearMatch ? yearMatch[0] : '',
+      duration: Math.max(0, Math.round((Number(recording.length) || 0) / 1000)),
+      permalink: 'https://musicbrainz.org/recording/' + encodeURIComponent(id),
+      provider: 'MusicBrainz',
+      playable: false
+    };
+  }).filter(Boolean).slice(0, 8);
+}
+
 function radioBrowserQueries(query) {
   const raw = String(query || '').trim();
   const normalized = raw.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -855,6 +960,8 @@ const server = http.createServer(async (req, res) => {
       openverseEnabled: true,
       freeToUseEnabled: true,
       audiusEnabled: true,
+      deezerEnabled: true,
+      musicBrainzEnabled: true,
       openverseAuthEnabled: Boolean(OPENVERSE_CLIENT_ID && OPENVERSE_CLIENT_SECRET)
     });
   }
@@ -1007,14 +1114,16 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (requestUrl.pathname.startsWith('/api/funkwhale/') || requestUrl.pathname.startsWith('/api/audius/') || requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/') || requestUrl.pathname.startsWith('/api/radio/') || requestUrl.pathname.startsWith('/api/freetouse/')) {
+  if (requestUrl.pathname.startsWith('/api/funkwhale/') || requestUrl.pathname.startsWith('/api/audius/') || requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/') || requestUrl.pathname.startsWith('/api/radio/') || requestUrl.pathname.startsWith('/api/freetouse/') || requestUrl.pathname.startsWith('/api/deezer/') || requestUrl.pathname.startsWith('/api/musicbrainz/')) {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
     const provider = requestUrl.pathname.startsWith('/api/funkwhale/') ? 'funkwhale'
       : requestUrl.pathname.startsWith('/api/audius/') ? 'audius'
       : requestUrl.pathname.startsWith('/api/ccmixter/') ? 'ccmixter'
       : requestUrl.pathname.startsWith('/api/loc/') ? 'loc'
       : requestUrl.pathname.startsWith('/api/radio/') ? 'radio'
-      : requestUrl.pathname.startsWith('/api/freetouse/') ? 'freetouse' : 'openverse';
+      : requestUrl.pathname.startsWith('/api/freetouse/') ? 'freetouse'
+      : requestUrl.pathname.startsWith('/api/deezer/') ? 'deezer'
+      : requestUrl.pathname.startsWith('/api/musicbrainz/') ? 'musicbrainz' : 'openverse';
     if (requestUrl.pathname !== '/api/' + provider + '/search') return sendJson(res, 404, { error: 'Route not found.' });
     const query = String(requestUrl.searchParams.get('q') || '').trim().replace(/\s+/g, ' ');
     if (!query || query.length > 100) return sendJson(res, 400, { error: 'Provide a search query between 1 and 100 characters.' });
@@ -1028,10 +1137,20 @@ const server = http.createServer(async (req, res) => {
           : provider === 'loc' ? await libraryOfCongressSearch(query)
           : provider === 'radio' ? await radioBrowserSearch(query)
           : provider === 'freetouse' ? await freeToUseSearch(query)
+          : provider === 'deezer' ? await deezerSearch(query)
+          : provider === 'musicbrainz' ? await musicBrainzSearch(query)
           : await openverseSearch(query);
         cacheSet(cacheKey, results);
       }
-      const providerName = provider === 'funkwhale' ? 'Funkwhale / Open Audio' : provider === 'audius' ? 'Audius' : provider === 'ccmixter' ? 'ccMixter' : provider === 'loc' ? 'Library of Congress' : provider === 'radio' ? 'Radio Browser' : provider === 'freetouse' ? 'Free To Use' : 'Openverse';
+      const providerName = provider === 'funkwhale' ? 'Funkwhale / Open Audio'
+        : provider === 'audius' ? 'Audius'
+        : provider === 'ccmixter' ? 'ccMixter'
+        : provider === 'loc' ? 'Library of Congress'
+        : provider === 'radio' ? 'Radio Browser'
+        : provider === 'freetouse' ? 'Free To Use'
+        : provider === 'deezer' ? 'Deezer'
+        : provider === 'musicbrainz' ? 'MusicBrainz'
+        : 'Openverse';
       return sendJson(res, 200, { provider: providerName, results });
     } catch (error) {
       const code = Number(error && error.statusCode) || 502;
