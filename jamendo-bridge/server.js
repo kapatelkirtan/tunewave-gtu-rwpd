@@ -417,10 +417,14 @@ async function locJson(url) {
   return response.json();
 }
 async function libraryOfCongressSearch(query) {
-  const searchUrl = new URL('https://www.loc.gov/audio/');
+  // The LOC JSON/YAML API documents /search/ plus the original-format facet
+  // for sound recordings. This is more resilient than relying on the older
+  // /audio/ format endpoint during the catalogue migration.
+  const searchUrl = new URL('https://www.loc.gov/search/');
   searchUrl.searchParams.set('q', query);
   searchUrl.searchParams.set('fo', 'json');
   searchUrl.searchParams.set('c', '12');
+  searchUrl.searchParams.set('fa', 'original-format:sound recording');
   const search = await locJson(searchUrl.href);
   const items = Array.isArray(search && search.results) ? search.results.slice(0, 10) : [];
   const settled = await Promise.allSettled(items.map(async function(result) {
@@ -618,6 +622,34 @@ const server = http.createServer(async (req, res) => {
   }
 
 
+
+  // Lightweight status probe for the LOC audio search API. This confirms the
+  // remote API responds without resolving individual tracks or audio streams.
+  if (requestUrl.pathname === '/api/loc/status') {
+    if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
+    try {
+      const statusUrl = new URL('https://www.loc.gov/search/');
+      statusUrl.searchParams.set('q', 'music');
+      statusUrl.searchParams.set('fo', 'json');
+      statusUrl.searchParams.set('c', '1');
+      statusUrl.searchParams.set('fa', 'original-format:sound recording');
+      const payload = await locJson(statusUrl.href);
+      if (!payload || !Array.isArray(payload.results)) {
+        const error = new Error('Library of Congress returned an unexpected search response.');
+        error.statusCode = 502;
+        throw error;
+      }
+      return sendJson(res, 200, {
+        ok: true,
+        provider: 'Library of Congress',
+        resultCount: payload.results.length
+      });
+    } catch (error) {
+      const code = Number(error && error.statusCode) || 502;
+      console.error('[loc-status-bridge] ' + code + ': ' + String(error && error.message || 'request failed'));
+      return sendJson(res, code, { error: String(error && error.message || 'Library of Congress status check failed.') });
+    }
+  }
 
   if (requestUrl.pathname.startsWith('/api/ccmixter/') || requestUrl.pathname.startsWith('/api/loc/') || requestUrl.pathname.startsWith('/api/openverse/') || requestUrl.pathname.startsWith('/api/radio/') || requestUrl.pathname.startsWith('/api/freetouse/')) {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
