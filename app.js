@@ -126,7 +126,7 @@
   async function searchJamendoCatalog(query) {
     if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('Jamendo bridge is not configured yet.');
     const results = await Promise.allSettled(focusedSearchTerms(query).map(term =>
-      getJson(`${JAMENDO_BRIDGE_BASE}/api/jamendo/search?q=${encodeURIComponent(term)}`, 10000)
+      getBridgeJson(`${JAMENDO_BRIDGE_BASE}/api/jamendo/search?q=${encodeURIComponent(term)}`, 12000)
     ));
     const payloads = results.filter(result => result.status === 'fulfilled').map(result => result.value);
     const data = payloads.flatMap(payload => Array.isArray(payload?.results) ? payload.results : Array.isArray(payload?.data) ? payload.data : []);
@@ -151,7 +151,7 @@
   }
   async function searchArchiveCatalog(query) {
     if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('The provider bridge is not configured.');
-    const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/archive/search?q=${encodeURIComponent(query)}`, 12000);
+    const payload = await getBridgeJson(`${JAMENDO_BRIDGE_BASE}/api/archive/search?q=${encodeURIComponent(query)}`, 12000);
     const data = Array.isArray(payload?.results) ? payload.results : [];
     const tracks = uniqueTracks(data, normalizeArchiveTrack).slice(0, 20);
     if (!tracks.length && payload?.error) throw new Error(String(payload.error));
@@ -226,7 +226,7 @@
   }
   async function searchFreeToUseCatalog(query) {
     if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('The music provider bridge is not configured.');
-    const payload = await getJson(JAMENDO_BRIDGE_BASE + '/api/freetouse/search?q=' + encodeURIComponent(query), 12000);
+    const payload = await getBridgeJson(JAMENDO_BRIDGE_BASE + '/api/freetouse/search?q=' + encodeURIComponent(query), 12000);
     const data = Array.isArray(payload && payload.results) ? payload.results : [];
     const tracks = uniqueTracks(data, normalizeFreeToUseTrack).slice(0, 20);
     if (!tracks.length && payload && payload.error) throw new Error(String(payload.error));
@@ -249,7 +249,7 @@
   }
   async function searchBridgeAudioProvider(provider, source, query, timeoutMs = 12000) {
     if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('The music provider bridge is not configured.');
-    const payload = await getJson(JAMENDO_BRIDGE_BASE + '/api/' + provider + '/search?q=' + encodeURIComponent(query), timeoutMs);
+    const payload = await getBridgeJson(JAMENDO_BRIDGE_BASE + '/api/' + provider + '/search?q=' + encodeURIComponent(query), timeoutMs);
     const data = Array.isArray(payload && payload.results) ? payload.results : [];
     const tracks = uniqueTracks(data, raw => normalizeBridgeAudioTrack(raw, source)).slice(0, 20);
     if (!tracks.length && payload && payload.error) throw new Error(String(payload.error));
@@ -273,9 +273,9 @@
   }
   async function searchAudiusCatalog(query) {
     const searchOne = async term => {
-      const url = AUDIUS_API_BASE + '/tracks/search?query=' + encodeURIComponent(term) + '&limit=30&filter_tracks=public&gate_condition=ungated&app_name=' + encodeURIComponent(AUDIUS_APP_NAME);
-      const payload = await getJson(url, 8500);
-      return uniqueTracks(payload?.data ?? payload, normalizeAudiusTrack);
+      const url = JAMENDO_BRIDGE_BASE + '/api/audius/search?q=' + encodeURIComponent(term);
+      const payload = await getBridgeJson(url, 12000);
+      return uniqueTracks(payload?.results ?? payload?.data ?? payload, normalizeAudiusTrack);
     };
     const normalizedQuery = String(query || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
     const ultraFunkSearch = /ultra funk|ultrafunk|brazilian funk|phonk|funk br|mandelao|automotivo/.test(normalizedQuery);
@@ -305,7 +305,7 @@
       if (track.streamUrl && /^https:\/\//i.test(track.streamUrl)) return track.streamUrl;
       const id = String(track.jamendoId ?? track.id ?? '').trim();
       if (!id || !JAMENDO_BRIDGE_CONFIGURED) throw new Error('Jamendo playback needs the configured Jamendo bridge.');
-      const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/jamendo/track/${encodeURIComponent(id)}`, 10000);
+      const payload = await getBridgeJson(`${JAMENDO_BRIDGE_BASE}/api/jamendo/track/${encodeURIComponent(id)}`, 12000);
       const streamUrl = String(payload?.track?.audio || payload?.audio || '');
       if (!/^https:\/\//i.test(streamUrl)) throw new Error('Jamendo did not return a playable audio stream for this track.');
       return streamUrl;
@@ -318,7 +318,7 @@
     if (source === 'internet archive') {
       const id = String(track.archiveId ?? track.id ?? '').trim();
       if (!id || !JAMENDO_BRIDGE_CONFIGURED) throw new Error('Internet Archive playback needs the configured provider bridge.');
-      const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/archive/track/${encodeURIComponent(id)}`, 12000);
+      const payload = await getBridgeJson(`${JAMENDO_BRIDGE_BASE}/api/archive/track/${encodeURIComponent(id)}`, 12000);
       const streamUrl = String(payload?.track?.streamUrl || '');
       if (!/^https:\/\//i.test(streamUrl)) throw new Error('Internet Archive did not return a playable audio file.');
       return streamUrl;
@@ -494,6 +494,46 @@
       if (!response.ok) throw new Error(`Music search returned ${response.status}`);
       return await response.json();
     } finally { clearTimeout(timeout); }
+  }
+
+  const BRIDGE_STARTUP_TIMEOUT_MS = 75000;
+  let bridgeReadyPromise = null;
+  let bridgeReadyUntil = 0;
+  let bridgeHealthSnapshot = null;
+
+  async function waitForBridgeReady() {
+    if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('TuneWave music provider bridge is not configured.');
+    if (bridgeHealthSnapshot && Date.now() < bridgeReadyUntil) return bridgeHealthSnapshot;
+    if (!bridgeReadyPromise) {
+      bridgeReadyPromise = (async () => {
+        const deadline = Date.now() + BRIDGE_STARTUP_TIMEOUT_MS;
+        let lastError = null;
+        while (Date.now() < deadline) {
+          try {
+            const health = await getJson(JAMENDO_BRIDGE_BASE + '/health', 10000);
+            if (health && health.ok === true && health.service === 'tunewave-jamendo-bridge') {
+              bridgeHealthSnapshot = health;
+              bridgeReadyUntil = Date.now() + 20000;
+              return health;
+            }
+            lastError = new Error('Music provider bridge returned an unexpected health response.');
+          } catch (error) {
+            lastError = error;
+          }
+          const remaining = deadline - Date.now();
+          if (remaining > 0) await new Promise(resolve => setTimeout(resolve, Math.min(4000, remaining)));
+        }
+        bridgeHealthSnapshot = null;
+        bridgeReadyUntil = 0;
+        throw new Error('Music provider bridge did not wake up within 75 seconds. Please retry or check its Render deployment.');
+      })().finally(() => { bridgeReadyPromise = null; });
+    }
+    return bridgeReadyPromise;
+  }
+
+  async function getBridgeJson(url, timeoutMs = 12000) {
+    await waitForBridgeReady();
+    return getJson(url, timeoutMs);
   }
   async function searchCatalog(query) {
     const q = query.trim();
@@ -1082,27 +1122,17 @@
     if (refresh) refresh.disabled = true;
     if (refresh) refresh.classList.add('is-checking');
     const cards = $$('.source-connection[data-provider]');
-    cards.forEach(card => paintProviderStatus(card.dataset.provider, 'checking', 'Testing live search endpoint…'));
+    cards.forEach(card => paintProviderStatus(card.dataset.provider, 'checking', 'Waking the free music bridge if it has been idle…'));
     if (summary) summary.textContent = 'PROBING ' + cards.length + ' SOURCES';
 
     const healthPromise = JAMENDO_BRIDGE_CONFIGURED
-      ? getJson(JAMENDO_BRIDGE_BASE + '/health', 6500).catch(() => null)
+      ? waitForBridgeReady().catch(() => null)
       : Promise.resolve(null);
 
     const probes = [
       {
-        provider: 'audius',
-        check: async () => {
-          const url = new URL(AUDIUS_API_BASE + '/tracks/search');
-          url.searchParams.set('query', 'TuneWaveStatusProbe');
-          url.searchParams.set('limit', '1');
-          url.searchParams.set('filter_tracks', 'public');
-          url.searchParams.set('app_name', AUDIUS_APP_NAME);
-          const payload = await getJson(url.href, 7500);
-          if (!payload || !Array.isArray(payload.data)) throw new Error('invalid response');
-          return payload.data.length;
-        },
-        online: count => count ? 'Public API responded · search results available.' : 'Public API responded · no test-query matches.'
+        provider: 'audius', flag: 'audiusEnabled', path: '/api/audius/search',
+        online: count => count ? 'Audius catalogue responded through the bridge · ' + count + ' test matches.' : 'Audius API responded · no test-query matches.'
       },
       {
         provider: 'freetouse', flag: 'freeToUseEnabled', path: '/api/freetouse/search',
@@ -1158,7 +1188,7 @@
     const results = await Promise.all(probes.map(async probe => {
       try {
         let count;
-        if (probe.direct || probe.provider === 'audius') {
+        if (probe.direct) {
           count = await probe.check();
         } else {
           if (!JAMENDO_BRIDGE_CONFIGURED) {
