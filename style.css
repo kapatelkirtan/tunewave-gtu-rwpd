@@ -104,7 +104,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .provider-symbol-archive{color:#ffe6ba;background:linear-gradient(145deg,rgba(249,174,85,.23),rgba(205,104,44,.1))}
 .provider-symbol-commons{color:#d5f4ff;background:linear-gradient(145deg,rgba(80,177,246,.22),rgba(61,107,214,.1))}
 .provider-symbol-ccmixter{color:#f1d4ff;background:linear-gradient(145deg,rgba(206,105,255,.22),rgba(117,75,205,.1))}
-.provider-symbol-dogmazic{color:#c7ffe1;background:linear-gradient(145deg,rgba(66,232,169,.26),rgba(53,145,108,.11))}.provider-radio-button{justify-self:start;margin-top:4px;padding:4px 7px;border:1px solid rgba(104,255,207,.22);border-radius:7px;background:rgba(45,185,139,.09);color:#9cffdf;font-size:9px;font-weight:800}.provider-radio-button:hover{background:rgba(45,185,139,.18);border-color:rgba(104,255,207,.4)}
+.provider-symbol-funkwhale{color:#d1f4ff;background:linear-gradient(145deg,rgba(84,166,255,.28),rgba(116,104,255,.12))}
 .provider-symbol-openverse{color:#d6d5ff;background:linear-gradient(145deg,rgba(137,120,255,.27),rgba(70,90,199,.12))}
 .provider-symbol-radio{color:#aaf8ff;background:linear-gradient(145deg,rgba(57,220,240,.21),rgba(50,114,193,.12))}
 .source-connection>div{display:grid;gap:4px;min-width:0;flex:initial}
