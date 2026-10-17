@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  // TuneWave searches Audius and Jamendo as public web music providers.
-  // Jamendo credentials stay in the server-side bridge, never in browser code.
+  // TuneWave searches Audius, Jamendo, and SoundCloud using their supported APIs.
+  // Jamendo and SoundCloud credentials stay in the server-side bridge, never in browser code.
   const AUDIUS_API_BASE = 'https://api.audius.co/v1';
   const AUDIUS_APP_NAME = 'TuneWave';
   const JAMENDO_BRIDGE_BASE = String(window.TUNEWAVE_JAMENDO_API_BASE || '').trim().replace(/\/+$/, '');
@@ -92,6 +92,28 @@
       streamUrl: '', source: 'Audius', isStreamable: raw.is_streamable !== false
     };
   }
+  function normalizeSoundCloudTrack(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const id = String(raw.id || raw.track_id || '').trim();
+    const permalink = String(raw.permalink_url || raw.permalink || '');
+    if (!id || !/^https:\/\/(www\\.)?soundcloud\\.com\//i.test(permalink)) return null;
+    return {
+      uid: `soundcloud:${id}`, id, soundcloudId: id,
+      title: String(raw.title || raw.name || 'Untitled track').trim(),
+      artist: String(raw.artist_name || raw.user?.username || raw.artist || 'Unknown artist').trim(),
+      duration: Math.max(0, Number(raw.duration || 0)),
+      artwork: String(raw.artwork_url || raw.artwork || ''),
+      permalink, sourceUrl: permalink, streamUrl: '', source: 'SoundCloud'
+    };
+  }
+  async function searchSoundCloudCatalog(query) {
+    if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('SoundCloud bridge URL is not configured.');
+    const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/soundcloud/search?q=${encodeURIComponent(query)}`, 12000);
+    const data = Array.isArray(payload?.results) ? payload.results : Array.isArray(payload?.collection) ? payload.collection : [];
+    const tracks = uniqueTracks(data, normalizeSoundCloudTrack).slice(0, 30);
+    if (!tracks.length && payload?.error) throw new Error(String(payload.error));
+    return tracks;
+  }
   function normalizeJamendoTrack(raw) {
     if (!raw || typeof raw !== 'object') return null;
     const id = String(raw.id || raw.track_id || '').trim();
@@ -151,6 +173,14 @@
       if (!/^https:\/\//i.test(streamUrl)) throw new Error('Jamendo did not return a playable audio stream for this track.');
       return streamUrl;
     }
+    if (source === 'soundcloud') {
+      const id = String(track.soundcloudId ?? track.id ?? '').trim();
+      if (!id || !JAMENDO_BRIDGE_CONFIGURED) throw new Error('SoundCloud playback needs the configured provider bridge.');
+      const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/soundcloud/track/${encodeURIComponent(id)}`, 12000);
+      const streamUrl = String(payload?.streamUrl || '');
+      if (!/^https:\/\//i.test(streamUrl)) throw new Error('SoundCloud did not return a playable stream for this track.');
+      return streamUrl;
+    }
     throw new Error('This saved item belongs to an older or unsupported music source. Search again to find a supported track.');
   }
 
@@ -173,9 +203,12 @@
   function trackRow(track, index, active = false) {
     const id = escapeHTML(trackId(track));
     const playing = state.current && trackId(state.current) === trackId(track);
-    const attribution = String(track.source || '').toLowerCase() === 'jamendo' && (track.licenseUrl || track.sourceUrl)
+    const sourceName = String(track.source || '').toLowerCase();
+    const attribution = sourceName === 'jamendo' && (track.licenseUrl || track.sourceUrl)
       ? `<a class="track-license-link" href="${escapeHTML(track.licenseUrl || track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="${track.licenseUrl ? 'Open this track’s licence' : 'Open the Jamendo track page to inspect its licence'}">${track.licenseUrl ? 'CC ↗' : 'Page ↗'}</a>`
-      : '<span class="track-license-spacer" aria-hidden="true"></span>';
+      : sourceName === 'soundcloud' && track.sourceUrl
+        ? `<a class="track-license-link" href="${escapeHTML(track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="Open the original SoundCloud track">SC ↗</a>`
+        : '<span class="track-license-spacer" aria-hidden="true"></span>';
     return `<div class="track-row${playing ? ' playing' : ''}" data-track-row="${id}">
       ${artHTML(track)}
       <button class="track-main track-pick" data-play-track="${id}" data-track-index="${index}" aria-label="Play ${escapeHTML(track.title)}" style="background:transparent;border:0;text-align:left;min-width:0;padding:0">
@@ -212,18 +245,20 @@
     state.query = q;
     $('#results-kicker').textContent = 'SEARCHING CONNECTED MUSIC SOURCES';
     $('#results-title').textContent = `Results for “${q}”`;
-    $('#search-hint').textContent = JAMENDO_BRIDGE_CONFIGURED ? 'Searching Audius and Jamendo…' : 'Searching Audius. Jamendo becomes available after its bridge is configured.';
+    $('#search-hint').textContent = 'Searching Audius, Jamendo, and SoundCloud…';
     $('#recent-section').hidden = false;
-    setLoading(JAMENDO_BRIDGE_CONFIGURED ? 'Searching Audius and Jamendo music…' : 'Searching Audius music…');
+    setLoading('Searching Audius, Jamendo, and SoundCloud music…');
     state.view = 'discover'; updateNavigation();
 
-    const [jamendoResult, audiusResult] = await Promise.allSettled([
+    const [jamendoResult, audiusResult, soundcloudResult] = await Promise.allSettled([
       searchJamendoCatalog(q),
-      searchAudiusCatalog(q)
+      searchAudiusCatalog(q),
+      searchSoundCloudCatalog(q)
     ]);
     const jamendoTracks = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
     const audiusTracks = audiusResult.status === 'fulfilled' ? audiusResult.value : [];
-    const combined = [...audiusTracks, ...jamendoTracks];
+    const soundcloudTracks = soundcloudResult.status === 'fulfilled' ? soundcloudResult.value : [];
+    const combined = [...audiusTracks, ...jamendoTracks, ...soundcloudTracks];
     const seen = new Set();
     const tracks = combined.filter(track => {
       const key = trackId(track);
@@ -236,9 +271,18 @@
       state.queue = tracks.slice(0, 50);
       state.queueIndex = -1;
       renderTrackList(tracks);
-      const providers = [audiusTracks.length ? `Audius (${audiusTracks.length})` : '', jamendoTracks.length ? `Jamendo (${jamendoTracks.length})` : ''].filter(Boolean).join(' + ');
-      const jamendoNote = JAMENDO_BRIDGE_CONFIGURED ? '' : ' Jamendo needs the bridge URL configured.';
-      $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}.${jamendoNote} Track availability and licences vary.`;
+      const providers = [
+        audiusTracks.length ? `Audius (${audiusTracks.length})` : '',
+        jamendoTracks.length ? `Jamendo (${jamendoTracks.length})` : '',
+        soundcloudTracks.length ? `SoundCloud (${soundcloudTracks.length})` : ''
+      ].filter(Boolean).join(' + ');
+      $('#search-hint').textContent = `Found ${tracks.length} results from ${providers || 'connected providers'}. Availability and playback rights vary by track.`;
+      if (soundcloudTracks.length) {
+        $('#soundcloud-connection')?.classList.add('source-connection-live');
+        $('#soundcloud-connection')?.classList.remove('source-connection-warning');
+        $('#soundcloud-status').textContent = 'LIVE';
+        $('#soundcloud-description').textContent = 'Official API · playable public tracks';
+      }
       $('#results-kicker').textContent = 'YOUR SEARCH, MULTIPLE SOURCES';
       renderQueue(); saveState(true);
       return;
@@ -246,14 +290,15 @@
 
     const jamendoFailed = jamendoResult.status === 'rejected';
     const audiusFailed = audiusResult.status === 'rejected';
-    if (!audiusFailed || !jamendoFailed) {
+    const soundcloudFailed = soundcloudResult.status === 'rejected';
+    if (!audiusFailed || !jamendoFailed || !soundcloudFailed) {
       resultsArea.innerHTML = `<div class="no-results"><strong>No matching tracks found</strong>Try the full song title with a different spelling, or try another search.</div>`;
       $('#result-count').textContent = '';
-      $('#search-hint').textContent = !JAMENDO_BRIDGE_CONFIGURED ? 'No Audius results. Configure the Jamendo bridge to enable the second source.' : 'No matching results from Audius or Jamendo.';
+      $('#search-hint').textContent = 'No matching results from the providers that responded. Check SoundCloud credentials in Render if its results are missing.';
     } else {
-      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>Audius and Jamendo could not return results. Check network status and the Jamendo bridge configuration, then retry.<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
+      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>Audius, Jamendo, and SoundCloud could not return results. Check the provider bridge and credentials, then retry.<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
       $('#result-count').textContent = '';
-      $('#search-hint').textContent = 'Both connected search sources failed this time.';
+      $('#search-hint').textContent = 'All connected search sources failed this time.';
       $('#retry-search')?.addEventListener('click', () => searchCatalog(q));
     }
   }
