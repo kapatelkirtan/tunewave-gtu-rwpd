@@ -889,9 +889,22 @@
     status.textContent = label;
     status.classList.toggle('connection-status-warning', !connected);
   }
+  function paintAudiomackStatus(connected, description, label) {
+    const card = $('#audiomack-connection');
+    if (!card) return;
+    card.classList.toggle('source-connection-live', Boolean(connected));
+    card.classList.toggle('source-connection-warning', !connected);
+    const desc = $('#audiomack-description');
+    if (desc) desc.textContent = description;
+    const indicator = card.querySelector('.connection-indicator');
+    if (indicator) indicator.classList.toggle('connection-indicator-muted', !connected);
+    const status = $('#audiomack-status');
+    if (status) { status.textContent = label; status.classList.toggle('connection-status-warning', !connected); }
+  }
   async function checkJamendoBridge() {
     if (!JAMENDO_BRIDGE_CONFIGURED) {
       paintJamendoStatus(false, 'Needs Jamendo bridge URL in config.js', 'SETUP');
+      paintAudiomackStatus(false, 'Needs provider bridge URL in config.js', 'SETUP');
       return;
     }
     try {
@@ -899,8 +912,12 @@
       if (health?.ok && health?.configured) paintJamendoStatus(true, 'Bridge online · Jamendo search/stream', 'READY');
       else if (health?.ok) paintJamendoStatus(false, 'Add JAMENDO_CLIENT_ID in Render environment', 'CONFIG');
       else paintJamendoStatus(false, 'Bridge responded but is not ready', 'CHECK');
+      if (health?.ok && health?.audiomackEnabled) paintAudiomackStatus(true, 'Bridge online · Audiomack search/stream', 'READY');
+      else if (health?.ok) paintAudiomackStatus(false, 'Add Audiomack consumer credentials in Render', 'SETUP');
+      else paintAudiomackStatus(false, 'Bridge responded but is not ready', 'CHECK');
     } catch (_) {
       paintJamendoStatus(false, 'Bridge unreachable · check Render service', 'OFFLINE');
+      paintAudiomackStatus(false, 'Bridge unreachable · check Render service', 'OFFLINE');
     }
   }
 
