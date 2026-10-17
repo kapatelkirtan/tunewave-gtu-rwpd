@@ -415,7 +415,7 @@
     const caption = $('#external-music-query');
     if (caption) caption.textContent = 'Search “' + q + '” on these official music services.';
     const playerCaption = $('#official-player-query');
-    if (playerCaption) playerCaption.textContent = 'Ready to find “' + q + '”. Paste a YouTube / YouTube Music video or playlist link, or a Spotify track, album, or playlist link, to play it here.';
+    if (playerCaption) playerCaption.textContent = 'Ready to find “' + q + '”. Paste a YouTube / YouTube Music video or playlist link to play it here.';
   }
 
   function stopOfficialEmbed() {
@@ -531,7 +531,7 @@
           if (fullTrackHelp) fullTrackHelp.hidden = false;
           if (openLink) openLink.href = parsed.href;
         }
-        if (status) status.textContent = 'Loading the official ' + serviceName + ' player. If only a preview plays, encrypted-media support or Spotify account / track eligibility may be limiting playback.';
+        if (status) status.textContent = 'Loading the official ' + serviceName + ' player. Playback availability and full-track access depend on the service and your device.';
       }
     });
   }
