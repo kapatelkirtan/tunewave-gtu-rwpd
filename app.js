@@ -394,7 +394,7 @@
       'bandcamp': 'https://bandcamp.com/search?q=' + encoded,
       'free-music-archive': 'https://freemusicarchive.org/search/?quicksearch=' + encoded
     };
-    $('[data-external-provider]').forEach(link => {
+    $$('[data-external-provider]').forEach(link => {
       const target = destinations[link.dataset.externalProvider];
       if (target) link.href = target;
     });
