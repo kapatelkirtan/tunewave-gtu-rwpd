@@ -1,6 +1,6 @@
 # TuneWave open-audio providers
 
-TuneWave combines Audius, Jamendo, Internet Archive, Wikimedia Commons, ccMixter, rights-filtered Library of Congress audio, and Radio Browser live music stations. Openverse support is included but remains disabled until you add its API client credentials to the Render bridge service.
+TuneWave combines Audius, Jamendo, Internet Archive, Wikimedia Commons, ccMixter, rights-filtered Library of Congress audio, and Radio Browser live music stations. Openverse support is included and now uses anonymous API access by default. Registering credentials is optional if you need higher API rate limits.
 
 ## Deployment
 
@@ -30,16 +30,9 @@ TuneWave also searches Wikimedia Commons through its public MediaWiki API. Resul
 - **Library of Congress**: searches its public JSON audio endpoint. The connector only returns a playable file when it finds direct audio resources and metadata explicitly indicates public domain, Creative Commons, or no known restrictions. Coverage is primarily historical and archival.
 - **Openverse**: audio search is integrated behind a server-side OAuth client-credentials flow. It is intentionally disabled by default until the two Render environment variables below are set.
 
-## Enable Openverse on Render
+## Optional Openverse credentials
 
-1. Register an application / API credentials with Openverse using its official API documentation: https://api.openverse.org/v1/
-2. In the Render dashboard, open the `tunewave-jamendo-bridge` service and add:
-   - `OPENVERSE_CLIENT_ID`
-   - `OPENVERSE_CLIENT_SECRET`
-3. Save the changes and redeploy the bridge. Do not put the client secret in `app.js`, `config.js`, or any other browser-visible file.
-4. Check `/health` for `"openverseEnabled":true`, then search a term in TuneWave.
-
-Openverse API documentation: https://api.openverse.org/v1/ . Credentials are required for the connector as implemented here.
+Basic Openverse search now works anonymously, so you do not need to register just to test it. Open https://api.openverse.org/v1/audio/?q=jazz in a browser to check whether the API is reachable from your network. If you later want credentials / higher request limits, use the registration endpoint described at https://api.openverse.org/v1/ and add `OPENVERSE_CLIENT_ID` and `OPENVERSE_CLIENT_SECRET` to the Render bridge service environment. Keep the secret out of client-side files. Check the bridge `/health` response; `openverseEnabled` indicates that the anonymous-capable connector is installed and `openverseAuthEnabled` indicates that credentials are configured.
 
 ## Rights, formats, and realistic limits
 
