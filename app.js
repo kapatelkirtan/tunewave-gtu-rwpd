@@ -93,84 +93,6 @@
     };
   }
 
-  function normalizeDeezerTrack(raw) {
-    if (!raw || typeof raw !== 'object') return null;
-    const id = String(raw.id || raw.track_id || '').trim();
-    const streamUrl = String(raw.previewUrl || raw.preview || raw.streamUrl || '').trim();
-    if (!id || !/^https:\/\/cdns-preview-[a-z0-9-]+\.dzcdn\.net\//i.test(streamUrl)) return null;
-    const deezerUrl = String(raw.permalink || 'https://www.deezer.com/track/' + encodeURIComponent(id));
-    return {
-      uid: 'deezer:' + id, id: id, deezerId: id,
-      title: String(raw.title || raw.name || 'Untitled track').trim(),
-      artist: String(raw.artist || raw.artist_name || 'Unknown artist').trim(),
-      album: String(raw.album || '').trim(),
-      duration: 30, previewOnly: true,
-      artwork: String(raw.artwork || raw.cover || ''),
-      permalink: deezerUrl, sourceUrl: deezerUrl,
-      streamUrl: streamUrl, source: 'Deezer'
-    };
-  }
-
-  function normalizeMusicBrainzRecording(raw) {
-    if (!raw || typeof raw !== 'object') return null;
-    const id = String(raw.id || '').trim();
-    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-    return {
-      id: id,
-      title: String(raw.title || 'Untitled recording').trim(),
-      artist: String(raw.artist || 'Unknown artist').trim(),
-      release: String(raw.release || '').trim(),
-      year: String(raw.year || ''),
-      duration: Math.max(0, Number(raw.duration || 0)),
-      permalink: 'https://musicbrainz.org/recording/' + id,
-      source: 'MusicBrainz',
-      playable: false
-    };
-  }
-
-  async function searchDeezerCatalog(query) {
-    if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('The music provider bridge is not configured.');
-    const payload = await getBridgeJson(JAMENDO_BRIDGE_BASE + '/api/deezer/search?q=' + encodeURIComponent(query), 12000);
-    const data = Array.isArray(payload && payload.results) ? payload.results : [];
-    const tracks = uniqueTracks(data, normalizeDeezerTrack).slice(0, 20);
-    if (!tracks.length && payload && payload.error) throw new Error(String(payload.error));
-    return tracks;
-  }
-
-  async function searchMusicBrainzCatalog(query) {
-    if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('The music provider bridge is not configured.');
-    const payload = await getBridgeJson(JAMENDO_BRIDGE_BASE + '/api/musicbrainz/search?q=' + encodeURIComponent(query), 15000);
-    if (payload && payload.error) throw new Error(String(payload.error));
-    const data = Array.isArray(payload && payload.results) ? payload.results : [];
-    return data.map(normalizeMusicBrainzRecording).filter(Boolean).slice(0, 8);
-  }
-
-  function renderMusicBrainzMatches(matches) {
-    const panel = $('#musicbrainz-panel');
-    const list = $('#musicbrainz-results');
-    if (!panel || !list) return;
-    if (!matches.length) {
-      panel.hidden = true;
-      list.innerHTML = '';
-      return;
-    }
-    panel.hidden = false;
-    list.innerHTML = matches.slice(0, 6).map(recording => {
-      const query = [recording.title, recording.artist].filter(Boolean).join(' ');
-      const meta = [recording.release, recording.year].filter(Boolean).join(' · ');
-      const title = escapeHTML(recording.title);
-      const artist = escapeHTML(recording.artist);
-      const release = meta ? ' · ' + escapeHTML(meta) : '';
-      const url = escapeHTML(recording.permalink);
-      const queryAttr = escapeHTML(query);
-      return '<article class="metadata-track">' +
-        '<div class="metadata-track-copy"><strong>' + title + '</strong><span>' + artist + release + '</span></div>' +
-        '<a class="metadata-source-link" href="' + url + '" target="_blank" rel="noopener noreferrer">Metadata ↗</a>' +
-        '<button type="button" class="metadata-search-button" data-query="' + queryAttr + '">Search playable sources</button>' +
-        '</article>';
-    }).join('');
-  }
-
   function normalizeJamendoTrack(raw) {
     if (!raw || typeof raw !== 'object') return null;
     const id = String(raw.id || raw.track_id || '').trim();
@@ -368,13 +290,6 @@
       }
       return parsed.href;
     }
-    if (source === 'deezer') {
-      const previewUrl = String(track.streamUrl || '').trim();
-      if (!/^https:\/\/cdns-preview-[a-z0-9-]+\.dzcdn\.net\//i.test(previewUrl)) {
-        throw new Error('Deezer did not provide a valid playable preview for this track.');
-      }
-      return previewUrl;
-    }
     if (source === 'audius') {
       const id = String(track.audiusId ?? track.track_id ?? track.id ?? '').trim();
       if (!id) throw new Error('This Audius result does not include a playable track ID.');
@@ -435,7 +350,7 @@
     const id = escapeHTML(trackId(track));
     const playing = state.current && trackId(state.current) === trackId(track);
     const sourceName = String(track.source || '').toLowerCase();
-    const attribution = (track.licenseUrl || track.sourceUrl) && ['jamendo', 'internet archive', 'wikimedia commons', 'ccmixter', 'openverse', 'radio browser', 'funkwhale', 'funkwhale / open audio', 'audiomack', 'deezer'].includes(sourceName)
+    const attribution = (track.licenseUrl || track.sourceUrl) && ['jamendo', 'internet archive', 'wikimedia commons', 'ccmixter', 'openverse', 'radio browser', 'funkwhale', 'funkwhale / open audio', 'audiomack'].includes(sourceName)
       ? `<a class="track-license-link" href="${escapeHTML(track.licenseUrl || track.sourceUrl)}" target="_blank" rel="noopener noreferrer" title="Open the source page and check this track’s licence">${track.licenseUrl ? 'Licence ↗' : 'Source ↗'}</a>`
       : '<span class="track-license-spacer" aria-hidden="true"></span>';
     return `<div class="track-row${playing ? ' playing' : ''}" data-track-row="${id}">
@@ -631,13 +546,11 @@
     $('#search-hint').textContent = 'Searching connected music sources…';
     $('#recent-section').hidden = false;
     setLoading('Searching connected music sources…');
-    renderMusicBrainzMatches([]);
     state.view = 'discover'; updateNavigation();
 
-    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, openverseResult, radioResult, freeToUseResult, funkwhaleResult, deezerResult, musicBrainzResult] = await Promise.allSettled([
+    const [jamendoResult, audiusResult, archiveResult, commonsResult, ccmixterResult, openverseResult, radioResult, freeToUseResult, funkwhaleResult] = await Promise.allSettled([
       searchJamendoCatalog(q), searchAudiusCatalog(q), searchArchiveCatalog(q), searchCommonsCatalog(q),
-      searchCcmixterCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q), searchFreeToUseCatalog(q), searchFunkwhaleCatalog(q),
-      searchDeezerCatalog(q), searchMusicBrainzCatalog(q)
+      searchCcmixterCatalog(q), searchOpenverseCatalog(q), searchRadioCatalog(q), searchFreeToUseCatalog(q), searchFunkwhaleCatalog(q)
     ]);
     const jamendoTracks = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
     const audiusTracks = audiusResult.status === 'fulfilled' ? audiusResult.value : [];
@@ -648,10 +561,7 @@
     const radioTracks = radioResult.status === 'fulfilled' ? radioResult.value : [];
     const freeToUseTracks = freeToUseResult.status === 'fulfilled' ? freeToUseResult.value : [];
     const funkwhaleTracks = funkwhaleResult.status === 'fulfilled' ? funkwhaleResult.value : [];
-    const deezerTracks = deezerResult.status === 'fulfilled' ? deezerResult.value : [];
-    const musicBrainzMatches = musicBrainzResult.status === 'fulfilled' ? musicBrainzResult.value : [];
-    renderMusicBrainzMatches(musicBrainzMatches);
-    const combined = [...audiusTracks, ...deezerTracks, ...freeToUseTracks, ...jamendoTracks, ...funkwhaleTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...openverseTracks, ...radioTracks];
+    const combined = [...audiusTracks, ...freeToUseTracks, ...jamendoTracks, ...funkwhaleTracks, ...archiveTracks, ...commonsTracks, ...ccmixterTracks, ...openverseTracks, ...radioTracks];
     const seen = new Set();
     const tracks = combined.filter(track => {
       const key = trackId(track);
@@ -663,8 +573,7 @@
       ['Audius', audiusResult], ['Free To Use', freeToUseResult], ['Jamendo', jamendoResult], ['Funkwhale / Open Audio', funkwhaleResult],
       ['Internet Archive', archiveResult], ['Wikimedia Commons', commonsResult],
       ['ccMixter', ccmixterResult],
-      ['Openverse', openverseResult], ['Radio Browser', radioResult],
-      ['Deezer previews', deezerResult], ['MusicBrainz metadata', musicBrainzResult]
+      ['Openverse', openverseResult], ['Radio Browser', radioResult]
     ];
     const failedProviders = providerRuns
       .filter(([, result]) => result.status === 'rejected')
@@ -680,7 +589,6 @@
       renderTrackList(tracks);
       const providers = [
         audiusTracks.length ? `Audius (${audiusTracks.length})` : '',
-        deezerTracks.length ? `Deezer previews (${deezerTracks.length})` : '',
         freeToUseTracks.length ? `Free To Use (${freeToUseTracks.length})` : '',
         jamendoTracks.length ? `Jamendo (${jamendoTracks.length})` : '',
         funkwhaleTracks.length ? `Funkwhale / Open Audio (${funkwhaleTracks.length})` : '',
@@ -691,7 +599,6 @@
         radioTracks.length ? `Radio Browser (${radioTracks.length} stations)` : ''
       ].filter(Boolean).join(' + ');
       $('#search-hint').textContent = `Found ${tracks.length} playable tracks/previews from ${providers}.` +
-        (musicBrainzMatches.length ? ` MusicBrainz added ${musicBrainzMatches.length} metadata matches (not playable audio).` : '') +
         ' Open-source audio results include licence/source links; check the original rights page before reuse.' + failureSummary;
       $('#results-kicker').textContent = 'YOUR SEARCH, MULTIPLE SOURCES';
       renderQueue(); saveState(true);
@@ -1290,13 +1197,6 @@
         provider: 'radio', flag: 'radioBrowserEnabled', path: '/api/radio/search',
         online: count => count ? 'Live station directory responded · ' + count + ' matching stations.' : 'Station directory responded · no “music” matches.'
       },
-      {
-        provider: 'deezer', flag: 'deezerEnabled', path: '/api/deezer/search',
-        online: count => count ? 'Deezer responded · ' + count + ' playable 30-second previews.' : 'Deezer API responded · no preview tracks for “music”.'
-      },
-      {
-        provider: 'musicbrainz', flag: 'musicBrainzEnabled', path: '/api/musicbrainz/search',
-        online: count => count ? 'MusicBrainz responded · ' + count + ' metadata matches (not audio).' : 'MusicBrainz API responded · no metadata matches.'
       }
     ];
 
@@ -1347,7 +1247,7 @@
     const note = $('#provider-note');
     if (note) {
       const checkedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      note.textContent = 'Checked at ' + checkedAt + '. Deezer offers short previews, not full songs; MusicBrainz offers metadata only. ONLINE means the endpoint answered, not that every title exists or every stream will play.';
+      note.textContent = 'Checked at ' + checkedAt + '. ONLINE means the endpoint answered, not that every title exists or every stream will play.';
     }
     if (refresh) refresh.disabled = false;
     if (refresh) refresh.classList.remove('is-checking');
