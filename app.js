@@ -141,6 +141,37 @@
     return tracks;
   }
 
+  async function searchCommonsCatalog(query) {
+    const url = new URL('https://commons.wikimedia.org/w/api.php');
+    url.searchParams.set('action', 'query');
+    url.searchParams.set('format', 'json');
+    url.searchParams.set('origin', '*');
+    url.searchParams.set('generator', 'search');
+    url.searchParams.set('gsrsearch', 'filetype:audio ' + query);
+    url.searchParams.set('gsrnamespace', '6');
+    url.searchParams.set('gsrlimit', '30');
+    url.searchParams.set('prop', 'imageinfo');
+    url.searchParams.set('iiprop', 'url|extmetadata');
+    const payload = await getJson(url.href, 12000);
+    const pages = Object.values(payload?.query?.pages || {});
+    return uniqueTracks(pages, normalizeCommonsTrack).slice(0, 15);
+  }
+  function normalizeCommonsTrack(page) {
+    if (!page || typeof page !== 'object') return null;
+    const info = Array.isArray(page.imageinfo) ? page.imageinfo[0] : null;
+    const url = String(info?.url || '');
+    if (!page.pageid || !/^https:\/\//i.test(url) || !/\.(ogg|oga|mp3|wav|flac|opus)(?:$|[?#])/i.test(url)) return null;
+    const meta = info?.extmetadata || {};
+    const value = key => String(meta[key]?.value || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+    const license = value('LicenseUrl');
+    const licenseName = value('LicenseShortName');
+    if (!/creativecommons\.org|public domain|cc0|free art license|gnu/i.test(license + ' ' + licenseName)) return null;
+    const artist = value('Artist') || value('Credit') || 'Wikimedia Commons contributor';
+    const title = value('ObjectName') || String(page.title || '').replace(/^File:/, '').replace(/\.[^.]+$/, '');
+    const sourceUrl = 'https://commons.wikimedia.org/wiki/' + encodeURIComponent(String(page.title || '').replace(/ /g, '_'));
+    return { uid: 'commons:' + page.pageid, id: String(page.pageid), commonsId: String(page.pageid), title: title.slice(0, 250), artist: artist.slice(0, 180), duration: 0, artwork: '', permalink: sourceUrl, sourceUrl, licenseUrl: license, licenseName, streamUrl: url, source: 'Wikimedia Commons' };
+  }
+
   function uniqueTracks(input, normalizer = normalizeJamendoTrack) {
     const data = Array.isArray(input) ? input : (input?.items ?? input?.data ?? input?.tracks ?? input?.results ?? input?.videos ?? []);
     if (!Array.isArray(data)) return [];
@@ -172,6 +203,11 @@
       const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/jamendo/track/${encodeURIComponent(id)}`, 10000);
       const streamUrl = String(payload?.track?.audio || payload?.audio || '');
       if (!/^https:\/\//i.test(streamUrl)) throw new Error('Jamendo did not return a playable audio stream for this track.');
+      return streamUrl;
+    }
+    if (source === 'wikimedia commons') {
+      const streamUrl = String(track.streamUrl || '');
+      if (!/^https:\/\//i.test(streamUrl)) throw new Error('Wikimedia Commons did not return a playable audio file.');
       return streamUrl;
     }
     if (source === 'internet archive') {
@@ -246,20 +282,19 @@
     state.query = q;
     $('#results-kicker').textContent = 'SEARCHING CONNECTED MUSIC SOURCES';
     $('#results-title').textContent = `Results for “${q}”`;
-    $('#search-hint').textContent = 'Searching Audius, Jamendo, and Internet Archive…';
+    $('#search-hint').textContent = 'Searching Audius, Jamendo, Internet Archive, and Wikimedia Commons…';
     $('#recent-section').hidden = false;
-    setLoading('Searching Audius, Jamendo, and openly licensed Archive audio…');
+    setLoading('Searching Audius, Jamendo, Internet Archive, and Wikimedia Commons audio…');
     state.view = 'discover'; updateNavigation();
 
-    const [jamendoResult, audiusResult, archiveResult] = await Promise.allSettled([
-      searchJamendoCatalog(q),
-      searchAudiusCatalog(q),
-      searchArchiveCatalog(q)
+    const [jamendoResult, audiusResult, archiveResult, commonsResult] = await Promise.allSettled([
+      searchJamendoCatalog(q), searchAudiusCatalog(q), searchArchiveCatalog(q), searchCommonsCatalog(q)
     ]);
     const jamendoTracks = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
     const audiusTracks = audiusResult.status === 'fulfilled' ? audiusResult.value : [];
     const archiveTracks = archiveResult.status === 'fulfilled' ? archiveResult.value : [];
-    const combined = [...audiusTracks, ...jamendoTracks, ...archiveTracks];
+    const commonsTracks = commonsResult.status === 'fulfilled' ? commonsResult.value : [];
+    const combined = [...audiusTracks, ...jamendoTracks, ...archiveTracks, ...commonsTracks];
     const seen = new Set();
     const tracks = combined.filter(track => {
       const key = trackId(track);
@@ -275,7 +310,8 @@
       const providers = [
         audiusTracks.length ? `Audius (${audiusTracks.length})` : '',
         jamendoTracks.length ? `Jamendo (${jamendoTracks.length})` : '',
-        archiveTracks.length ? `Internet Archive (${archiveTracks.length})` : ''
+        archiveTracks.length ? `Internet Archive (${archiveTracks.length})` : '',
+        commonsTracks.length ? `Wikimedia Commons (${commonsTracks.length})` : ''
       ].filter(Boolean).join(' + ');
       $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}. Archive results are limited to items marked Creative Commons or public domain; check the item rights before reuse.`;
       $('#results-kicker').textContent = 'YOUR SEARCH, MULTIPLE SOURCES';
@@ -286,12 +322,13 @@
     const jamendoFailed = jamendoResult.status === 'rejected';
     const audiusFailed = audiusResult.status === 'rejected';
     const archiveFailed = archiveResult.status === 'rejected';
-    if (!audiusFailed || !jamendoFailed || !archiveFailed) {
+    const commonsFailed = commonsResult.status === 'rejected';
+    if (!audiusFailed || !jamendoFailed || !archiveFailed || !commonsFailed) {
       resultsArea.innerHTML = `<div class="no-results"><strong>No matching tracks found</strong>Try the full song title with a different spelling, or try another search.</div>`;
       $('#result-count').textContent = '';
       $('#search-hint').textContent = 'No matching results from the providers that responded.';
     } else {
-      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>Audius, Jamendo, and Internet Archive could not return results. Check the provider bridge and network, then retry.<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
+      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>Audius, Jamendo, Internet Archive, and Wikimedia Commons could not return results. Check the provider bridge and network, then retry.<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
       $('#result-count').textContent = '';
       $('#search-hint').textContent = 'All connected search providers failed this time.';
       $('#retry-search')?.addEventListener('click', () => searchCatalog(q));
