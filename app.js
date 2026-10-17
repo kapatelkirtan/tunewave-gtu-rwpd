@@ -272,28 +272,12 @@
     });
   }
   async function searchAudiusCatalog(query) {
-    const searchOne = async term => {
-      const url = JAMENDO_BRIDGE_BASE + '/api/audius/search?q=' + encodeURIComponent(term);
-      const payload = await getBridgeJson(url, 12000);
-      return uniqueTracks(payload?.results ?? payload?.data ?? payload, normalizeAudiusTrack);
-    };
-    const normalizedQuery = String(query || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-    const ultraFunkSearch = /ultra funk|ultrafunk|brazilian funk|phonk|funk br|mandelao|automotivo/.test(normalizedQuery);
-    const gujaratiSearch = /gujarati|gujrati|garba|dandiya/.test(normalizedQuery);
-    const hindiSearch = /bollywood|hindi songs?|desi remix|indian pop/.test(normalizedQuery);
-    let terms;
-    if (ultraFunkSearch) {
-      terms = [query, 'ultrafunk', 'ultra funk', 'brazilian phonk', 'funk br', 'phonk', 'mandelao', 'automotivo', 'funk brasileiro', 'funk automotivo', 'phonk funk'];
-    } else if (gujaratiSearch) {
-      terms = [query, 'gujarati songs', 'gujarati garba', 'gujarati folk', 'garba remix', 'dandiya remix', 'gujarati DJ remix', 'navratri garba'];
-    } else if (hindiSearch) {
-      terms = [query, 'bollywood songs', 'hindi songs', 'hindi remix', 'bollywood remix', 'desi remix', 'hindi indie', 'bollywood instrumental', 'indian pop'];
-    } else {
-      return (await searchOne(query)).slice(0, 30);
-    }
-    const results = await Promise.allSettled([...new Set(terms)].map(searchOne));
-    return uniqueTracks(results.filter(result => result.status === 'fulfilled').flatMap(result => result.value), normalizeAudiusTrack).slice(0, 45);
+    if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('The music provider bridge is not configured.');
+    const url = JAMENDO_BRIDGE_BASE + '/api/audius/search?q=' + encodeURIComponent(query);
+    const payload = await getBridgeJson(url, 15000);
+    return uniqueTracks(payload?.results ?? payload?.data ?? payload, normalizeAudiusTrack).slice(0, 45);
   }
+
   async function resolveStreamURL(track) {
     const source = String(track?.source || '').toLowerCase();
     if (source === 'audius') {
