@@ -164,19 +164,41 @@ async function archiveJson(url, timeoutMs = 9000) {
   } finally { clearTimeout(timer); }
 }
 
+function isMusicArchiveItem(item) {
+  const title = String(Array.isArray(item?.title) ? item.title.join(' ') : item?.title || '');
+  const subjects = (Array.isArray(item?.subject) ? item.subject : [item?.subject])
+    .filter(Boolean).join(' ');
+  const collection = (Array.isArray(item?.collection) ? item.collection : [item?.collection])
+    .filter(Boolean).join(' ');
+  const searchable = `${title} ${subjects} ${collection}`;
+  // Prefer catalogue entries actually described as music; exclude spoken-word/audio-book results.
+  const spokenWord = /\\b(audiobook|audio book|librivox|speech|sermon|lecture|radio show|radio program|old time radio|dramatization|novel|short stories|interview|news broadcast|quran recitation)\\b/i;
+  const musicTerms = /\\b(music|song|songs|soundtrack|jazz|blues|classical|folk|rock|pop|electronic|ambient|instrumental|orchestra|symphony|concert|album|reggae|country|hip[- ]?hop|rap|funk|soul|metal|punk|trance|techno|house|disco|dance|opera|guitar|piano|violin|choir|choral|celtic|bluegrass|r&b|rhythm and blues)\\b/i;
+  return !spokenWord.test(title) && musicTerms.test(searchable);
+}
+
 async function archiveSearch(query) {
   const url = new URL('https://archive.org/advancedsearch.php');
-  url.searchParams.set('q', `(${query}) AND mediatype:audio`);
-  for (const field of ['identifier', 'title', 'creator', 'year', 'licenseurl', 'rights']) {
+  const musicSubjects = [
+    'subject:music', 'subject:song', 'subject:songs', 'subject:instrumental',
+    'subject:jazz', 'subject:blues', 'subject:classical', 'subject:folk',
+    'subject:rock', 'subject:pop', 'subject:electronic', 'subject:ambient',
+    'subject:reggae', 'subject:country', 'subject:hip-hop', 'subject:rap',
+    'subject:soundtrack', 'subject:orchestra', 'subject:opera', 'subject:funk',
+    'subject:soul', 'subject:metal', 'subject:punk', 'subject:disco',
+    'subject:bluegrass', 'subject:choir'
+  ].join(' OR ');
+  url.searchParams.set('q', `(${query}) AND mediatype:audio AND (${musicSubjects}) NOT (subject:audiobook OR subject:speech OR subject:sermon)`);
+  for (const field of ['identifier', 'title', 'creator', 'year', 'licenseurl', 'rights', 'subject', 'collection']) {
     url.searchParams.append('fl[]', field);
   }
-  url.searchParams.set('rows', '30');
+  url.searchParams.set('rows', '50');
   url.searchParams.set('page', '1');
   url.searchParams.set('output', 'json');
   url.searchParams.append('sort[]', 'downloads desc');
   const payload = await archiveJson(url.href);
   const docs = Array.isArray(payload?.response?.docs) ? payload.response.docs : [];
-  return docs.map(normalizeArchiveSearchItem).filter(Boolean).slice(0, 20);
+  return docs.filter(isMusicArchiveItem).map(normalizeArchiveSearchItem).filter(Boolean).slice(0, 20);
 }
 
 async function archivePlayableFile(identifier) {
