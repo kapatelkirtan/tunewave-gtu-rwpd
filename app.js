@@ -421,11 +421,13 @@
   function stopOfficialEmbed() {
     const frame = $('#official-player-frame');
     const stage = $('#official-player-stage');
+    const fullTrackHelp = $('#official-player-fulltrack-help');
     if (frame) {
       frame.removeAttribute('src');
       frame.hidden = true;
     }
     if (stage) stage.hidden = true;
+    if (fullTrackHelp) fullTrackHelp.hidden = true;
   }
 
   function setupOfficialPlayer() {
@@ -500,7 +502,7 @@
           if (status) status.textContent = 'Paste a Spotify track, album, or playlist link with its full Spotify ID.';
           return;
         }
-        embedUrl = 'https://open.spotify.com/embed/' + contentType + '/' + spotifyId + '?utm_source=generator';
+        embedUrl = 'https://open.spotify.com/embed/' + contentType + '/' + spotifyId;
         frameTitle = 'Official Spotify music player';
       } else {
         if (status) status.textContent = 'Choose YouTube / YouTube Music or Spotify.';
@@ -510,12 +512,26 @@
       stopOfficialEmbed();
       audio.pause();
       if (frame && stage) {
+        // Match Spotify's official embed permissions. encrypted-media is required
+        // for full-track playback; do not replace this with a preview audio URL.
+        frame.setAttribute('width', '100%');
+        frame.setAttribute('height', '352');
+        frame.setAttribute('frameborder', '0');
+        frame.setAttribute('allow', 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture');
+        frame.setAttribute('allowfullscreen', '');
+        frame.removeAttribute('referrerpolicy');
         frame.title = frameTitle;
         frame.src = embedUrl;
         frame.hidden = false;
         stage.hidden = false;
         const serviceName = provider === 'spotify' ? 'Spotify' : 'YouTube / YouTube Music';
-        if (status) status.textContent = 'Loading the official ' + serviceName + ' player. Playback, account or premium rules, ads, track availability, and background support are controlled by the service and your device.';
+        if (provider === 'spotify') {
+          const fullTrackHelp = $('#official-player-fulltrack-help');
+          const openLink = $('#official-player-open-link');
+          if (fullTrackHelp) fullTrackHelp.hidden = false;
+          if (openLink) openLink.href = parsed.href;
+        }
+        if (status) status.textContent = 'Loading the official ' + serviceName + ' player. If only a preview plays, encrypted-media support or Spotify account / track eligibility may be limiting playback.';
       }
     });
   }
