@@ -402,6 +402,90 @@
     if (caption) caption.textContent = 'Search “' + q + '” on these official music services.';
   }
 
+  function stopOfficialEmbed() {
+    const frame = $('#official-player-frame');
+    const stage = $('#official-player-stage');
+    if (frame) {
+      frame.removeAttribute('src');
+      frame.hidden = true;
+    }
+    if (stage) stage.hidden = true;
+  }
+
+  function setupOfficialPlayer() {
+    const form = $('#official-player-form');
+    if (!form) return;
+    const sourceSelect = $('#official-player-source');
+    const urlInput = $('#official-player-url');
+    const frame = $('#official-player-frame');
+    const stage = $('#official-player-stage');
+    const status = $('#official-player-status');
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const raw = String(urlInput?.value || '').trim();
+      const provider = String(sourceSelect?.value || 'youtube');
+      let parsed;
+      try {
+        parsed = new URL(raw);
+        if (parsed.protocol !== 'https:') throw new Error('Use an HTTPS share link from the official music service.');
+      } catch (_) {
+        if (status) status.textContent = 'Paste a valid HTTPS share URL from the selected service.';
+        return;
+      }
+
+      let embedUrl = '';
+      let frameTitle = '';
+      if (provider === 'youtube') {
+        const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+        const validHost = ['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be', 'youtube-nocookie.com'].includes(host);
+        if (!validHost) {
+          if (status) status.textContent = 'Choose YouTube above and paste a YouTube or YouTube Music video/playlist link.';
+          return;
+        }
+        const parts = parsed.pathname.split('/').filter(Boolean);
+        let videoId = '';
+        if (host === 'youtu.be') videoId = parts[0] || '';
+        else if (['embed', 'shorts', 'live'].includes(parts[0])) videoId = parts[1] || '';
+        else videoId = parsed.searchParams.get('v') || '';
+        const listId = parsed.searchParams.get('list') || '';
+        if (/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
+          embedUrl = 'https://www.youtube-nocookie.com/embed/' + videoId + '?playsinline=1&rel=0&enablejsapi=1';
+          if (/^[A-Za-z0-9_-]+$/.test(listId)) embedUrl += '&list=' + encodeURIComponent(listId);
+          frameTitle = 'Official YouTube music video player';
+        } else if (listId && /^[A-Za-z0-9_-]+$/.test(listId)) {
+          embedUrl = 'https://www.youtube-nocookie.com/embed/videoseries?list=' + encodeURIComponent(listId);
+          frameTitle = 'Official YouTube playlist player';
+        } else {
+          if (status) status.textContent = 'That YouTube link did not include a supported video or playlist ID.';
+          return;
+        }
+      } else if (provider === 'soundcloud') {
+        const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+        const parts = parsed.pathname.split('/').filter(Boolean);
+        if (host !== 'soundcloud.com' || parts.length < 2 || parts[0] === 'search') {
+          if (status) status.textContent = 'Paste a full SoundCloud track or playlist link (not a search page or short link).';
+          return;
+        }
+        embedUrl = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(parsed.href) + '&auto_play=false&hide_related=true&show_comments=false&show_user=true&visual=true';
+        frameTitle = 'Official SoundCloud embedded player';
+      } else {
+        if (status) status.textContent = 'Choose one of the supported official embedded players.';
+        return;
+      }
+
+      stopOfficialEmbed();
+      audio.pause();
+      if (frame && stage) {
+        frame.title = frameTitle;
+        frame.src = embedUrl;
+        frame.hidden = false;
+        stage.hidden = false;
+        if (status) status.textContent = 'Loading the official ' + (provider === 'youtube' ? 'YouTube' : 'SoundCloud') + ' player. Ads, account rules and background playback are controlled by that service and your device.';
+      }
+    });
+  }
+
   async function getJson(url, timeoutMs = 14000) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -919,7 +1003,7 @@
     } else audio.pause();
   }
 
-  audio.addEventListener('play', () => { updateCurrentTrackUI(); saveState(true); });
+  audio.addEventListener('play', () => { stopOfficialEmbed(); updateCurrentTrackUI(); saveState(true); });
   audio.addEventListener('pause', () => { state.position = audio.currentTime || state.position; updateCurrentTrackUI(); saveState(true); });
   audio.addEventListener('timeupdate', () => { updateProgress(); state.position = audio.currentTime || 0; saveState(false); });
   audio.addEventListener('loadedmetadata', () => { updateProgress(); });
@@ -1139,6 +1223,7 @@
 
   $('#year').textContent = String(new Date().getFullYear());
   updateExternalMusicLinks(searchInput.value || 'ultrafunk');
+  setupOfficialPlayer();
   readState();
   restoreSession();
   checkProviderConnections();
