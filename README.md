@@ -46,3 +46,10 @@ TuneWave now expands targeted searches across several public/open catalogues. Ul
 ## Free listening and lock-screen limits
 
 TuneWave does not inject its own audio ads into the built-in HTML audio player. This is not a guarantee that every third-party service is ad-free or that every track is available without an account. The built-in player includes Media Session metadata and play/pause/seek/next/previous controls for compatible browsers. Install TuneWave from the browser and start playback with the screen on to give the browser a user gesture; lock-screen/background behavior remains device/browser/provider dependent. TuneWave cannot legally make mainstream copyrighted Bollywood songs simultaneously free, ad-free and background playable without the rightsholder's supported access terms.
+
+
+## Official YouTube and SoundCloud embedded players
+
+TuneWave now lets a listener paste an HTTPS YouTube/YouTube Music video or playlist URL, or a full SoundCloud track/playlist URL, and load that service's official embedded player on the page. This uses the official embed players rather than extracting or re-hosting audio. It is a playback fallback for tracks that are not present in TuneWave's open catalogues; it is not a direct integration into TuneWave's HTML-audio queue. Searching YouTube/SoundCloud is still done through the official search links, and the selected result URL is then pasted into the embed form.
+
+The embedded platforms control their own advertisements, login/premium checks, geographic availability, and player behavior. TuneWave cannot remove their ads, bypass their terms, or guarantee lock-screen/background playback through embedded players. For direct HTML-audio playback with TuneWave's Media Session controls, use results from its connected catalogues, where available. No one free service reliably provides every Ultra Funk remix and mainstream Hindi/Gujarati/Bollywood recording with all of ad-free, no-premium, and background/lock-screen playback.
