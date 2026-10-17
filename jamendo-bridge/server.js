@@ -22,6 +22,16 @@ const responseCache = new Map();
 const CACHE_TTL_MS = 45_000;
 const MAX_CACHE_ENTRIES = 120;
 
+// LOC documents a 20 requests/minute limit. Keep calls serialized and spaced,
+// and pause LOC for an hour after a 403/429 instead of repeatedly retrying a block.
+const LOC_MIN_REQUEST_INTERVAL_MS = 3600;
+const LOC_BLOCK_COOLDOWN_MS = 60 * 60 * 1000;
+let locNextRequestAt = 0;
+let locBlockedUntil = 0;
+let locBlockedReason = '';
+let locLastHealthyAt = 0;
+let locQueue = Promise.resolve();
+
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(status, {
@@ -536,8 +546,47 @@ function collectLocFiles(node, out = [], seen = new Set(), depth = 0) {
   return out;
 }
 async function locJson(url) {
-  const response = await sourceFetch(url, 'Library of Congress', 9000);
-  return response.json();
+  const run = async function() {
+    const now = Date.now();
+    if (now < locBlockedUntil) {
+      const retryMinutes = Math.max(1, Math.ceil((locBlockedUntil - now) / 60000));
+      const error = new Error('Library of Congress access is paused after HTTP ' + (locBlockedReason || '403') + '; retrying in about ' + retryMinutes + ' minute(s). Other music providers remain available.');
+      error.statusCode = 503;
+      throw error;
+    }
+
+    const waitMs = Math.max(0, locNextRequestAt - Date.now());
+    if (waitMs) await new Promise(resolve => setTimeout(resolve, waitMs));
+    if (Date.now() < locBlockedUntil) {
+      const error = new Error('Library of Congress requests are paused after an upstream access block. Other music providers remain available.');
+      error.statusCode = 503;
+      throw error;
+    }
+
+    locNextRequestAt = Date.now() + LOC_MIN_REQUEST_INTERVAL_MS;
+    try {
+      const response = await sourceFetch(url, 'Library of Congress', 9000, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TuneWave/1.0 (https://tunewave-gtu-rwpd-1.onrender.com; low-volume public API access)'
+        }
+      });
+      const payload = await response.json();
+      locLastHealthyAt = Date.now();
+      return payload;
+    } catch (error) {
+      if (/HTTP (403|429)/i.test(String(error && error.message || ''))) {
+        locBlockedReason = (/HTTP 429/i.test(error.message) ? '429' : '403');
+        locBlockedUntil = Date.now() + LOC_BLOCK_COOLDOWN_MS;
+        console.error('[loc-bridge] Upstream HTTP ' + locBlockedReason + '; pausing LOC requests for 60 minutes to respect access limits.');
+      }
+      throw error;
+    }
+  };
+
+  const task = locQueue.then(run, run);
+  locQueue = task.then(() => undefined, () => undefined);
+  return task;
 }
 async function libraryOfCongressSearch(query) {
   // The LOC JSON/YAML API documents /search/ plus the original-format facet
@@ -549,7 +598,7 @@ async function libraryOfCongressSearch(query) {
   searchUrl.searchParams.set('c', '12');
   searchUrl.searchParams.set('fa', 'original-format:sound recording');
   const search = await locJson(searchUrl.href);
-  const items = Array.isArray(search && search.results) ? search.results.slice(0, 10) : [];
+  const items = Array.isArray(search && search.results) ? search.results.slice(0, 2) : [];
   const settled = await Promise.allSettled(items.map(async function(result) {
     let detail = result;
     let files = collectLocFiles(result);
@@ -811,51 +860,32 @@ const server = http.createServer(async (req, res) => {
 
 
 
-  // Lightweight status probe for the LOC audio search API. This confirms the
-  // remote API responds without resolving individual tracks or audio streams.
+  // Lightweight status probe; one query only. LOC requests are globally paced and
+  // are paused for an hour after an upstream 403/429 to avoid extending a block.
   if (requestUrl.pathname === '/api/loc/status') {
     if (isRateLimited(req)) return sendJson(res, 429, { error: 'Rate limit exceeded. Wait a minute and try again.' });
+    if (Date.now() < locBlockedUntil) {
+      const retryMinutes = Math.max(1, Math.ceil((locBlockedUntil - Date.now()) / 60000));
+      return sendJson(res, 503, {
+        ok: false, provider: 'Library of Congress', upstreamStatus: Number(locBlockedReason) || 403,
+        retryAfterMinutes: retryMinutes,
+        error: 'LOC previously returned HTTP ' + locBlockedReason + '. Requests are paused for ' + retryMinutes + ' minute(s); other providers are unaffected.'
+      });
+    }
     try {
-      // The LOC API can respond differently as its catalogue services migrate.
-      // Probe both documented endpoints in parallel and only require a valid
-      // JSON API response; zero search matches are not a connectivity failure.
-      const urls = [
-        new URL('https://www.loc.gov/audio/'),
-        new URL('https://www.loc.gov/search/')
-      ];
-      urls[0].searchParams.set('q', 'music');
-      urls[0].searchParams.set('fo', 'json');
-      urls[0].searchParams.set('c', '1');
-      urls[1].searchParams.set('q', 'music');
-      urls[1].searchParams.set('fo', 'json');
-      urls[1].searchParams.set('c', '1');
-      urls[1].searchParams.set('fa', 'original-format:sound recording');
-
-      const attempts = await Promise.allSettled(urls.map(async function(statusUrl) {
-        const payload = await locJson(statusUrl.href);
-        if (!payload || typeof payload !== 'object' || Array.isArray(payload) || payload.error) {
-          throw new Error('LOC returned a non-standard JSON response from ' + statusUrl.pathname);
-        }
-        return {
-          endpoint: statusUrl.pathname,
-          resultCount: Array.isArray(payload.results) ? payload.results.length
-            : Number(payload.total || payload.count || 0)
-        };
-      }));
-      const successful = attempts.find(result => result.status === 'fulfilled');
-      if (!successful) {
-        const details = attempts.map(result => result.status === 'rejected'
-          ? String(result.reason && result.reason.message || 'request failed') : '').filter(Boolean).join('; ');
-        const error = new Error(details || 'Library of Congress search endpoints are unavailable.');
-        error.statusCode = 502;
-        throw error;
+      const statusUrl = new URL('https://www.loc.gov/search/');
+      statusUrl.searchParams.set('q', 'music');
+      statusUrl.searchParams.set('fo', 'json');
+      statusUrl.searchParams.set('c', '1');
+      statusUrl.searchParams.set('fa', 'original-format:sound recording');
+      const payload = await locJson(statusUrl.href);
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload) || payload.error || !Array.isArray(payload.results)) {
+        throw new Error('LOC returned an unexpected JSON search response.');
       }
       return sendJson(res, 200, {
-        ok: true,
-        provider: 'Library of Congress',
-        endpoint: successful.value.endpoint,
-        resultCount: successful.value.resultCount,
-        note: 'Valid LOC JSON endpoint response; result count may be zero.'
+        ok: true, provider: 'Library of Congress', endpoint: statusUrl.pathname,
+        resultCount: payload.results.length, lastHealthyAt: locLastHealthyAt,
+        note: 'Valid LOC JSON search response; zero results are not a connectivity failure.'
       });
     } catch (error) {
       const code = Number(error && error.statusCode) || 502;
