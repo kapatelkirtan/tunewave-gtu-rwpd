@@ -188,11 +188,11 @@ function isMusicArchiveItem(item) {
   return musicTerms.test(searchableMetadata);
 }
 function discoverySearchTerms(query) {
-  const raw = String(query || '').trim().replace(/\\s+/g, ' ');
+  const raw = String(query || '').trim().replace(/\s+/g, ' ');
   if (!raw) return [];
   const normalized = raw.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const unique = terms => [...new Set(terms.map(term => String(term || '').trim()).filter(Boolean))].slice(0, 4);
-  if (/ultra\\s*funk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(normalized)) {
+  if (/ultra\s*funk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(normalized)) {
     return unique([raw, 'ultrafunk', 'brazilian phonk', 'funk brasileiro']);
   }
   if (/gujarati|gujrati|garba|dandiya/.test(normalized)) {
@@ -342,7 +342,7 @@ function xmlAttribute(block, tag, attribute) {
 async function freeToUseSearch(query) {
   const normalized = String(query || '').trim();
   const lowered = normalized.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  const ultraFunkSearch = /ultra\\s*funk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(lowered);
+  const ultraFunkSearch = /ultra\s*funk|phonk|brazilian funk|funk br|mandelao|automotivo/.test(lowered);
   const gujaratiSearch = /gujarati|gujrati|garba|dandiya/.test(lowered);
   const hindiSearch = /bollywood|hindi|desi remix|indian pop|hindustani/.test(lowered);
   const terms = ultraFunkSearch
@@ -394,7 +394,7 @@ async function ccMixterSearch(query) {
     url.searchParams.set('f', 'rss');
     const response = await sourceFetch(url.href, 'ccMixter', 10000, { headers: { 'Accept': 'application/rss+xml, application/xml, text/xml' } });
     const xml = await response.text();
-    const items = Array.from(xml.matchAll(/<item\\b[\\s\\S]*?<\\/item>/gi), function(match) { return match[0]; });
+    const items = Array.from(xml.matchAll(/<item\b[\s\S]*?<\/item>/gi), function(match) { return match[0]; });
     for (const block of items) {
       const title = xmlTag(block, 'title');
       const permalink = trustedHttpsUrl(xmlTag(block, 'link'), ['ccmixter.org']);
@@ -403,7 +403,7 @@ async function ccMixterSearch(query) {
       if (!title || !permalink || !streamUrl || tracks.has(permalink)) continue;
       const rawLicense = xmlAttribute(block, 'cc:license', 'rdf:resource') ||
         xmlAttribute(block, 'cc:license', 'href') ||
-        ((block.match(/https?:\\/\\/creativecommons\\.org\\/licenses\\/[^"' <]+/i) || [])[0] || '');
+        ((block.match(/https?:\/\/creativecommons\.org\/licenses\/[^"' <]+/i) || [])[0] || '');
       const licenseUrl = sanitizeLicenseUrl(rawLicense);
       tracks.set(permalink, {
         id: permalink, title: title.slice(0, 250),
@@ -524,7 +524,7 @@ async function openverseSearch(query) {
     url.searchParams.set('q', term);
     url.searchParams.set('page_size', '20');
     url.searchParams.set('license', 'cc0,pdm,by,by-sa,by-nc,by-nc-sa,by-nd,by-nc-nd');
-    const response = await sourceFetch(url.href, 'Openverse', 10000, { headers });
+    const response = await sourceFetch(url.href, 'Openverse', 10000, { headers: headers });
     const payload = await response.json();
     for (const item of Array.isArray(payload && payload.results) ? payload.results : []) {
       const directUrl = (function() {
@@ -532,7 +532,7 @@ async function openverseSearch(query) {
         catch { return ''; }
       })();
       const license = String(item.license_url || '');
-      if (!directUrl || !license || !/creativecommons\\.org|publicdomain|creativecommons/i.test(license)) continue;
+      if (!directUrl || !license || !/creativecommons\.org|publicdomain|creativecommons/i.test(license)) continue;
       const durationValue = Number(item.duration) || 0;
       const track = {
         id: String(item.id || item.detail_url || directUrl), title: String(item.title || 'Untitled audio').slice(0, 250),
