@@ -37,3 +37,12 @@ Free listening is not a blanket permission to redistribute or monetize the music
 TuneWave keeps its in-player results focused on sources that expose a usable free/open audio catalogue. For popular copyrighted Hindi/Bollywood, Gujarati and trending Ultra Funk tracks, the home search also updates official search links for YouTube Music, JioSaavn, Spotify, Apple Music, Amazon Music India and SoundCloud. These links open the corresponding service's own search/player; they are not presented as TuneWave streaming APIs and do not bypass that service's subscription, advertising or regional restrictions. Availability of free playback depends on each service and track.
 
 Audius searches also expand common Ultra Funk/phonk, Gujarati/garba and Hindi/Bollywood query variants, while Free To Use searches include additional Brazilian funk/phonk aliases. Catalogue matches are not guaranteed for every song or remix.
+
+
+## Indian-language and Ultra Funk discovery
+
+TuneWave now expands targeted searches across several public/open catalogues. Ultra Funk/phonk searches try Brazilian-funk spellings; Gujarati searches try Garba, Dandiya and Indian folk variants; Hindi/Bollywood searches try Hindi indie, instrumental and Indian folk variants. These fallbacks improve discovery but do not create rights to commercial film recordings. Internet Archive and Openverse results are restricted to items with qualifying open/public-domain licensing metadata; verify the original item's rights page before redistribution or commercial use.
+
+## Free listening and lock-screen limits
+
+TuneWave does not inject its own audio ads into the built-in HTML audio player. This is not a guarantee that every third-party service is ad-free or that every track is available without an account. The built-in player includes Media Session metadata and play/pause/seek/next/previous controls for compatible browsers. Install TuneWave from the browser and start playback with the screen on to give the browser a user gesture; lock-screen/background behavior remains device/browser/provider dependent. TuneWave cannot legally make mainstream copyrighted Bollywood songs simultaneously free, ad-free and background playable without the rightsholder's supported access terms.
