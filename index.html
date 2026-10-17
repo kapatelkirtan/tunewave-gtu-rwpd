@@ -9,7 +9,7 @@
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20261018-18">
+  <link rel="stylesheet" href="style.css?v=20261018-19">
   <script src="config.js"></script>
   <script defer src="app.js?v=20261018-17"></script>
 </head>
@@ -62,6 +62,11 @@
           <p class="eyebrow"><span class="eyebrow-line"></span> YOUR SOUND UNIVERSE</p>
           <h1>Your music.<br><span>Your own atmosphere.</span></h1>
           <p class="welcome-copy">Search by the song name, use your voice, or identify a track by listening to a short sample.</p>
+          <div class="hero-capabilities" aria-label="Ways to find music">
+            <span><b>01</b> Search by title</span>
+            <span><b>02</b> Voice search</span>
+            <span><b>03</b> Identify a song</span>
+          </div>
         </div>
         <div class="hero-art" aria-label="TuneWave music artwork">
           <div class="hero-glow"></div>
@@ -73,6 +78,13 @@
       </section>
 
       <section class="search-section" aria-label="Search music">
+        <div class="search-intro">
+          <div>
+            <p class="section-kicker">YOUR LISTENING SESSION</p>
+            <h2>What do you want to hear?</h2>
+          </div>
+          <span class="search-intro-note"><span class="live-dot"></span> Search open catalogues</span>
+        </div>
         <form id="search-form" class="search-box">
           <span class="search-symbol" aria-hidden="true">⌕</span>
           <label class="sr-only" for="search-input">Search by song title</label>
@@ -82,96 +94,26 @@
         </form>
         <div class="identify-row"><button type="button" class="identify-button" id="identify-button"><span class="identify-glyph">♫</span><span class="identify-copy"><strong>Identify a song by listening</strong><small>Record up to 10 seconds of music playing nearby</small></span><span class="identify-arrow">↗</span></button><span id="identify-status" class="identify-status" role="status" aria-live="polite">Uses your microphone only after you tap this button.</span></div>
         <div class="search-meta"><span id="search-hint">Start typing a title for automatic search, or press Search now.</span><span class="meta-key"><kbd>Enter</kbd> to search now</span></div>
-        <section class="connections-panel" aria-labelledby="connections-title">
-          <div class="connections-heading">
-            <div class="connections-heading-copy">
-              <p class="section-kicker"><span class="status-kicker-dot"></span> LIVE NETWORK STATUS</p>
-              <h2 id="connections-title">Music provider network</h2>
-              <p>See which music services are responding right now.</p>
-            </div>
-            <div class="connections-tools">
-              <span class="connection-summary" id="connection-summary" role="status" aria-live="polite">CHECKING NETWORK</span>
-              <button type="button" class="connection-refresh" id="refresh-connections" title="Check music provider connections again">↻ <span>Refresh</span></button>
-            </div>
-          </div>
-          <div class="provider-fit-guide" role="note">
-            <strong>CATALOGUE FIT FOR YOUR GOAL</strong>
-            <span><b>Ultra Funk / phonk:</b> start with Audius for independent creator uploads and remixes; every title still depends on artist uploads.</span>
-            <span><b>Free full-track creator music:</b> check eligible tracks from the open catalogues, but review provider/API licences before offering playback in a public website. Free API access does not always grant app-use rights.</span>
-            <span><b>Hindi / Gujarati / commercial Bollywood:</b> YouTube Music, Spotify, JioSaavn, Amazon Music and Gaana official search links below can help find titles, but they are not direct full-track APIs inside TuneWave.</span>
-            <small>No connected source guarantees every commercial song with full-length, ad-free, no-premium and lock-screen playback all free. ONLINE means the endpoint responded, not that a genre or track is available. Background playback depends on browser/device support and source behaviour.</small>
-          </div>
-          <div class="source-connections" id="source-connections" aria-label="Live music provider connection status">
-            <div class="source-connection source-connection-checking" id="audius-connection" data-provider="audius">
-              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-audius" aria-hidden="true">AU</span>
-              <div><strong>Audius</strong><small id="audius-description">Checking public search API…</small><span class="provider-fit">Best fit: independent creator uploads, remixes and Ultra Funk/phonk-style searches; individual tracks depend on what artists publish.</span></div><span class="connection-status" id="audius-status">CHECKING</span>
-            </div>
-            <div class="source-connection source-connection-checking" id="freetouse-connection" data-provider="freetouse">
-              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-freetouse" aria-hidden="true">FT</span>
-              <div><strong>Free To Use</strong><small id="freetouse-description">Checking keyless music catalogue…</small><span class="provider-fit">Full-track creator music with a keyless API; verify permission for use inside a hosted music app/digital product.</span></div><span class="connection-status" id="freetouse-status">CHECKING</span>
-            </div>
-            <div class="source-connection source-connection-checking" id="jamendo-connection" data-provider="jamendo">
-              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-jamendo" aria-hidden="true">JM</span>
-              <div><strong>Jamendo</strong><small id="jamendo-description">Checking bridge and API setup…</small><span class="provider-fit">Full-track independent/Creative Commons music; API is free for non-commercial use, with extra terms for commercial/ad-supported use.</span></div><span class="connection-status" id="jamendo-status">CHECKING</span>
-            </div>
-            <div class="source-connection source-connection-checking" id="archive-connection" data-provider="archive">
-              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-archive" aria-hidden="true">IA</span>
-              <div><strong>Internet Archive</strong><small id="archive-description">Checking audio search endpoint…</small><span class="provider-fit">Open/public-domain and archival audio; check each item’s rights. Current commercial Bollywood coverage is sparse.</span></div><span class="connection-status" id="archive-status">CHECKING</span>
-            </div>
-            <div class="source-connection source-connection-checking" id="commons-connection" data-provider="commons">
-              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-commons" aria-hidden="true">WC</span>
-              <div><strong>Wikimedia Commons</strong><small id="commons-description">Checking free-licence audio search…</small><span class="provider-fit">Direct audio where files have open/public-domain licences; mainly niche, educational and archival material.</span></div><span class="connection-status" id="commons-status">CHECKING</span>
-            </div>
-            <div class="source-connection source-connection-checking" id="ccmixter-connection" data-provider="ccmixter">
-              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-ccmixter" aria-hidden="true">cc</span>
-              <div><strong>ccMixter</strong><small id="ccmixter-description">Checking Creative Commons catalogue…</small><span class="provider-fit">Creative Commons remixes and independent music; useful for remix discovery, not mainstream film-song coverage.</span></div><span class="connection-status" id="ccmixter-status">CHECKING</span>
-            </div>
-            <div class="source-connection source-connection-checking" id="funkwhale-connection" data-provider="funkwhale">
-              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-funkwhale" aria-hidden="true">FW</span>
-              <div><strong>Funkwhale / Open Audio</strong><small id="funkwhale-description">Checking public searchable audio catalogue…</small><span class="provider-fit">Public uploads can stream in full when the instance allows anonymous listening; catalogue varies by community.</span></div><span class="connection-status connection-status-checking" id="funkwhale-status">CHECKING</span>
-            </div>
-            <div class="source-connection source-connection-checking" id="openverse-connection" data-provider="openverse">
-              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-openverse" aria-hidden="true">OV</span>
-              <div><strong>Openverse</strong><small id="openverse-description">Checking open-licence audio search…</small><span class="provider-fit">Searches openly licensed audio across other sources; direct playback and rights vary by item.</span></div><span class="connection-status" id="openverse-status">CHECKING</span>
-            </div>
-            <div class="source-connection source-connection-checking" id="radio-connection" data-provider="radio">
-              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-radio" aria-hidden="true">RB</span>
-              <div><strong>Radio Browser</strong><small id="radio-description">Checking live station directory…</small><span class="provider-fit">Live radio stations only—not individual song search. Station programming and stream availability vary.</span></div><span class="connection-status" id="radio-status">CHECKING</span>
-            </div>
-          </div>
-          <div class="provider-footer">
-            <p class="provider-note" id="provider-note">Provider health and catalogue fit are different. Audius is a useful first search for independent Ultra Funk/phonk uploads. Free To Use and Jamendo have direct-track catalogues but their terms/licences matter, especially for use inside a hosted app or commercial/ad-supported site. Internet Archive, Wikimedia Commons, ccMixter and Openverse emphasize open-licensed/archival works; Radio Browser supplies live stations, not single-song search. No source guarantees all commercial Bollywood, Hindi or Gujarati songs as free, ad-free full tracks.</p>
-            <div class="provider-companion"><span class="companion-tag">SEPARATE DESKTOP APP</span><span>Nuclear is not connected to TuneWave’s web player.</span><a href="https://nuclearplayer.com/" target="_blank" rel="noopener noreferrer">Get Nuclear ↗</a></div>
-          </div>
-        </section>
-        <section class="external-music-panel" aria-labelledby="external-music-title">
-          <div class="external-music-heading">
-            <div>
-              <p class="section-kicker"><span class="status-kicker-dot"></span> MAINSTREAM MUSIC DESTINATIONS</p>
-              <h2 id="external-music-title">Looking for a specific hit?</h2>
-              <p id="external-music-query">Search Ultra Funk on these official music services.</p>
-            </div>
-            <span class="external-link-label">OFFICIAL SEARCH LINKS</span>
-          </div>
-          <div class="external-music-links" id="external-music-links" aria-label="Search other music services">
-            <a class="external-music-link external-youtube" data-external-provider="youtube-music" href="https://music.youtube.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">
-              <span class="external-brand-icon" aria-hidden="true">YT</span><span class="external-link-copy"><strong>YouTube Music</strong><small>Bollywood · remixes · Ultra Funk</small></span><span class="external-open" aria-hidden="true">↗</span>
-            </a>
-            <a class="external-music-link external-saavn" data-external-provider="jiosaavn" href="https://www.jiosaavn.com/search/song/ultrafunk" target="_blank" rel="noopener noreferrer">
-              <span class="external-brand-icon" aria-hidden="true">JS</span><span class="external-link-copy"><strong>JioSaavn</strong><small>Hindi · Gujarati · Bollywood</small></span><span class="external-open" aria-hidden="true">↗</span>
-            </a>
-            <a class="external-music-link external-spotify" data-external-provider="spotify" href="https://open.spotify.com/search/ultrafunk" target="_blank" rel="noopener noreferrer">
-              <span class="external-brand-icon" aria-hidden="true">SP</span><span class="external-link-copy"><strong>Spotify</strong><small>Songs · albums · playlists</small></span><span class="external-open" aria-hidden="true">↗</span>
-            </a>
-            <a class="external-music-link external-amazon" data-external-provider="amazon-music" href="https://music.amazon.in/search?keywords=ultrafunk" target="_blank" rel="noopener noreferrer">
-              <span class="external-brand-icon" aria-hidden="true">AZ</span><span class="external-link-copy"><strong>Amazon Music</strong><small>Hindi · Gujarati · Garba</small></span><span class="external-open" aria-hidden="true">↗</span>
-            </a>
-            <a class="external-music-link" data-external-provider="gaana" href="https://gaana.com/search/ultrafunk" target="_blank" rel="noopener noreferrer">
-              <span class="external-brand-icon" aria-hidden="true">GA</span><span class="external-link-copy"><strong>Gaana</strong><small>Hindi · Gujarati · Bollywood</small></span><span class="external-open" aria-hidden="true">↗</span>
-            </a>
-          </div>
-          <p class="external-music-note">These links open each service’s official search/player; they do not bypass ads, subscriptions or regional restrictions. TuneWave’s in-page player searches free/open catalogues and shows license/source links where available. Lock-screen controls use browser Media Session support; background playback still depends on your browser, device and the provider’s stream.</p>
-        </section>
+        
+        <div class="genre-label-row"><span class="section-kicker">START WITH A VIBE</span><span>Quick searches · one tap</span></div>
+        <div class="genre-chips" aria-label="Popular searches">
+          <button class="genre-chip chip-purple" data-query="ultrafunk">Ultra Funk</button>
+          <button class="genre-chip chip-purple" data-query="Kesariya">Kesariya</button>
+          <button class="genre-chip chip-cyan" data-query="Dholi Taro Dhol Baaje">Dholi Taro Dhol Baaje</button>
+          <button class="genre-chip chip-pink" data-query="Heeriye">Heeriye</button>
+          <button class="genre-chip chip-blue" data-query="Chaleya">Chaleya</button>
+          <button class="genre-chip" data-query="Shape of You">Shape of You</button>
+           <button class="genre-chip chip-purple" data-query="Brazilian Funk">Brazilian Funk</button>
+           <button class="genre-chip chip-purple" data-query="Phonk">Phonk</button>
+           <button class="genre-chip chip-purple" data-query="Mandelao">Mandelao</button>
+           <button class="genre-chip chip-cyan" data-query="Gujarati Garba">Gujarati Garba</button>
+           <button class="genre-chip chip-cyan" data-query="Dandiya Remix">Dandiya Remix</button>
+           <button class="genre-chip chip-pink" data-query="Gujarati Folk">Gujarati Folk</button>
+           <button class="genre-chip chip-blue" data-query="Hindi Songs">Hindi Songs</button>
+           <button class="genre-chip chip-pink" data-query="Bollywood Instrumental">Bollywood Instrumental</button>
+           <button class="genre-chip chip-blue" data-query="Hindi Indie Music">Hindi Indie Music</button>
+        </div>
+
         <section class="official-embed-panel" aria-labelledby="official-embed-title">
           <div class="external-music-heading">
             <div>
@@ -199,26 +141,9 @@
             <iframe id="official-player-frame" title="Official embedded music player" width="100%" height="352" frameborder="0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen hidden></iframe>
           </div>
         </section>
-        <div class="genre-chips" aria-label="Popular searches">
-          <button class="genre-chip chip-purple" data-query="ultrafunk">Ultra Funk</button>
-          <button class="genre-chip chip-purple" data-query="Kesariya">Kesariya</button>
-          <button class="genre-chip chip-cyan" data-query="Dholi Taro Dhol Baaje">Dholi Taro Dhol Baaje</button>
-          <button class="genre-chip chip-pink" data-query="Heeriye">Heeriye</button>
-          <button class="genre-chip chip-blue" data-query="Chaleya">Chaleya</button>
-          <button class="genre-chip" data-query="Shape of You">Shape of You</button>
-           <button class="genre-chip chip-purple" data-query="Brazilian Funk">Brazilian Funk</button>
-           <button class="genre-chip chip-purple" data-query="Phonk">Phonk</button>
-           <button class="genre-chip chip-purple" data-query="Mandelao">Mandelao</button>
-           <button class="genre-chip chip-cyan" data-query="Gujarati Garba">Gujarati Garba</button>
-           <button class="genre-chip chip-cyan" data-query="Dandiya Remix">Dandiya Remix</button>
-           <button class="genre-chip chip-pink" data-query="Gujarati Folk">Gujarati Folk</button>
-           <button class="genre-chip chip-blue" data-query="Hindi Songs">Hindi Songs</button>
-           <button class="genre-chip chip-pink" data-query="Bollywood Instrumental">Bollywood Instrumental</button>
-           <button class="genre-chip chip-blue" data-query="Hindi Indie Music">Hindi Indie Music</button>
-        </div>
       </section>
 
-      <section class="home-shelves" id="home-shelves" aria-label="Browse songs by title">
+<section class="home-shelves" id="home-shelves" aria-label="Browse songs by title">
         <section class="music-shelf" aria-labelledby="recommended-heading">
           <div class="shelf-heading"><h2 id="recommended-heading">Recommended Songs</h2><span>Pick a title to search</span></div>
           <div class="shelf-rail">
@@ -304,6 +229,108 @@
           </section>
         </aside>
       </div>
+
+
+      <details class="source-center" id="source-center">
+        <summary class="source-center-summary">
+          <span class="source-center-icon" aria-hidden="true">◎</span>
+          <span class="source-center-copy"><strong>Music sources &amp; availability</strong><small>Live health checks, open catalogues and official music services</small></span>
+          <span class="source-center-count">9 SOURCES · 5 DESTINATIONS</span>
+          <span class="source-center-toggle" aria-hidden="true">+</span>
+        </summary>
+        <div class="source-center-content">
+          <section class="connections-panel" aria-labelledby="connections-title">
+          <div class="connections-heading">
+            <div class="connections-heading-copy">
+              <p class="section-kicker"><span class="status-kicker-dot"></span> LIVE NETWORK STATUS</p>
+              <h2 id="connections-title">Music provider network</h2>
+              <p>See which music services are responding right now.</p>
+            </div>
+            <div class="connections-tools">
+              <span class="connection-summary" id="connection-summary" role="status" aria-live="polite">CHECKING NETWORK</span>
+              <button type="button" class="connection-refresh" id="refresh-connections" title="Check music provider connections again">↻ <span>Refresh</span></button>
+            </div>
+          </div>
+          <div class="provider-fit-guide" role="note">
+            <strong>CATALOGUE FIT FOR YOUR GOAL</strong>
+            <span><b>Ultra Funk / phonk:</b> start with Audius for independent creator uploads and remixes; every title still depends on artist uploads.</span>
+            <span><b>Free full-track creator music:</b> check eligible tracks from the open catalogues, but review provider/API licences before offering playback in a public website. Free API access does not always grant app-use rights.</span>
+            <span><b>Hindi / Gujarati / commercial Bollywood:</b> YouTube Music, Spotify, JioSaavn, Amazon Music and Gaana official search links below can help find titles, but they are not direct full-track APIs inside TuneWave.</span>
+            <small>No connected source guarantees every commercial song with full-length, ad-free, no-premium and lock-screen playback all free. ONLINE means the endpoint responded, not that a genre or track is available. Background playback depends on browser/device support and source behaviour.</small>
+          </div>
+          <div class="source-connections" id="source-connections" aria-label="Live music provider connection status">
+            <div class="source-connection source-connection-checking" id="audius-connection" data-provider="audius">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-audius" aria-hidden="true">AU</span>
+              <div><strong>Audius</strong><small id="audius-description">Checking public search API…</small><span class="provider-fit">Best fit: independent creator uploads, remixes and Ultra Funk/phonk-style searches; individual tracks depend on what artists publish.</span></div><span class="connection-status" id="audius-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="freetouse-connection" data-provider="freetouse">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-freetouse" aria-hidden="true">FT</span>
+              <div><strong>Free To Use</strong><small id="freetouse-description">Checking keyless music catalogue…</small><span class="provider-fit">Full-track creator music with a keyless API; verify permission for use inside a hosted music app/digital product.</span></div><span class="connection-status" id="freetouse-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="jamendo-connection" data-provider="jamendo">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-jamendo" aria-hidden="true">JM</span>
+              <div><strong>Jamendo</strong><small id="jamendo-description">Checking bridge and API setup…</small><span class="provider-fit">Full-track independent/Creative Commons music; API is free for non-commercial use, with extra terms for commercial/ad-supported use.</span></div><span class="connection-status" id="jamendo-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="archive-connection" data-provider="archive">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-archive" aria-hidden="true">IA</span>
+              <div><strong>Internet Archive</strong><small id="archive-description">Checking audio search endpoint…</small><span class="provider-fit">Open/public-domain and archival audio; check each item’s rights. Current commercial Bollywood coverage is sparse.</span></div><span class="connection-status" id="archive-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="commons-connection" data-provider="commons">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-commons" aria-hidden="true">WC</span>
+              <div><strong>Wikimedia Commons</strong><small id="commons-description">Checking free-licence audio search…</small><span class="provider-fit">Direct audio where files have open/public-domain licences; mainly niche, educational and archival material.</span></div><span class="connection-status" id="commons-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="ccmixter-connection" data-provider="ccmixter">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-ccmixter" aria-hidden="true">cc</span>
+              <div><strong>ccMixter</strong><small id="ccmixter-description">Checking Creative Commons catalogue…</small><span class="provider-fit">Creative Commons remixes and independent music; useful for remix discovery, not mainstream film-song coverage.</span></div><span class="connection-status" id="ccmixter-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="funkwhale-connection" data-provider="funkwhale">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-funkwhale" aria-hidden="true">FW</span>
+              <div><strong>Funkwhale / Open Audio</strong><small id="funkwhale-description">Checking public searchable audio catalogue…</small><span class="provider-fit">Public uploads can stream in full when the instance allows anonymous listening; catalogue varies by community.</span></div><span class="connection-status connection-status-checking" id="funkwhale-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="openverse-connection" data-provider="openverse">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-openverse" aria-hidden="true">OV</span>
+              <div><strong>Openverse</strong><small id="openverse-description">Checking open-licence audio search…</small><span class="provider-fit">Searches openly licensed audio across other sources; direct playback and rights vary by item.</span></div><span class="connection-status" id="openverse-status">CHECKING</span>
+            </div>
+            <div class="source-connection source-connection-checking" id="radio-connection" data-provider="radio">
+              <span class="connection-indicator connection-indicator-muted"></span><span class="provider-symbol provider-symbol-radio" aria-hidden="true">RB</span>
+              <div><strong>Radio Browser</strong><small id="radio-description">Checking live station directory…</small><span class="provider-fit">Live radio stations only—not individual song search. Station programming and stream availability vary.</span></div><span class="connection-status" id="radio-status">CHECKING</span>
+            </div>
+          </div>
+          <div class="provider-footer">
+            <p class="provider-note" id="provider-note">Provider health and catalogue fit are different. Audius is a useful first search for independent Ultra Funk/phonk uploads. Free To Use and Jamendo have direct-track catalogues but their terms/licences matter, especially for use inside a hosted app or commercial/ad-supported site. Internet Archive, Wikimedia Commons, ccMixter and Openverse emphasize open-licensed/archival works; Radio Browser supplies live stations, not single-song search. No source guarantees all commercial Bollywood, Hindi or Gujarati songs as free, ad-free full tracks.</p>
+            <div class="provider-companion"><span class="companion-tag">SEPARATE DESKTOP APP</span><span>Nuclear is not connected to TuneWave’s web player.</span><a href="https://nuclearplayer.com/" target="_blank" rel="noopener noreferrer">Get Nuclear ↗</a></div>
+          </div>
+        </section>
+          <section class="external-music-panel" aria-labelledby="external-music-title">
+          <div class="external-music-heading">
+            <div>
+              <p class="section-kicker"><span class="status-kicker-dot"></span> MAINSTREAM MUSIC DESTINATIONS</p>
+              <h2 id="external-music-title">Looking for a specific hit?</h2>
+              <p id="external-music-query">Search Ultra Funk on these official music services.</p>
+            </div>
+            <span class="external-link-label">OFFICIAL SEARCH LINKS</span>
+          </div>
+          <div class="external-music-links" id="external-music-links" aria-label="Search other music services">
+            <a class="external-music-link external-youtube" data-external-provider="youtube-music" href="https://music.youtube.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">
+              <span class="external-brand-icon" aria-hidden="true">YT</span><span class="external-link-copy"><strong>YouTube Music</strong><small>Bollywood · remixes · Ultra Funk</small></span><span class="external-open" aria-hidden="true">↗</span>
+            </a>
+            <a class="external-music-link external-saavn" data-external-provider="jiosaavn" href="https://www.jiosaavn.com/search/song/ultrafunk" target="_blank" rel="noopener noreferrer">
+              <span class="external-brand-icon" aria-hidden="true">JS</span><span class="external-link-copy"><strong>JioSaavn</strong><small>Hindi · Gujarati · Bollywood</small></span><span class="external-open" aria-hidden="true">↗</span>
+            </a>
+            <a class="external-music-link external-spotify" data-external-provider="spotify" href="https://open.spotify.com/search/ultrafunk" target="_blank" rel="noopener noreferrer">
+              <span class="external-brand-icon" aria-hidden="true">SP</span><span class="external-link-copy"><strong>Spotify</strong><small>Songs · albums · playlists</small></span><span class="external-open" aria-hidden="true">↗</span>
+            </a>
+            <a class="external-music-link external-amazon" data-external-provider="amazon-music" href="https://music.amazon.in/search?keywords=ultrafunk" target="_blank" rel="noopener noreferrer">
+              <span class="external-brand-icon" aria-hidden="true">AZ</span><span class="external-link-copy"><strong>Amazon Music</strong><small>Hindi · Gujarati · Garba</small></span><span class="external-open" aria-hidden="true">↗</span>
+            </a>
+            <a class="external-music-link" data-external-provider="gaana" href="https://gaana.com/search/ultrafunk" target="_blank" rel="noopener noreferrer">
+              <span class="external-brand-icon" aria-hidden="true">GA</span><span class="external-link-copy"><strong>Gaana</strong><small>Hindi · Gujarati · Bollywood</small></span><span class="external-open" aria-hidden="true">↗</span>
+            </a>
+          </div>
+          <p class="external-music-note">These links open each service’s official search/player; they do not bypass ads, subscriptions or regional restrictions. TuneWave’s in-page player searches free/open catalogues and shows license/source links where available. Lock-screen controls use browser Media Session support; background playback still depends on your browser, device and the provider’s stream.</p>
+        </section>
+        </div>
+      </details>
 
       <footer class="site-footer"><span>© <span id="year"></span> TuneWave</span><span class="footer-middle"><i class="live-dot"></i> A quieter kind of listening.</span><span>Made By <strong>Kirtan Ka.patel</strong></span></footer>
     </main>
