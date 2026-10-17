@@ -475,7 +475,14 @@
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
-      if (!response.ok) throw new Error(`Music search returned ${response.status}`);
+      if (!response.ok) {
+        let providerMessage = '';
+        try {
+          const errorPayload = await response.clone().json();
+          providerMessage = String(errorPayload?.error || errorPayload?.message || '');
+        } catch (_) { /* Some upstream errors return HTML instead of JSON. */ }
+        throw new Error(providerMessage || `Music search returned ${response.status}`);
+      }
       return await response.json();
     } finally { clearTimeout(timeout); }
   }
@@ -1221,7 +1228,11 @@
       } catch (error) {
         const detail = String(error && error.message || '');
         const description = probe.provider === 'loc'
-          ? (detail.includes('404') ? 'LOC status route missing · retrying its search route did not work.' : 'LOC endpoints failed through the bridge · check the Render service logs.')
+          ? (detail.includes('403') ? 'LOC returned HTTP 403 and is temporarily paused to avoid repeated blocked requests.' :
+             detail.includes('429') ? 'LOC rate limit reached; requests are paused temporarily.' :
+             detail.includes('paused after HTTP') ? detail :
+             detail.includes('404') ? 'LOC status route missing · retrying its search route did not work.' :
+             detail || 'LOC endpoints failed through the bridge · check the Render service logs.')
           : 'Search endpoint did not respond · check provider bridge/API.';
         paintProviderStatus(probe.provider, 'offline', description);
         return { provider: probe.provider, state: 'offline' };
