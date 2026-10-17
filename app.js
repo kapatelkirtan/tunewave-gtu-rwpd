@@ -577,7 +577,7 @@
     } finally { clearTimeout(timeout); }
   }
 
-  const BRIDGE_STARTUP_TIMEOUT_MS = 25000;
+  const BRIDGE_STARTUP_TIMEOUT_MS = 12000;
   let bridgeReadyPromise = null;
   let bridgeReadyUntil = 0;
   let bridgeHealthSnapshot = null;
@@ -587,7 +587,7 @@
     if (bridgeHealthSnapshot && Date.now() < bridgeReadyUntil) return bridgeHealthSnapshot;
     if (!bridgeReadyPromise) {
       bridgeReadyPromise = (async () => {
-        const deadline = Date.now() + 25000;
+        const deadline = Date.now() + BRIDGE_STARTUP_TIMEOUT_MS;
         let lastError = null;
         while (Date.now() < deadline) {
           try {
@@ -606,7 +606,7 @@
         }
         bridgeHealthSnapshot = null;
         bridgeReadyUntil = 0;
-        throw new Error('Music provider bridge did not wake up within 25 seconds. Please retry or check its Render deployment.');
+        throw new Error('Music provider bridge did not wake up within 12 seconds. Please retry or check its Render deployment.');
       })().finally(() => { bridgeReadyPromise = null; });
     }
     return bridgeReadyPromise;
