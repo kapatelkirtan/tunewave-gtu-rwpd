@@ -166,17 +166,22 @@ async function archiveJson(url, timeoutMs = 9000) {
 
 function isMusicArchiveItem(item) {
   const title = String(Array.isArray(item?.title) ? item.title.join(' ') : item?.title || '');
+  const identifier = String(item?.identifier || '');
   const subjects = (Array.isArray(item?.subject) ? item.subject : [item?.subject])
     .filter(Boolean).join(' ');
   const collection = (Array.isArray(item?.collection) ? item.collection : [item?.collection])
     .filter(Boolean).join(' ');
-  const searchable = title + ' ' + subjects + ' ' + collection;
-  // Search result metadata varies; use real word boundaries and allow common traditional music labels.
-  const spokenWord = /\b(audiobook|audio book|librivox|speech|sermon|lecture|radio show|radio program|old time radio|dramatization|novel|short stories|interview|news broadcast|quran recitation)\b/i;
-  const musicTerms = /\b(music|song|songs|soundtrack|jazz|blues|classical|folk|rock|pop|electronic|ambient|instrumental|orchestra|symphony|concert|album|reggae|country|hip[- ]?hop|rap|funk|soul|metal|punk|trance|techno|house|disco|dance|opera|guitar|piano|violin|choir|choral|celtic|bluegrass|r&b|rhythm and blues|carol|carols|hymn|hymns|sing[- ]?along|musical recording)\b/i;
-  return !spokenWord.test(title) && musicTerms.test(searchable);
-}
+  const titleAndMetadata = title + ' ' + subjects + ' ' + collection;
+  const collectionAndId = identifier + ' ' + collection;
 
+  // Internet Archive contains many spoken-word recordings indexed as audio.
+  // LibriVox items are generally readings, even when their title mentions music or opera.
+  const spokenWord = /\b(audiobook|audio book|librivox|speech|sermon|lecture|radio show|radio program|old time radio|dramatization|novel|short stories|interview|news broadcast|quran recitation|selected letters|how to sing|stories of great composers|performing arts)\b/i;
+  if (spokenWord.test(collectionAndId) || spokenWord.test(title)) return false;
+
+  const musicTerms = /\b(music|song|songs|soundtrack|jazz|blues|classical|folk|rock|pop|electronic|ambient|instrumental|orchestra|symphony|concert|album|reggae|country|hip[- ]?hop|rap|funk|soul|metal|punk|trance|techno|house|disco|dance|opera|guitar|piano|violin|viola|cello|mandolin|flute|trumpet|saxophone|drum|percussion|choir|choral|celtic|bluegrass|r&b|rhythm and blues|carol|carols|hymn|hymns|ragtime|march|sonata|concerto|quartet|quintet|etude|prelude|nocturne|overture|musical recording|netlabel|musopen)\b/i;
+  return musicTerms.test(titleAndMetadata);
+}
 async function archiveSearch(query) {
   const url = new URL('https://archive.org/advancedsearch.php');
   // Keep the broad audio search: the Archive does not consistently tag music with genre subjects.
