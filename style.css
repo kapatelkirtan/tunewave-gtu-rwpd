@@ -122,3 +122,83 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .mobile-nav{left:7px;right:7px;bottom:calc(4px + env(safe-area-inset-bottom));min-height:43px;padding:3px;gap:2px}.mobile-nav-item{padding:4px 2px;font-size:6px}.mobile-nav-item span{font-size:13px}.toast{bottom:calc(106px + env(safe-area-inset-bottom));max-width:calc(100vw - 20px);font-size:9px}.info-dialog{padding:14px}.info-dialog h2{font-size:22px}}
 @media(max-width:365px){.main-area{padding-left:9px;padding-right:9px}.topbar{margin:0 -9px;padding:0 9px}.free-pill{display:none}.top-actions{gap:4px}.icon-button{width:25px;height:25px}.welcome-row{padding:16px 11px 14px}.welcome-row h1{font-size:30px}.hero-art{right:6px}.hero-capabilities span{font-size:5.5px;padding:5px}.hero-cta{padding:0 7px;font-size:6px}.search-section{padding:9px}.search-submit{padding:0 6px}.genre-chip{font-size:6px;padding:5px 6px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* Responsive readability pass: preserve density, not microscopic type. */
+@media (min-width:621px) and (max-width:1050px){
+ .main-area{padding-left:24px;padding-right:24px}
+ .topbar{height:68px;margin-left:-24px;margin-right:-24px;padding-left:24px;padding-right:24px}
+ .welcome-row{padding:28px 25px;border-radius:22px}
+ .welcome-row h1{font-size:clamp(43px,6.6vw,60px)}
+ .welcome-copy{font-size:13px;line-height:1.75;max-width:510px}
+ .eyebrow{font-size:8px;letter-spacing:1.2px}
+ .hero-capabilities span{font-size:9px;padding:7px 9px}
+ .hero-cta{min-height:39px;padding:0 13px;font-size:10px}
+ .hero-art{flex-basis:106px;width:106px;height:135px}
+ .hero-art>img{width:79px;height:79px}
+ .search-section{padding:18px;border-radius:19px}
+ .search-intro h2{font-size:25px}
+ .search-intro .section-kicker{font-size:8px}
+ .search-box{min-height:56px}
+ .search-box input{font-size:13px}
+ .search-box input::placeholder{font-size:12px}
+ .voice-button,.search-submit{height:41px;padding-left:12px;padding-right:12px;font-size:10px}
+ .identify-button{min-height:47px;padding:7px 10px}
+ .identify-copy strong{font-size:11px}
+ .identify-copy small,.identify-status{font-size:9px}
+ .search-meta{font-size:9px}
+ .genre-label-row .section-kicker,.genre-label-row>span:last-child{font-size:8px}
+ .genre-chip{min-height:31px;padding:7px 10px;font-size:9px}
+ .section-heading h2,.queue-heading h2{font-size:22px}
+ .section-heading .section-kicker{font-size:8px}
+ .empty-discover h3{font-size:14px}
+ .empty-discover p{font-size:11px}
+ .track-row{grid-template-columns:44px minmax(0,1fr) auto 34px;gap:8px;padding:9px}
+ .track-cover{width:44px;height:44px}
+ .track-name{font-size:12px}.track-artist{font-size:10px}
+ .track-time{font-size:9px}
+ .recent-title{font-size:11px}.recent-artist{font-size:9px}
+ .now-card>h3{font-size:17px}.now-artist{font-size:10px}.now-status{font-size:8px}
+ .queue-text strong{font-size:10px}.queue-text span{font-size:8px}
+ .official-embed-panel,.connections-panel,.external-music-panel{padding:16px}
+ .external-music-heading h2,.connections-heading h2{font-size:22px}
+ .external-music-heading p,.connections-heading p,.official-player-note,.official-player-search-help{font-size:10px}
+}
+@media (max-width:620px){
+ .main-area{padding-left:13px;padding-right:13px}
+ .welcome-row{padding:20px 15px 18px}
+ .welcome-row h1{font-size:clamp(35px,8.8vw,47px)}
+ .welcome-copy{font-size:11px;line-height:1.7}
+ .eyebrow{font-size:7px;letter-spacing:.9px}
+ .hero-capabilities span{font-size:7.5px;padding:6px 7px}
+ .hero-cta{min-height:33px;padding:0 9px;font-size:8.5px}
+ .search-section{padding:12px}
+ .search-intro h2{font-size:20px}
+ .search-intro .section-kicker{font-size:7px}
+ .search-box{min-height:47px}
+ .search-box input{font-size:11px}
+ .search-box input::placeholder{font-size:9px}
+ .voice-button,.search-submit{height:32px;font-size:8px}
+ .identify-button{min-height:36px}
+ .identify-copy strong{font-size:9px}
+ .identify-copy small,.identify-status{font-size:7.5px}
+ .genre-label-row .section-kicker,.genre-label-row>span:last-child{font-size:7px}
+ .genre-chip{min-height:26px;padding:5px 7px;font-size:7.5px}
+ .section-heading h2,.queue-heading h2{font-size:18px}
+ .section-heading .section-kicker{font-size:7px}
+ .empty-discover h3{font-size:12px}
+ .empty-discover p{font-size:9px}
+ .track-row{grid-template-columns:34px minmax(0,1fr) 25px 22px}
+ .track-cover{width:34px;height:34px}
+ .track-name{font-size:9.5px}.track-artist{font-size:8px}
+ .recent-title{font-size:9px}.recent-artist{font-size:7px}
+ .now-status{font-size:6px}
+ .now-card>h3{font-size:13px}
+ .now-artist{font-size:8px}
+ .queue-text strong{font-size:8px}.queue-text span{font-size:7px}
+ .external-music-heading h2,.connections-heading h2{font-size:18px}
+ .external-music-heading p,.connections-heading p{font-size:9px}
+ .source-connection strong{font-size:9px}
+ .source-connection small{font-size:8px}
+ .bottom-track-copy strong{font-size:8px}
+ .bottom-track-copy span{font-size:6.5px}
+}
