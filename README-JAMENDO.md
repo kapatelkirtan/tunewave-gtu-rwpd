@@ -1,17 +1,24 @@
-# TuneWave + Jamendo full-track catalog
+# TuneWave + Jamendo setup
 
-## Setup
-1. Create a developer app at https://developer.jamendo.com/ and copy its `client_id`.
-2. Open `app.js` and replace `PASTE_YOUR_JAMENDO_CLIENT_ID_HERE` with your client ID.
-3. Commit and push the updated files, then let Render redeploy.
-4. Test searches such as `electronic`, `jazz`, `indie`, or `chill`.
+TuneWave searches Audius directly and searches Jamendo through the separate `jamendo-bridge` Render service.
 
-## Important licensing notes
-- This integration streams the `audio` URL returned by Jamendo; it does not use iTunes 30-second previews. Actual track length depends on the source track.
-- Jamendo content is released under different licenses. The UI should credit artists and respect each track's license and attribution requirements.
-- Jamendo's API terms distinguish non-commercial use from commercial use. If you add ads, monetize the site, or use it for a commercial purpose, check the current API terms and contact Jamendo for permission before launch.
-- Do not use the API's download URL as a substitute for streaming. This app uses the stream URL only.
-- The client ID is intended for API identification, not as a secret credential. Do not add private credentials to front-end code.
+## Configure Jamendo
 
-Docs: https://developer.jamendo.com/v3.0/tracks
+1. Create or open your application at the [Jamendo developer portal](https://devportal.jamendo.com/).
+2. Copy the application's client ID.
+3. In [Render](https://dashboard.render.com/), open the Jamendo bridge service and go to **Environment**.
+4. Set `JAMENDO_CLIENT_ID` to your Jamendo client ID.
+5. Confirm the main website's `config.js` points to your deployed bridge, currently:
+   `https://tunewave-gtu-rwpd-2.onrender.com`
+6. Redeploy the bridge if you changed its environment variables.
+7. Test the bridge's `/health` endpoint, then search for terms such as `electronic`, `jazz`, `indie`, or `chill`.
+
+## Licensing notes
+
+- TuneWave uses Jamendo's `audio` stream URL, not a short iTunes preview.
+- Jamendo tracks use different licences. Keep attribution and follow each track's licence.
+- Jamendo's API terms distinguish non-commercial from commercial use. If you monetize the site or add advertising, review the current terms and obtain any required permission before launch.
+- Do not use a download URL as a substitute for a permitted stream.
+
+Official docs: https://developer.jamendo.com/v3.0/tracks
 API terms: https://devportal.jamendo.com/api_terms_of_use
