@@ -117,6 +117,29 @@
     if (!tracks.length && payload?.error) throw new Error(String(payload.error));
     return tracks;
   }
+  function normalizeArchiveTrack(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const id = String(raw.identifier || raw.id || '').trim();
+    const permalink = String(raw.permalink || (id ? `https://archive.org/details/${encodeURIComponent(id)}` : ''));
+    if (!id || !/^https:\/\/archive\.org\//i.test(permalink)) return null;
+    return {
+      uid: `archive:${id}`, id, archiveId: id,
+      title: String(raw.title || id).trim(),
+      artist: String(raw.creator || raw.artist || 'Internet Archive contributor').trim(),
+      duration: Math.max(0, Number(raw.duration || 0)),
+      artwork: String(raw.artwork || (id ? `https://archive.org/services/img/${encodeURIComponent(id)}` : '')),
+      permalink, sourceUrl: permalink, licenseUrl: String(raw.licenseUrl || ''),
+      rights: String(raw.rights || ''), streamUrl: '', source: 'Internet Archive'
+    };
+  }
+  async function searchArchiveCatalog(query) {
+    if (!JAMENDO_BRIDGE_CONFIGURED) throw new Error('The provider bridge is not configured.');
+    const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/archive/search?q=${encodeURIComponent(query)}`, 12000);
+    const data = Array.isArray(payload?.results) ? payload.results : [];
+    const tracks = uniqueTracks(data, normalizeArchiveTrack).slice(0, 20);
+    if (!tracks.length && payload?.error) throw new Error(String(payload.error));
+    return tracks;
+  }
 
   function uniqueTracks(input, normalizer = normalizeJamendoTrack) {
     const data = Array.isArray(input) ? input : (input?.items ?? input?.data ?? input?.tracks ?? input?.results ?? input?.videos ?? []);
@@ -149,6 +172,14 @@
       const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/jamendo/track/${encodeURIComponent(id)}`, 10000);
       const streamUrl = String(payload?.track?.audio || payload?.audio || '');
       if (!/^https:\/\//i.test(streamUrl)) throw new Error('Jamendo did not return a playable audio stream for this track.');
+      return streamUrl;
+    }
+    if (source === 'internet archive') {
+      const id = String(track.archiveId ?? track.id ?? '').trim();
+      if (!id || !JAMENDO_BRIDGE_CONFIGURED) throw new Error('Internet Archive playback needs the configured provider bridge.');
+      const payload = await getJson(`${JAMENDO_BRIDGE_BASE}/api/archive/track/${encodeURIComponent(id)}`, 12000);
+      const streamUrl = String(payload?.track?.streamUrl || '');
+      if (!/^https:\/\//i.test(streamUrl)) throw new Error('Internet Archive did not return a playable audio file.');
       return streamUrl;
     }
     throw new Error('This saved item belongs to an older or unsupported music source. Search again to find a supported track.');
@@ -218,13 +249,15 @@
     setLoading('Searching Audius and Jamendo music…');
     state.view = 'discover'; updateNavigation();
 
-    const [jamendoResult, audiusResult] = await Promise.allSettled([
+    const [jamendoResult, audiusResult, archiveResult] = await Promise.allSettled([
       searchJamendoCatalog(q),
-      searchAudiusCatalog(q)
+      searchAudiusCatalog(q),
+      searchArchiveCatalog(q)
     ]);
     const jamendoTracks = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
     const audiusTracks = audiusResult.status === 'fulfilled' ? audiusResult.value : [];
-    const combined = [...audiusTracks, ...jamendoTracks];
+    const archiveTracks = archiveResult.status === 'fulfilled' ? archiveResult.value : [];
+    const combined = [...audiusTracks, ...jamendoTracks, ...archiveTracks];
     const seen = new Set();
     const tracks = combined.filter(track => {
       const key = trackId(track);
@@ -237,8 +270,12 @@
       state.queue = tracks.slice(0, 50);
       state.queueIndex = -1;
       renderTrackList(tracks);
-      const providers = [audiusTracks.length ? `Audius (${audiusTracks.length})` : '', jamendoTracks.length ? `Jamendo (${jamendoTracks.length})` : ''].filter(Boolean).join(' + ');
-      $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}. Track availability and licences vary.`;
+      const providers = [
+        audiusTracks.length ? `Audius (${audiusTracks.length})` : '',
+        jamendoTracks.length ? `Jamendo (${jamendoTracks.length})` : '',
+        archiveTracks.length ? `Internet Archive (${archiveTracks.length})` : ''
+      ].filter(Boolean).join(' + ');
+      $('#search-hint').textContent = `Found ${tracks.length} results from ${providers}. Archive results are limited to items marked Creative Commons or public domain; check the item rights before reuse.`;
       $('#results-kicker').textContent = 'YOUR SEARCH, MULTIPLE SOURCES';
       renderQueue(); saveState(true);
       return;
@@ -246,14 +283,15 @@
 
     const jamendoFailed = jamendoResult.status === 'rejected';
     const audiusFailed = audiusResult.status === 'rejected';
-    if (!audiusFailed || !jamendoFailed) {
+    const archiveFailed = archiveResult.status === 'rejected';
+    if (!audiusFailed || !jamendoFailed || !archiveFailed) {
       resultsArea.innerHTML = `<div class="no-results"><strong>No matching tracks found</strong>Try the full song title with a different spelling, or try another search.</div>`;
       $('#result-count').textContent = '';
-      $('#search-hint').textContent = 'No matching results from Audius or Jamendo.';
+      $('#search-hint').textContent = 'No matching results from the providers that responded.';
     } else {
-      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>Audius and Jamendo could not return results. Check the provider bridge and network, then retry.<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
+      resultsArea.innerHTML = `<div class="error-panel"><strong>Music search is temporarily unavailable</strong>Audius, Jamendo, and Internet Archive could not return results. Check the provider bridge and network, then retry.<br><button class="outline-button" id="retry-search">Try again ↻</button></div>`;
       $('#result-count').textContent = '';
-      $('#search-hint').textContent = 'Audius and Jamendo search failed this time.';
+      $('#search-hint').textContent = 'All connected search providers failed this time.';
       $('#retry-search')?.addEventListener('click', () => searchCatalog(q));
     }
   }
