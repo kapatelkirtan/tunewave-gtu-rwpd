@@ -227,23 +227,3 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
   .official-player-form .search-submit { width: 100%; justify-content: center; }
   .official-player-stage iframe[title*="YouTube"] { min-height: 215px; }
 }
-
-/* Deezer preview and MusicBrainz metadata integrations */
-.provider-symbol-deezer{color:#ffe0ee;background:linear-gradient(145deg,rgba(255,45,120,.25),rgba(156,43,255,.14))}
-.provider-symbol-musicbrainz{color:#d8e6ff;background:linear-gradient(145deg,rgba(90,148,255,.24),rgba(68,85,160,.13))}
-.track-time{white-space:nowrap}
-.musicbrainz-panel{margin-top:14px;padding:16px;border:1px solid rgba(111,133,255,.2);border-radius:16px;background:linear-gradient(145deg,rgba(28,34,63,.64),rgba(13,16,31,.82))}
-.musicbrainz-panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.musicbrainz-panel-heading h3{margin:3px 0 0;color:#edf0ff;font-size:15px}
-.metadata-only-tag{font-size:9px;letter-spacing:.08em;font-weight:800;color:#d5c2ff;border:1px solid rgba(184,153,255,.26);background:rgba(155,114,255,.08);border-radius:7px;padding:6px 8px}
-.musicbrainz-panel-note{margin:8px 0 12px;color:#969db9;font-size:11px;line-height:1.55}
-.musicbrainz-results{display:grid;gap:8px}
-.metadata-track{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:10px 11px;border:1px solid rgba(164,170,232,.12);border-radius:11px;background:rgba(9,12,25,.48)}
-.metadata-track-copy{display:grid;gap:4px;min-width:0}
-.metadata-track-copy strong{font-size:11px;color:#f0efff;overflow-wrap:anywhere}
-.metadata-track-copy span{font-size:10px;color:#9ba3c0;overflow-wrap:anywhere}
-.metadata-source-link{font-size:10px;color:#a8dafa;text-decoration:none;white-space:nowrap}
-.metadata-source-link:hover{text-decoration:underline}
-.metadata-search-button{border:1px solid rgba(118,216,219,.22);border-radius:8px;background:rgba(68,210,203,.08);color:#baf8f0;padding:7px 9px;font-size:10px;font-weight:750;cursor:pointer;white-space:nowrap}
-.metadata-search-button:hover{background:rgba(68,210,203,.16)}
-@media(max-width:680px){.metadata-track{grid-template-columns:minmax(0,1fr) auto}.metadata-track-copy{grid-column:1/-1}.metadata-search-button{justify-self:start}}
