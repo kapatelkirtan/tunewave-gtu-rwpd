@@ -48,7 +48,7 @@
         );
         if (savedTrack) state.current = { ...state.current, streamUrl: savedTrack.streamUrl };
       }
-    } catch (_){ {
+    } catch (_) {
       state.recent = []; state.favorites = []; state.queue = []; state.current = null; state.position = 0; state.volume = 0.8;
     }
   }
