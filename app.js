@@ -35,7 +35,20 @@
       state.current = isSupportedTrack(parsed.current) ? parsed.current : null;
       state.position = state.current && Number.isFinite(parsed.position) ? Math.max(0, parsed.position) : 0;
       state.volume = Number.isFinite(parsed.volume) ? Math.min(1, Math.max(0, parsed.volume)) : 0.8;
-    } catch (_) {
+      // Restore the current item's playable URL from the same saved track in the library.
+      // The current-track record omits streamUrl intentionally, but recent/queue/favorites
+      // retain the source metadata needed to resume supported direct audio streams.
+      if (state.current && !state.current.streamUrl) {
+        const currentId = trackId(state.current);
+        const currentSource = String(state.current.source || '').trim().toLowerCase();
+        const savedTrack = [...state.recent, ...state.queue, ...state.favorites].find(item =>
+          item && trackId(item) === currentId &&
+          String(item.source || '').trim().toLowerCase() === currentSource &&
+          String(item.streamUrl || '').startsWith('https://')
+        );
+        if (savedTrack) state.current = { ...state.current, streamUrl: savedTrack.streamUrl };
+      }
+    } catch (_){ {
       state.recent = []; state.favorites = []; state.queue = []; state.current = null; state.position = 0; state.volume = 0.8;
     }
   }
@@ -760,7 +773,12 @@
 
   function rememberTrack(track) {
     const id = trackId(track);
-    state.recent = [track, ...state.recent.filter(item => trackId(item) !== id)].slice(0, 16);
+    const previous = state.recent.find(item => trackId(item) === id);
+    // Do not replace a remembered playable URL with the URL-less active-track copy.
+    const savedTrack = track && !track.streamUrl && previous?.streamUrl
+      ? { ...track, streamUrl: previous.streamUrl }
+      : track;
+    state.recent = [savedTrack, ...state.recent.filter(item => trackId(item) !== id)].slice(0, 16);
     renderRecent();
     saveState(true);
   }
