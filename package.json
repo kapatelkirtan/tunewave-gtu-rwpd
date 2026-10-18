@@ -1,11 +1,13 @@
-
 {
   "name": "tunewave-backend",
-  "version": "1.0.0",
-  "description": "TuneWave GTU RWPD project",
+  "version": "1.1.0",
+  "description": "TuneWave public music-provider bridge and Jamendo backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "express": "^4.21.2"
