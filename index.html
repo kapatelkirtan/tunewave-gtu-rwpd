@@ -11,8 +11,8 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="style.css?v=20261018-47">
   <script src="config.js"></script>
-  <script defer src="app.js?v=20261018-30"></script>
-  <script defer src="pip.js?v=20261018-3"></script>
+  <script defer src="app.js?v=20261018-31"></script>
+  <script defer src="pip.js?v=20261018-4"></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -220,7 +220,7 @@
           </div>
           <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Paste a valid YouTube video or playlist URL. The song plays through YouTube’s official embedded player, so availability and ads are controlled by YouTube.</p>
           <a id="official-player-open-link" class="official-player-open-link" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" hidden>Open this song in YouTube ↗</a>
-          <p class="official-player-background-note" id="official-player-background-note"><strong>Picture-in-Picture:</strong> Paste a YouTube link and play it here, then use the PiP button above the video. On Android, the button tries fullscreen-to-PiP: keep the song playing and swipe Home. PiP may not be available for every browser or music video, and YouTube’s rules still apply.</p>
+          <p class="official-player-background-note" id="official-player-background-note"><strong>Mini-player &amp; lock screen:</strong> Play a pasted YouTube link, then tap Open mini-player. Supported desktop browsers may open a floating window; on mobile, the compact player stays on this page unless your browser offers system PiP. TuneWave attempts lock-screen controls where Media Session is supported, but YouTube and browser background-playback rules still apply.</p>
 
           <div id="official-player-stage" class="official-player-stage" hidden>
             <iframe id="official-player-frame" title="Official embedded music player" width="100%" height="352" frameborder="0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen hidden></iframe>
