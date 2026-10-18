@@ -468,8 +468,8 @@
       const provider = 'youtube';
 
       // Accept the URL from an official embed iframe as well as a normal share link.
-      const iframeSrc = raw.match(/<iframe\\b[\\s\\S]*?\\bsrc\\s*=\\s*["']([^"']+)["']/i)
-        || raw.match(/\\bsrc\\s*=\\s*["']([^"']+)["']/i);
+      const iframeSrc = raw.match(/<iframe\b[\s\S]*?\bsrc\s*=\s*["']([^"']+)["']/i)
+        || raw.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
       if (iframeSrc) raw = iframeSrc[1].replace(/&amp;/gi, '&').trim();
 
       let parsed;
@@ -481,7 +481,7 @@
         return;
       }
 
-      const host = parsed.hostname.toLowerCase().replace(/^www\\./, '');
+      const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
       let embedUrl = '';
       let frameTitle = '';
 
@@ -533,7 +533,11 @@
       }
 
       stopOfficialEmbed();
+      state.playbackVersion++;
+      state.isResolvingPlayback = false;
       audio.pause();
+      updateCurrentTrackUI();
+      saveState(true);
       if (frame && stage) {
         // Match Spotify's official embed permissions. encrypted-media is required
         // for full-track playback; do not replace this with a preview audio URL.
@@ -823,11 +827,11 @@
           state.isResolvingPlayback = false;
           updateCurrentTrackUI();
           saveState(true);
-        } catch (_) {
+        } catch (error) {
           if (requestId !== state.playbackVersion) return;
           state.isResolvingPlayback = false;
           updateCurrentTrackUI();
-          toast('Tap Play again to resume playback.');
+          if (error?.name !== 'AbortError') toast('Tap Play again to resume playback.');
         }
       } else {
         state.playbackVersion++;
@@ -876,6 +880,7 @@
       if (requestId !== state.playbackVersion || !state.current || trackId(state.current) !== requestedId) return;
       state.isResolvingPlayback = false;
       updateCurrentTrackUI();
+      if (error?.name === 'AbortError') return;
       const msg = error?.name === 'NotSupportedError'
         ? 'This stream format is not supported in your browser. Try another result.'
         : error?.name === 'NotAllowedError'
@@ -1183,8 +1188,16 @@
     state.isSeeking = false; saveState(true);
   });
   function togglePlayback() {
+    // If the audio source is still being resolved, Play doubles as Cancel.
+    // This keeps a pending media play() promise from making the control unresponsive.
     if (state.isResolvingPlayback) {
-      toast('Still connecting to this track. Give it a moment to start.');
+      state.playbackVersion++;
+      state.isResolvingPlayback = false;
+      const wasPlaying = !audio.paused;
+      audio.pause();
+      updateCurrentTrackUI();
+      saveState(true);
+      toast(wasPlaying ? 'Playback paused.' : 'Playback cancelled. Tap Play to retry.', 2400);
       return;
     }
     if (!state.current) {
@@ -1193,18 +1206,33 @@
       return;
     }
     if (audio.paused) {
-      if (!audio.src || audio.error) playTrack(state.current, state.queueIndex, state.position);
-      else audio.play().catch(() => toast('Playback needs a tap to start. Press Play again.'));
-    } else audio.pause();
+      // Go through playTrack so the loading state, resume position and errors are unified.
+      playTrack(state.current, state.queueIndex, state.position);
+    } else {
+      audio.pause();
+      updateCurrentTrackUI();
+      saveState(true);
+    }
   }
 
-  audio.addEventListener('play', () => { stopOfficialEmbed(); updateCurrentTrackUI(); saveState(true); });
+  audio.addEventListener('play', () => {
+    state.isResolvingPlayback = false;
+    stopOfficialEmbed();
+    updateCurrentTrackUI();
+    saveState(true);
+  });
+  audio.addEventListener('playing', () => {
+    state.isResolvingPlayback = false;
+    updateCurrentTrackUI();
+  });
   audio.addEventListener('pause', () => { state.position = audio.currentTime || state.position; updateCurrentTrackUI(); saveState(true); });
   audio.addEventListener('timeupdate', () => { updateProgress(); state.position = audio.currentTime || 0; saveState(false); });
   audio.addEventListener('loadedmetadata', () => { updateProgress(); });
   audio.addEventListener('durationchange', updateProgress);
   audio.addEventListener('ended', () => { state.position = 0; saveState(true); playRelative(1); });
   audio.addEventListener('error', () => {
+    state.isResolvingPlayback = false;
+    updateCurrentTrackUI();
     if (state.current) {
       $('#now-status').textContent = 'TRACK STREAM UNAVAILABLE';
       state.position = 0; saveState(true);
