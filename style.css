@@ -364,3 +364,25 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   .settings-dialog h2 {font-size:23px}
   .settings-volume-panel {padding:12px}
 }
+
+/* More official provider connections, using the existing Obsidian Hi-Fi visual language. */
+@media (min-width:621px) {
+  .official-player-form select { flex:0 0 164px; }
+  .official-player-form input { flex:1 1 auto; width:100%; }
+}
+.official-player-form select { color:#d9f7ff; border-color:rgba(80,232,255,.18); background:#0b1016; }
+.official-player-form select option { color:#eef8fc; background:#101922; }
+.external-more-services { margin-top:10px; border:1px solid rgba(204,224,237,.1); border-radius:11px; background:rgba(255,255,255,.012); }
+.external-more-services>summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 12px; color:#bfefff; font-size:9px; font-weight:800; cursor:pointer; list-style:none; }
+.external-more-services>summary::-webkit-details-marker { display:none; }
+.external-more-services>summary span:last-child { width:22px; height:22px; display:grid; place-items:center; border:1px solid rgba(80,232,255,.17); border-radius:7px; color:var(--cyan); }
+.external-more-services[open]>summary { border-bottom:1px solid rgba(204,224,237,.08); }
+.extra-destination-grid { padding:0 10px 10px; }
+@media(max-width:1050px) {
+  .official-player-form select { width:100%; min-height:38px; }
+  .extra-destination-grid { grid-template-columns:1fr; }
+}
+@media(max-width:620px) {
+  .official-player-form select { height:36px; }
+  .external-more-services>summary { font-size:8px; padding:9px; }
+}
