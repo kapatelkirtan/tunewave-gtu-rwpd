@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20261018-43">
+  <link rel="stylesheet" href="style.css?v=20261018-44">
   <script src="config.js"></script>
-  <script defer src="app.js?v=20261018-22"></script>
+  <script defer src="app.js?v=20261018-23"></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -201,23 +201,34 @@
             <div>
               <p class="section-kicker"><span class="status-kicker-dot"></span> OFFICIAL PLAYER CONNECTIONS</p>
               <h2 id="official-embed-title">Find a song, play it here</h2>
-              <p>Paste a YouTube or YouTube Music video or playlist link to load its official player right here.</p>
+              <p>Choose a service and paste its official track, album, playlist link or embed code to play it here.</p>
             </div>
             <span class="external-link-label">EMBEDDED PLAYERS</span>
           </div>
           <form id="official-player-form" class="official-player-form">
-            <label class="sr-only" for="official-player-url">Official track URL</label>
-            <input id="official-player-url" name="trackUrl" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Paste YouTube/YouTube music link here to play song :" required>
+            <label class="sr-only" for="official-player-provider">Music service</label>
+            <select id="official-player-provider" name="provider" aria-label="Music service">
+              <option value="youtube">YouTube Music</option>
+              <option value="spotify">Spotify</option>
+              <option value="apple-music">Apple Music</option>
+              <option value="soundcloud">SoundCloud</option>
+              <option value="deezer">Deezer</option>
+              <option value="audiomack">Audiomack embed</option>
+              <option value="hearthis">HearThis.at embed</option>
+              <option value="bandcamp">Bandcamp embed</option>
+            </select>
+            <label class="sr-only" for="official-player-url">Official track URL or provider embed code</label>
+            <input id="official-player-url" name="trackUrl" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Paste a track / playlist URL or official embed code…" required>
             <button type="submit" class="search-submit">Play here ↗</button>
           </form>
           <div class="official-provider-searches" aria-label="Search tracks on YouTube Music">
-            <p id="official-player-query">Search a title above, or paste a song link to load its official player.</p>
+            <p id="official-player-query">Search a title above, open a service, then paste its supported link or official embed code.</p>
             <div class="official-provider-search-links">
               <a data-external-provider="youtube-music" href="https://music.youtube.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on YouTube Music ↗</a>
             </div>
-            <p class="official-player-search-help">Choose a result in YouTube or YouTube Music, copy its video or playlist link, and paste it above. Playback and access follow the service’s own rules.</p>
+            <p class="official-player-search-help">For YouTube, Spotify, Apple Music, SoundCloud and Deezer, paste the normal share link. For Audiomack, HearThis.at and Bandcamp, paste the iframe code copied from that service’s Share / Embed tool.</p>
           </div>
-          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Paste a YouTube / YouTube Music video or playlist link to load its official player here. Ads, sign-in rules, full-track access, and background playback are controlled by the service and your device.</p>
+          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Official player embeds follow each provider’s own ads, login, full-track, region and background-play rules. Only supported provider URLs and embed code are accepted.</p>
 
           <div id="official-player-stage" class="official-player-stage" hidden>
             <iframe id="official-player-frame" title="Official embedded music player" width="100%" height="352" frameborder="0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen hidden></iframe>
@@ -230,7 +241,7 @@
         <summary class="source-center-summary">
           <span class="source-center-icon" aria-hidden="true">◎</span>
           <span class="source-center-copy"><strong>Music sources &amp; availability</strong><small>Live health checks, open catalogues and official music services</small></span>
-          <span class="source-center-count">9 SOURCES · 5 DESTINATIONS</span>
+          <span class="source-center-count">9 SOURCES · 13 DESTINATIONS</span>
           <span class="source-center-toggle" aria-hidden="true">+</span>
         </summary>
         <div class="source-center-content">
@@ -322,7 +333,20 @@
               <span class="external-brand-icon" aria-hidden="true">GA</span><span class="external-link-copy"><strong>Gaana</strong><small>Hindi · Gujarati · Bollywood</small></span><span class="external-open" aria-hidden="true">↗</span>
             </a>
           </div>
-          <p class="external-music-note">These links open each service’s official search/player; they do not bypass ads, subscriptions or regional restrictions. TuneWave’s in-page player searches free/open catalogues and shows license/source links where available. Lock-screen controls use browser Media Session support; background playback still depends on your browser, device and the provider’s stream.</p>
+          <details class="external-more-services">
+            <summary><span>Explore 8 more official music apps</span><span aria-hidden="true">＋</span></summary>
+            <div class="external-music-links extra-destination-grid" aria-label="Additional official music services">
+              <a class="external-music-link" data-external-provider="apple-music" href="https://music.apple.com/in/search?term=ultrafunk" target="_blank" rel="noopener noreferrer"><span class="external-brand-icon" aria-hidden="true">AM</span><span class="external-link-copy"><strong>Apple Music</strong><small>Tracks · albums · playlists</small></span><span class="external-open" aria-hidden="true">↗</span></a>
+              <a class="external-music-link" data-external-provider="soundcloud" href="https://soundcloud.com/search/sounds?q=ultrafunk" target="_blank" rel="noopener noreferrer"><span class="external-brand-icon" aria-hidden="true">SC</span><span class="external-link-copy"><strong>SoundCloud</strong><small>Creator uploads · remixes · funk</small></span><span class="external-open" aria-hidden="true">↗</span></a>
+              <a class="external-music-link" data-external-provider="audiomack" href="https://audiomack.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer"><span class="external-brand-icon" aria-hidden="true">AM</span><span class="external-link-copy"><strong>Audiomack</strong><small>Mixtapes · remixes · phonk</small></span><span class="external-open" aria-hidden="true">↗</span></a>
+              <a class="external-music-link" data-external-provider="hearthis" href="https://hearthis.at/search-music/?q=ultrafunk" target="_blank" rel="noopener noreferrer"><span class="external-brand-icon" aria-hidden="true">HT</span><span class="external-link-copy"><strong>HearThis.at</strong><small>DJ sets · electronic · remixes</small></span><span class="external-open" aria-hidden="true">↗</span></a>
+              <a class="external-music-link" data-external-provider="bandcamp" href="https://bandcamp.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer"><span class="external-brand-icon" aria-hidden="true">BC</span><span class="external-link-copy"><strong>Bandcamp</strong><small>Independent releases</small></span><span class="external-open" aria-hidden="true">↗</span></a>
+              <a class="external-music-link" data-external-provider="free-music-archive" href="https://freemusicarchive.org/search/?quicksearch=ultrafunk" target="_blank" rel="noopener noreferrer"><span class="external-brand-icon" aria-hidden="true">FMA</span><span class="external-link-copy"><strong>Free Music Archive</strong><small>Open-license discovery</small></span><span class="external-open" aria-hidden="true">↗</span></a>
+              <a class="external-music-link" data-external-provider="hungama" href="https://www.hungama.com/search/?q=ultrafunk" target="_blank" rel="noopener noreferrer"><span class="external-brand-icon" aria-hidden="true">HU</span><span class="external-link-copy"><strong>Hungama</strong><small>Hindi · Bollywood · Indian music</small></span><span class="external-open" aria-hidden="true">↗</span></a>
+              <a class="external-music-link" data-external-provider="saregama" href="https://www.saregama.com/search/song?s=ultrafunk" target="_blank" rel="noopener noreferrer"><span class="external-brand-icon" aria-hidden="true">SR</span><span class="external-link-copy"><strong>Saregama</strong><small>Old Hindi · evergreen classics</small></span><span class="external-open" aria-hidden="true">↗</span></a>
+            </div>
+          </details>
+          <p class="external-music-note">These official destinations add discovery for Hindi/Bollywood, old classics, Gujarati/garba and Ultra Funk/remix searches. They do not bypass ads, accounts, subscriptions or regional restrictions. Lock-screen and background playback depend on the provider, browser and device.</p>
         </section>
         </div>
       </details>
