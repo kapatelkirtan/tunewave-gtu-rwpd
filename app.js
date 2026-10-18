@@ -1163,7 +1163,12 @@
   $('#bottom-like-button').addEventListener('click', () => { if (state.current) toggleFavorite(state.current); });
   $('#clear-queue-button').addEventListener('click', () => { state.queue = state.current ? [state.current] : []; state.queueIndex = state.current ? 0 : -1; renderQueue(); saveState(true); toast('Queue cleared.'); });
   $('#about-button').addEventListener('click', () => $('#info-dialog').showModal());
-  $('#settings-button').addEventListener('click', () => $('#info-dialog').showModal());
+  $('#settings-button').addEventListener('click', () => {
+    const volumeInput = $('#volume-input');
+    const volumeValue = $('#volume-value');
+    if (volumeInput && volumeValue) volumeValue.textContent = `${Math.round(Number(volumeInput.value) * 100)}%`;
+    $('#audio-settings-dialog').showModal();
+  });
   $('#install-button').addEventListener('click', async () => {
     if (state.installPrompt) {
       state.installPrompt.prompt();
@@ -1173,7 +1178,13 @@
       toast('To install: use your browser menu and choose “Install app” or “Add to Home screen”.', 4500);
     }
   });
-  $('#volume-input').addEventListener('input', event => { state.volume = Number(event.target.value); audio.volume = state.volume; saveState(true); });
+  $('#volume-input').addEventListener('input', event => {
+    state.volume = Math.min(1, Math.max(0, Number(event.target.value)));
+    audio.volume = state.volume;
+    const readout = $('#volume-value');
+    if (readout) readout.textContent = `${Math.round(state.volume * 100)}%`;
+    saveState(true);
+  });
   $('#seek-input').addEventListener('input', event => {
     state.isSeeking = true;
     const dur = Number.isFinite(audio.duration) ? audio.duration : state.current?.duration || 0;
@@ -1246,6 +1257,8 @@
   function restoreSession() {
     audio.volume = state.volume;
     $('#volume-input').value = String(state.volume);
+    const volumeReadout = $('#volume-value');
+    if (volumeReadout) volumeReadout.textContent = `${Math.round(state.volume * 100)}%`;
     renderRecent();
     $('#favorite-count').textContent = String(state.favorites.length);
     renderQueue();
