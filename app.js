@@ -1172,7 +1172,7 @@
       if (choice && choice.outcome === 'accepted') {
         toast('TuneWave installation was accepted by your browser.', 3500);
       } else {
-        toast('Installation was cancelled. You can try the Download App button again.', 4000);
+        toast('Installation was cancelled. You can tap the install icon again.', 4000);
       }
     } catch (_) {
       renderInstallGuide();
@@ -1180,7 +1180,6 @@
   }
 
   $('#install-button').addEventListener('click', requestTuneWaveInstall);
-  $('#download-app-button').addEventListener('click', requestTuneWaveInstall);
   $('#volume-input').addEventListener('input', event => {
     state.volume = Math.min(1, Math.max(0, Number(event.target.value)));
     audio.volume = state.volume;
@@ -1252,7 +1251,7 @@
       state.position = 0; saveState(true);
     }
   });
-  window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); state.installPrompt = event; $('#install-button').title = 'Download and install TuneWave'; $('#download-app-button').title = 'Download and install TuneWave'; });
+  window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); state.installPrompt = event; $('#install-button').title = 'Download and install TuneWave'; });
   window.addEventListener('appinstalled', () => toast('TuneWave was installed. Enjoy listening!'));
   window.addEventListener('pagehide', () => saveState(true));
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveState(true); });
