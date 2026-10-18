@@ -25,6 +25,7 @@
   let nativeDuration = 0;
   let nativePlaybackState = 1;
   let nativeStartTimeout = null;
+  let nativeWasPlayingWhenHidden = false;
   const playbackPaused = () => nativePlayback ? !nativePlaying : audio.paused;
   const playbackCurrentTime = () => nativePlayback ? nativePosition : audio.currentTime;
   const playbackDuration = () => nativePlayback && nativeDuration > 0 ? nativeDuration : audio.duration;
@@ -1281,7 +1282,44 @@
   });
   window.addEventListener('appinstalled', () => toast('TuneWave was installed. Enjoy listening!'));
   window.addEventListener('pagehide', () => saveState(true));
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveState(true); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (nativePlayback) nativeWasPlayingWhenHidden = nativePlaying;
+      saveState(true);
+      return;
+    }
+    // A WebView can be suspended while Android keeps the native service alive.
+    // Compare service state on return instead of trusting the last JS callback.
+    if (nativePlayback && nativeTrackLoaded && nativeWasPlayingWhenHidden) {
+      nativeWasPlayingWhenHidden = false;
+      setTimeout(() => {
+        try {
+          const diag = JSON.parse(window.TuneWaveNative.getPlaybackDiagnostics() || '{}');
+          nativePlaybackState = Number(diag.playbackState) || 1;
+          nativePosition = Math.max(0, Number(window.TuneWaveNative.getPositionMs()) || 0) / 1000;
+          nativePlaying = Boolean(diag.isPlaying);
+          state.position = nativePosition;
+          updateProgress();
+          if (!nativePlaying) {
+            state.isResolvingPlayback = false;
+            updateCurrentTrackUI();
+            $('#now-status').textContent = 'BACKGROUND PLAYBACK STOPPED';
+            const report = 'service=' + (diag.serviceAlive ? 'running' : 'stopped') +
+              ', state=' + nativePlaybackState +
+              ', playWhenReady=' + Boolean(diag.playWhenReady) +
+              ', host=' + String(diag.currentHost || 'unknown') +
+              ', error=' + String(diag.lastError || 'none');
+            toast('TuneWave background diagnostic: ' + report, 10000);
+          } else {
+            updateCurrentTrackUI();
+          }
+        } catch (_) {
+          $('#now-status').textContent = 'ANDROID PLAYBACK STATUS UNAVAILABLE';
+          toast('TuneWave could not read the Android playback service after returning. Try a connected catalogue track.', 8000);
+        }
+      }, 700);
+    }
+  });
 
   function restoreSession() {
     audio.volume = nativePlayback ? 0 : state.volume;
