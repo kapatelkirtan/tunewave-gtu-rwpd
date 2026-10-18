@@ -22,11 +22,10 @@ Pasted YouTube / YouTube Music links continue to use YouTube's official embedded
 
 ## How the Download App button behaves
 
-- Chromium browsers show their native install confirmation after the browser fires `beforeinstallprompt`. This build captures that event early and calls its prompt from the button click. The person must still confirm installation.
-- If the browser does not expose an install prompt, TuneWave shows the correct fallback instructions. Web pages cannot force-install themselves or silently create a native app.
-- On iPhone/iPad, use Safari's Share menu → Add to Home Screen → Add. Apple requires this user action; the website cannot trigger this installation sheet directly.
+- The top-right Download App button downloads the native Android APK from the latest GitHub release: [Download TuneWave APK](https://github.com/kapatelkirtan/tunewave-gtu-rwpd/releases/latest/download/app-debug.apk).
+- On Android, open the downloaded APK and tap **Install**. If prompted, allow your browser to install unknown apps for this download.
+- To install the website itself as a PWA instead, use the browser menu and choose **Install app** or **Add to Home screen**.
 - The site must be served from HTTPS (Render provides HTTPS) and the manifest, icon URLs, and service worker must all be accessible from the deployed site's root.
-- In Chrome, the browser may delay the native prompt until its installability/user-engagement heuristics are met, and it will not prompt if the app is already installed. Open Chrome's menu and choose **Install app** or **Add to Home screen** if the button falls back to instructions.
 
 ## Important limitations
 
