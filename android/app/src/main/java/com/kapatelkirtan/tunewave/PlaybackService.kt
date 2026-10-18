@@ -59,7 +59,9 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val result = super.onStartCommand(intent, flags, startId)
+        // Apply TuneWave's explicit play/pause commands before Media3 processes the
+        // start command, so the session already reflects the requested playback state
+        // when Media3 decides whether its media notification must be foregrounded.
         when (intent?.action) {
             ACTION_PLAY -> startTrack(intent)
             ACTION_PAUSE -> player.pause()
@@ -72,7 +74,7 @@ class PlaybackService : MediaSessionService() {
             }
         }
         publishState()
-        return result
+        return super.onStartCommand(intent, flags, startId)
     }
 
     private fun startTrack(intent: Intent) {
