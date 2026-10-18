@@ -12,8 +12,10 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import android.util.Log
 
 @OptIn(UnstableApi::class)
 class PlaybackService : MediaSessionService() {
@@ -30,6 +32,16 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        // Use a TuneWave-owned channel so its playback controls are explicit and
+        // independently configurable from any default media-notification channel.
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider.Builder(this)
+                .setChannelId("tunewave_media_playback")
+                .setChannelName(R.string.app_name)
+                .setNotificationId(DefaultMediaNotificationProvider.DEFAULT_NOTIFICATION_ID)
+                .build()
+        )
+        Log.i(TAG, "PlaybackService created; Media3 notification provider installed")
         player = ExoPlayer.Builder(this)
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -46,6 +58,7 @@ class PlaybackService : MediaSessionService() {
             override fun onPlaybackStateChanged(playbackState: Int) = publishState()
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = publishState()
             override fun onPlayerError(error: PlaybackException) {
+                Log.e(TAG, "ExoPlayer error code=${error.errorCodeName}: ${error.message}", error)
                 snapshotIsPlaying = false
                 MainActivity.reportNativePlaybackState(
                     snapshotPositionMs, snapshotDurationMs, false, player.playbackState
@@ -59,13 +72,21 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Apply TuneWave's explicit play/pause commands before Media3 processes the
-        // start command, so the session already reflects the requested playback state
-        // when Media3 decides whether its media notification must be foregrounded.
+        // Let Media3 handle its service lifecycle and media-button intents first.
+        val result = super.onStartCommand(intent, flags, startId)
+        Log.i(TAG, "onStartCommand action=${intent?.action ?: "null"}")
         when (intent?.action) {
-            ACTION_PLAY -> startTrack(intent)
+            ACTION_PLAY -> {
+                startTrack(intent)
+                // Force a notification refresh after the requested MediaItem has
+                // been installed, including while ExoPlayer is still buffering.
+                triggerNotificationUpdate()
+            }
             ACTION_PAUSE -> player.pause()
-            ACTION_RESUME -> player.play()
+            ACTION_RESUME -> {
+                player.play()
+                triggerNotificationUpdate()
+            }
             ACTION_SEEK -> player.seekTo(intent.getLongExtra(EXTRA_POSITION_MS, 0L).coerceAtLeast(0L))
             ACTION_VOLUME -> player.volume = intent.getFloatExtra(EXTRA_VOLUME, 1f).coerceIn(0f, 1f)
             ACTION_STOP -> {
@@ -74,13 +95,18 @@ class PlaybackService : MediaSessionService() {
             }
         }
         publishState()
-        return super.onStartCommand(intent, flags, startId)
+        return result
     }
 
     private fun startTrack(intent: Intent) {
         val url = intent.getStringExtra(EXTRA_URL).orEmpty()
         val uri = try { Uri.parse(url) } catch (_: Exception) { null }
-        if (uri == null || !uri.scheme.equals("https", ignoreCase = true) || uri.host.isNullOrBlank()) return
+        if (uri == null || !uri.scheme.equals("https", ignoreCase = true) || uri.host.isNullOrBlank()) {
+            Log.e(TAG, "Rejected invalid audio URL")
+            MainActivity.reportNativePlaybackError("INVALID_STREAM_URL", "The native player received an invalid HTTPS audio URL.")
+            return
+        }
+        Log.i(TAG, "Loading media URL host=${uri.host}")
 
         val title = intent.getStringExtra(EXTRA_TITLE).orEmpty().ifBlank { "TuneWave" }
         val artist = intent.getStringExtra(EXTRA_ARTIST).orEmpty().ifBlank { "Unknown artist" }
@@ -130,6 +156,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     companion object {
+        private const val TAG = "TuneWavePlayback"
         const val ACTION_PLAY = "com.kapatelkirtan.tunewave.action.PLAY"
         const val ACTION_PAUSE = "com.kapatelkirtan.tunewave.action.PAUSE"
         const val ACTION_RESUME = "com.kapatelkirtan.tunewave.action.RESUME"
