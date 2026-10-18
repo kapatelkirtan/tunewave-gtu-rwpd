@@ -596,6 +596,22 @@
         return;
       }
 
+      // In the Android APK, hand YouTube links to Edge/the external browser.
+      // Browser-managed playback may continue on the lock screen where supported.
+      if (nativePlayback && window.TuneWaveNative && typeof window.TuneWaveNative.openExternalUrl === 'function') {
+        let opened = false;
+        try { opened = Boolean(window.TuneWaveNative.openExternalUrl(officialUrl)); } catch (_) {}
+        if (status) status.textContent = opened
+          ? 'Opened this song in your browser. Start playback there, then lock your phone. Background playback depends on the browser and YouTube account/settings.'
+          : 'Could not open the browser. Use the Open this song in YouTube link below.';
+        if (openLink) {
+          openLink.href = officialUrl;
+          openLink.hidden = false;
+          openLink.textContent = safeVideo ? 'Open this song in YouTube ↗' : 'Open this playlist in YouTube ↗';
+        }
+        return;
+      }
+
       stopOfficialEmbed();
       state.playbackVersion++;
       state.isResolvingPlayback = false;
