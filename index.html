@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20261018-42">
+  <link rel="stylesheet" href="style.css?v=20261018-43">
   <script src="config.js"></script>
-  <script defer src="app.js?v=20261018-21"></script>
+  <script defer src="app.js?v=20261018-22"></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -352,11 +352,22 @@
       </div>
       <div class="seek-row"><span id="bottom-current-time">0:00</span><input id="seek-input" type="range" min="0" max="100" value="0" aria-label="Seek within track"><span id="bottom-total-time">0:00</span></div>
     </div>
-    <div class="bottom-extra"><span class="sound-wave" aria-hidden="true">▂▅▃▇▂</span><label class="sr-only" for="volume-input">Volume</label><span class="volume-icon">◖</span><input id="volume-input" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volume"></div>
   </div>
 
   <audio id="audio-player" preload="metadata"></audio>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <dialog class="info-dialog settings-dialog" id="audio-settings-dialog" aria-labelledby="audio-settings-title">
+    <form method="dialog"><button class="dialog-close" aria-label="Close settings">×</button></form>
+    <p class="section-kicker">LISTENING SETTINGS</p>
+    <h2 id="audio-settings-title">Audio controls</h2>
+    <p>Adjust TuneWave playback volume. This setting applies to the in-page music player.</p>
+    <div class="settings-volume-panel">
+      <div class="settings-volume-heading"><label for="volume-input">Playback volume</label><output id="volume-value" for="volume-input">80%</output></div>
+      <input id="volume-input" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Playback volume">
+      <p class="settings-volume-help">Use the slider to set the player’s output level.</p>
+    </div>
+  </dialog>
 
   <dialog class="info-dialog" id="info-dialog">
     <form method="dialog"><button class="dialog-close" aria-label="Close">×</button></form>
