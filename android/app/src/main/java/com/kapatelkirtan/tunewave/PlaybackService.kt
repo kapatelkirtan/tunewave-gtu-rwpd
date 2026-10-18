@@ -38,7 +38,7 @@ class PlaybackService : MediaSessionService() {
                     .build(),
                 true
             )
-            .setWakeMode(C.WAKE_MODE_NETWORK)
+            .setWakeMode(C.WAKE_MODE_LOCAL)
             .build()
 
         player.addListener(object : Player.Listener {
