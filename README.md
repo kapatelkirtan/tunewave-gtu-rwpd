@@ -73,3 +73,17 @@ The embedded platforms control their own advertisements, login/premium checks, g
 - Audiomack and HearThis.at standard share URLs are converted to official embed paths where the URL format supports it. For Bandcamp, paste the iframe code copied from the track/album's Share / Embed action; its official player requires the track/album ID.
 - Embedded players remain controlled by their provider, including advertisements, access restrictions, full-track availability and lock-screen support. An embedded track is not added to TuneWave's HTML-audio queue or guaranteed to expose TuneWave's lock-screen controls.
 - Rapid typing won't let a slow response for an older query overwrite the results for the latest query.
+
+
+## Music-provider bridge deployment
+
+The browser app uses the separate Render Web Service configured in `config.js` as the music-provider bridge. This server implements the bridge health contract at `/health` and the provider routes consumed by the frontend.
+
+- **Audius** and **Free To Use** use their public read/search APIs.
+- **Jamendo** requires `JAMENDO_CLIENT_ID` as a secret environment variable on the bridge service. Never put it in `config.js` or browser JavaScript.
+- **Internet Archive**, **ccMixter**, **Funkwhale / Open Audio**, and **Radio Browser** use their public catalogue endpoints and return HTTPS streams where available.
+- **Openverse** uses anonymous search by default; optional `OPENVERSE_CLIENT_ID` and `OPENVERSE_CLIENT_SECRET` environment variables enable OAuth if needed.
+
+In Render, the bridge service must use this repository, root directory `.`, Node runtime, and start command `npm start`. Keep the Static Site service separate and serving the repository root. The configured bridge health URL is `https://tunewave-gtu-rwpd-2.onrender.com/health`.
+
+The source-status panel confirms endpoint responses; it cannot guarantee every song exists or that every stream will play. Jamendo will show as needing setup until `JAMENDO_CLIENT_ID` is set in the bridge service environment.
