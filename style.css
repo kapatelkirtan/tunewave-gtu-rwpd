@@ -202,3 +202,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
  .bottom-track-copy strong{font-size:8px}
  .bottom-track-copy span{font-size:6.5px}
 }
+
+/* UI bug fixes only — preserve the Obsidian Hi-Fi visual design. */
+@media (min-width:1051px) {
+  /* Keep the full-size Now Playing panel in document flow so the fixed dock
+     cannot trap or cover its transport controls while the page is scrolled. */
+  .now-card { position: relative; top: auto; }
+}
+.main-play,.bottom-play { cursor:pointer; touch-action:manipulation; position:relative; z-index:2; }
+.main-play.is-loading,.bottom-play.is-loading { cursor:progress; }
+.main-play.is-loading span,.bottom-play.is-loading span { display:inline-block; min-width:1.5em; animation:tw-play-wait .8s ease-in-out infinite alternate; }
+@keyframes tw-play-wait { from { opacity:.45; transform:scale(.93); } to { opacity:1; transform:scale(1.04); } }
+.bottom-player { padding-bottom:calc(12px + env(safe-area-inset-bottom)); }
+@media (max-width:1050px) {
+  .bottom-player { z-index:44; }
+  .mobile-nav { z-index:45; }
+}
