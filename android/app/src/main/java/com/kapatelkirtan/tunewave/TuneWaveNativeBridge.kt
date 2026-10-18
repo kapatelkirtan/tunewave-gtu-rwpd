@@ -34,6 +34,33 @@ class TuneWaveNativeBridge(context: Context) {
     }
 
     @JavascriptInterface
+    fun openExternalUrl(url: String): Boolean {
+        val uri = try { Uri.parse(url) } catch (_: Exception) { return false }
+        if (!uri.scheme.equals("https", ignoreCase = true)) return false
+        val host = uri.host?.lowercase() ?: return false
+        if (host !in setOf("youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be")) return false
+
+        val edgeIntent = Intent(Intent.ACTION_VIEW, uri).apply {
+            setPackage("com.microsoft.emmx")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        return try {
+            appContext.startActivity(edgeIntent)
+            true
+        } catch (_: Exception) {
+            try {
+                val browserIntent = Intent(Intent.ACTION_VIEW, uri).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                appContext.startActivity(browserIntent)
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
+    @JavascriptInterface
     fun pause() = send(PlaybackService.ACTION_PAUSE)
 
     @JavascriptInterface
