@@ -1050,6 +1050,74 @@
     return bestScore >= 6 ? best : null;
   }
 
+  async function freeLyricsSearchFallback(status) {
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
+      status.textContent = 'Sound recognition needs a recognition API token. Free fallback is unavailable in this browser; try Voice search or search a lyric/title.';
+      resultsArea.innerHTML = '<div class="error-panel"><strong>Song-by-sound recognition needs a provider token</strong>The microphone recording worked, but TuneWave cannot identify a song from its audio without a recognition service. You can still use Voice search to capture audible words, then search the connected catalogues. No subscription or fake match was used.</div>';
+      return;
+    }
+    status.textContent = 'No free sound-recognition token is configured. Trying a best-effort lyrics fallback; this listens for words, not melody.';
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'en-IN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 3;
+    let settled = false;
+    let timer;
+    const transcript = await new Promise(resolve => {
+      const finish = value => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try { recognition.stop(); } catch (_) {}
+        resolve(String(value || '').trim());
+      };
+      recognition.onresult = event => {
+        const alternatives = [];
+        for (let i = 0; i < (event.results?.length || 0); i++) {
+          const result = event.results[i];
+          for (let j = 0; j < (result?.length || 0); j++) {
+            if (result[j]?.transcript) alternatives.push({ text: result[j].transcript, confidence: Number(result[j].confidence || 0) });
+          }
+        }
+        alternatives.sort((a, b) => b.confidence - a.confidence);
+        finish(alternatives[0]?.text || '');
+      };
+      recognition.onerror = () => finish('');
+      recognition.onend = () => finish('');
+      timer = setTimeout(() => finish(''), 9000);
+      try { recognition.start(); } catch (_) { finish(''); }
+    });
+    if (!transcript) {
+      status.textContent = 'No clear lyrics were heard. Song-by-sound recognition needs a configured provider token; try again with a token or search the title manually.';
+      resultsArea.innerHTML = '<div class="no-results"><strong>No clear lyrics detected</strong>This free fallback can only transcribe audible words; it cannot fingerprint the melody. Try a clearer vocal section or type a lyric/title into Search.</div>';
+      $('#result-count').textContent = '';
+      return;
+    }
+    searchInput.value = transcript;
+    status.textContent = 'Heard possible lyrics: “' + transcript + '”. Searching the nine connected catalogues…';
+    toast('Searching for the words heard: ' + transcript, 3500);
+    await searchCatalog(transcript);
+    const bridgeBase = String(window.TUNEWAVE_JAMENDO_API_BASE || '').trim().replace(/\/$/, '');
+    if (bridgeBase) {
+      try {
+        const youtubePayload = await getBridgeJson(bridgeBase + '/api/youtube/search?q=' + encodeURIComponent(transcript), 12000);
+        const video = Array.isArray(youtubePayload.results) ? youtubePayload.results[0] : null;
+        if (video && /^[A-Za-z0-9_-]{11}$/.test(String(video.videoId || ''))) {
+          const playerUrl = $('#official-player-url');
+          const playerForm = $('#official-player-form');
+          if (playerUrl && playerForm) {
+            playerUrl.value = String(video.url || ('https://www.youtube.com/watch?v=' + video.videoId));
+            playerForm.requestSubmit();
+            $('#official-embed-title').textContent = 'YouTube lyric match';
+          }
+        }
+      } catch (_) { /* YouTube search requires its configured backend/API access. */ }
+    }
+    status.textContent = 'Free lyrics fallback searched TuneWave’s catalogues for “' + transcript + '”. This is not melody recognition; if no YouTube video loaded, configure YouTube search access or paste a video link in the official player.';
+  }
+
   async function identifySongByListening() {
     const button = $('#identify-button');
     const status = $('#identify-status');
@@ -1206,9 +1274,16 @@
         }
       } catch (error) {
         const message = error?.message || 'Song identification is unavailable right now.';
+        const lowerMessage = String(message).toLowerCase();
+        if (lowerMessage.includes('audd_api_token') || lowerMessage.includes('recognition is not configured') ||
+            lowerMessage.includes('add audd_api_token') || lowerMessage.includes('invalid api token') ||
+            lowerMessage.includes('token') && (lowerMessage.includes('missing') || lowerMessage.includes('invalid') || lowerMessage.includes('activate'))) {
+          await freeLyricsSearchFallback(status);
+          return;
+        }
         status.textContent = message;
         resultsArea.innerHTML = '<div class="error-panel"><strong>Song identification unavailable</strong>' + escapeHTML(message) +
-          '<br>Check the AudD token on the Render music bridge, or type the song title to search normally.</div>';
+          '<br>Check the recognition provider configuration, or use the free lyrics fallback / type a title to search normally.</div>';
         $('#result-count').textContent = '';
       }
     }, { once: true });
