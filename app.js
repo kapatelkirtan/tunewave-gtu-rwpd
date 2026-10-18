@@ -16,6 +16,16 @@
   const searchInput = $('#search-input');
   const resultsArea = $('#results-area');
   const toastEl = $('#toast');
+  // In the Android APK, direct audio streams are delegated to a native Media3
+  // background service. A normal browser continues to use the HTMLAudioElement.
+  const nativePlayback = Boolean(window.TuneWaveNative && typeof window.TuneWaveNative.playTrack === 'function');
+  let nativeTrackLoaded = false;
+  let nativePlaying = false;
+  let nativePosition = 0;
+  let nativeDuration = 0;
+  const playbackPaused = () => nativePlayback ? !nativePlaying : playbackPaused();
+  const playbackCurrentTime = () => nativePlayback ? nativePosition : audio.currentTime;
+  const playbackDuration = () => nativePlayback && nativeDuration > 0 ? nativeDuration : audio.duration;
   const state = {
     view: 'home', query: '', results: [], catalogResults: [], queue: [], queueIndex: -1,
     current: null, recent: [], favorites: [], position: 0, volume: 0.8,
@@ -23,6 +33,34 @@
     recognition: null, isVoiceSearching: false, isRestoring: false,
     searchVersion: 0, playbackVersion: 0, isResolvingPlayback: false
   };
+
+  if (nativePlayback) {
+    audio.play = () => {
+      if (nativeTrackLoaded) {
+        try { window.TuneWaveNative.resume(); } catch (_) {}
+        nativePlaying = true;
+        updateCurrentTrackUI();
+      }
+      return Promise.resolve();
+    };
+    audio.pause = () => {
+      if (nativeTrackLoaded) {
+        try { window.TuneWaveNative.pause(); } catch (_) {}
+        nativePlaying = false;
+        updateCurrentTrackUI();
+      }
+    };
+    window.onTuneWaveNativeState = (positionMs, durationMs, isPlaying) => {
+      nativePosition = Math.max(0, Number(positionMs) || 0) / 1000;
+      nativeDuration = Math.max(0, Number(durationMs) || 0) / 1000;
+      nativePlaying = Boolean(isPlaying);
+      state.position = nativePosition;
+      state.isResolvingPlayback = false;
+      updateCurrentTrackUI();
+      updateProgress();
+      saveState(false);
+    };
+  }
 
   function readState() {
     try {
@@ -58,7 +96,8 @@
     if (!force && now - state.lastSavedAt < 3500) return;
     state.lastSavedAt = now;
     try {
-      const position = Number.isFinite(audio.currentTime) && audio.currentTime > 0 ? audio.currentTime : state.position;
+      const playbackTime = playbackCurrentTime();
+      const position = Number.isFinite(playbackTime) && playbackTime > 0 ? playbackTime : state.position;
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         recent: state.recent.slice(0, 16), favorites: state.favorites.slice(0, 100),
         queue: state.queue.slice(0, 50), queueIndex: state.queueIndex,
@@ -747,14 +786,14 @@
   function updateCurrentTrackUI() {
     const track = state.current;
     const loading = Boolean(state.isResolvingPlayback);
-    const playing = !audio.paused && !loading;
+    const playing = !playbackPaused() && !loading;
     const title = track?.title || 'Pick a track';
     const artist = track?.artist || 'Your next listen is one search away.';
     $('#now-title').textContent = title;
     $('#now-artist').textContent = artist;
     $('#bottom-title').textContent = track?.title || 'TuneWave is ready';
     $('#bottom-artist').textContent = track?.artist || 'Search, select, and press play';
-    $('#now-status').textContent = loading ? 'CONNECTING TO AUDIO SOURCE' : (audio.paused ? (track ? 'READY TO PLAY' : 'READY WHEN YOU ARE') : 'PLAYING FROM OPEN SOURCE');
+    $('#now-status').textContent = loading ? 'CONNECTING TO AUDIO SOURCE' : (playbackPaused() ? (track ? 'READY TO PLAY' : 'READY WHEN YOU ARE') : 'PLAYING FROM OPEN SOURCE');
     document.documentElement.classList.toggle('tw-is-playing', playing);
     const img = normalizeImageURL(track?.artwork);
     $('#now-art-wrap').innerHTML = `<img src="${escapeHTML(img)}" alt="" onerror="this.onerror=null;this.src='icon-512.png'"><div class="art-shine"></div>`;
@@ -763,17 +802,17 @@
     $('#bottom-like-button').textContent = liked ? '♥' : '♡';
     $('#bottom-like-button').classList.toggle('liked', Boolean(liked));
     $('#bottom-like-button').disabled = !track;
-    const playLabel = loading ? 'Connecting to track' : (audio.paused ? 'Play' : 'Pause');
-    const playState = loading ? 'loading' : (audio.paused ? 'play' : 'pause');
+    const playLabel = loading ? 'Connecting to track' : (playbackPaused() ? 'Play' : 'Pause');
+    const playState = loading ? 'loading' : (playbackPaused() ? 'play' : 'pause');
     ['#main-play-button', '#bottom-play-button'].forEach(selector => {
       const button = $(selector);
       button.dataset.playState = playState;
       button.setAttribute('aria-label', playLabel);
-      button.setAttribute('title', loading ? 'Connecting to audio source…' : (audio.paused ? 'Play' : 'Pause'));
+      button.setAttribute('title', loading ? 'Connecting to audio source…' : (playbackPaused() ? 'Play' : 'Pause'));
       button.classList.toggle('is-loading', loading);
       button.setAttribute('aria-busy', loading ? 'true' : 'false');
     });
-    $('.equalizer-mini')?.classList.toggle('paused', audio.paused || loading);
+    $('.equalizer-mini')?.classList.toggle('paused', playbackPaused() || loading);
     renderQueue();
     if (track) updateMediaSession(track);
   }
@@ -814,7 +853,7 @@
   }
 
   function updateMediaSessionPosition() {
-    if (!('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
+    if (nativePlayback || !('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
     try {
       if (Number.isFinite(audio.duration) && audio.duration > 0) {
         navigator.mediaSession.setPositionState({
@@ -827,10 +866,10 @@
   }
 
   function updateMediaSession(track) {
-    if (!('mediaSession' in navigator)) return;
+    if (nativePlayback || !('mediaSession' in navigator)) return;
     installMediaSessionActionHandlers();
     try {
-      navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
+      navigator.mediaSession.playbackState = playbackPaused() ? 'paused' : 'playing';
       if (typeof MediaMetadata === 'function') {
         const artworkUrl = new URL(normalizeImageURL(track.artwork), document.baseURI).href;
         navigator.mediaSession.metadata = new MediaMetadata({
@@ -847,8 +886,8 @@
   async function playTrack(track, index = -1, resumeAt = 0) {
     if (!track) return;
     const sameTrack = state.current && trackId(state.current) === trackId(track);
-    if (sameTrack && audio.src && !audio.error) {
-      if (audio.paused) {
+    if (sameTrack && ((nativePlayback && nativeTrackLoaded) || (!nativePlayback && audio.src && !audio.error))) {
+      if (playbackPaused()) {
         const requestId = ++state.playbackVersion;
         state.isResolvingPlayback = true;
         updateCurrentTrackUI();
@@ -895,10 +934,33 @@
       const playableUrl = await resolveStreamURL(state.current);
       // Ignore a slow response if the user has selected or cancelled another track.
       if (requestId !== state.playbackVersion || !state.current || trackId(state.current) !== requestedId) return;
-      audio.volume = state.volume;
+      audio.volume = nativePlayback ? 0 : state.volume;
+      if (nativePlayback) {
+        const startAt = Math.max(0, Number(state.position) || 0);
+        nativePosition = startAt;
+        nativeDuration = Math.max(0, Number(state.current.duration) || 0);
+        nativePlaying = false;
+        stopOfficialEmbed();
+        const started = window.TuneWaveNative.playTrack(
+          playableUrl,
+          String(state.current.title || 'TuneWave'),
+          String(state.current.artist || 'Unknown artist'),
+          String(normalizeImageURL(state.current.artwork)),
+          Math.round(startAt * 1000),
+          Number(state.volume)
+        );
+        if (!started) throw new Error('The Android background playback service did not start.');
+        nativeTrackLoaded = true;
+        nativePlaying = true;
+        state.isResolvingPlayback = false;
+        updateCurrentTrackUI();
+        updateProgress();
+        saveState(true);
+        return;
+      }
       audio.onloadedmetadata = () => {
         if (state.position > 0 && Number.isFinite(audio.duration)) audio.currentTime = Math.min(state.position, Math.max(0, audio.duration - .25));
-        if (audio.paused) updateProgress();
+        if (playbackPaused()) updateProgress();
       };
       audio.src = playableUrl;
       audio.load();
@@ -1016,8 +1078,10 @@
 
 
   function updateProgress() {
-    const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : (state.current?.duration || 0);
-    const currentTime = Number.isFinite(audio.currentTime) ? audio.currentTime : state.position;
+    const playbackDurationSeconds = playbackDuration();
+    const playbackTimeSeconds = playbackCurrentTime();
+    const duration = Number.isFinite(playbackDurationSeconds) && playbackDurationSeconds > 0 ? playbackDurationSeconds : (state.current?.duration || 0);
+    const currentTime = Number.isFinite(playbackTimeSeconds) ? playbackTimeSeconds : state.position;
     const pct = duration ? Math.min(100, currentTime / duration * 100) : 0;
     $('#seek-input').value = String(pct);
     $('#bottom-current-time').textContent = toDuration(currentTime);
@@ -1112,23 +1176,34 @@
   });
   $('#volume-input').addEventListener('input', event => {
     state.volume = Math.min(1, Math.max(0, Number(event.target.value)));
-    audio.volume = state.volume;
+    audio.volume = nativePlayback ? 0 : state.volume;
+    if (nativePlayback && nativeTrackLoaded) {
+      try { window.TuneWaveNative.setVolume(Number(state.volume)); } catch (_) {}
+    }
     const readout = $('#volume-value');
     if (readout) readout.textContent = `${Math.round(state.volume * 100)}%`;
     saveState(true);
   });
   $('#seek-input').addEventListener('input', event => {
     state.isSeeking = true;
-    const dur = Number.isFinite(audio.duration) ? audio.duration : state.current?.duration || 0;
+    const dur = Number.isFinite(playbackDuration()) ? playbackDuration() : state.current?.duration || 0;
     const value = Number(event.target.value);
     $('#now-progress-fill').style.width = `${value}%`;
     $('#now-time-current').textContent = toDuration(dur * value / 100);
     $('#bottom-current-time').textContent = toDuration(dur * value / 100);
   });
   $('#seek-input').addEventListener('change', event => {
-    const duration = Number.isFinite(audio.duration) ? audio.duration : state.current?.duration || 0;
-    if (duration > 0) audio.currentTime = duration * Number(event.target.value) / 100;
-    state.isSeeking = false; saveState(true);
+    const duration = Number.isFinite(playbackDuration()) ? playbackDuration() : state.current?.duration || 0;
+    if (duration > 0) {
+      const seconds = duration * Number(event.target.value) / 100;
+      if (nativePlayback && nativeTrackLoaded) {
+        nativePosition = seconds;
+        try { window.TuneWaveNative.seekTo(Math.round(seconds * 1000)); } catch (_) {}
+      } else {
+        audio.currentTime = seconds;
+      }
+    }
+    state.isSeeking = false; saveState(true); updateProgress();
   });
   function togglePlayback() {
     // If the audio source is still being resolved, Play doubles as Cancel.
@@ -1136,7 +1211,7 @@
     if (state.isResolvingPlayback) {
       state.playbackVersion++;
       state.isResolvingPlayback = false;
-      const wasPlaying = !audio.paused;
+      const wasPlaying = !playbackPaused();
       audio.pause();
       updateCurrentTrackUI();
       saveState(true);
@@ -1148,7 +1223,7 @@
       else { toast('Search for a track first, then press Play.'); searchInput.focus(); }
       return;
     }
-    if (audio.paused) {
+    if (playbackPaused()) {
       // Go through playTrack so the loading state, resume position and errors are unified.
       playTrack(state.current, state.queueIndex, state.position);
     } else {
@@ -1187,7 +1262,7 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveState(true); });
 
   function restoreSession() {
-    audio.volume = state.volume;
+    audio.volume = nativePlayback ? 0 : state.volume;
     $('#volume-input').value = String(state.volume);
     const volumeReadout = $('#volume-value');
     if (volumeReadout) volumeReadout.textContent = `${Math.round(state.volume * 100)}%`;
