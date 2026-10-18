@@ -761,10 +761,10 @@
     $('#bottom-like-button').classList.toggle('liked', Boolean(liked));
     $('#bottom-like-button').disabled = !track;
     const playLabel = loading ? 'Connecting to track' : (audio.paused ? 'Play' : 'Pause');
-    $('#main-play-icon').textContent = loading ? '···' : (audio.paused ? '▶' : 'Ⅱ');
-    $('#bottom-play-icon').textContent = loading ? '···' : (audio.paused ? '▶' : 'Ⅱ');
+    const playState = loading ? 'loading' : (audio.paused ? 'play' : 'pause');
     ['#main-play-button', '#bottom-play-button'].forEach(selector => {
       const button = $(selector);
+      button.dataset.playState = playState;
       button.setAttribute('aria-label', playLabel);
       button.setAttribute('title', loading ? 'Connecting to audio source…' : (audio.paused ? 'Play' : 'Pause'));
       button.classList.toggle('is-loading', loading);
