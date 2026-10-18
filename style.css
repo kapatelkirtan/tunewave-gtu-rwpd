@@ -386,3 +386,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   .official-player-form select { height:36px; }
   .external-more-services>summary { font-size:8px; padding:9px; }
 }
+
+/* YouTube-only official player: no provider dropdown; preserve the current UI theme. */
+.official-player-form { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:stretch; gap:9px; }
+.official-player-form input { min-width:0; width:100%; height:48px; }
+.official-player-form .search-submit { min-width:112px; height:48px; }
+.official-player-form select { display:none!important; }
+@media(max-width:620px) {
+  .official-player-form { grid-template-columns:minmax(0,1fr); }
+  .official-player-form input,.official-player-form .search-submit { width:100%; height:42px; }
+}
