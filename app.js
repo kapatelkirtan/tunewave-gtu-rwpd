@@ -522,7 +522,7 @@
       let frameTitle = '';
 
       if (safeVideo) {
-        embedUrl = 'https://www.youtube-nocookie.com/embed/' + videoId + '?autoplay=1&playsinline=1&rel=0';
+        embedUrl = 'https://www.youtube-nocookie.com/embed/' + videoId + '?autoplay=1&playsinline=1&rel=0&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
         officialUrl = 'https://www.youtube.com/watch?v=' + videoId;
         if (safeList) {
           embedUrl += '&list=' + encodeURIComponent(listId);
@@ -530,7 +530,7 @@
         }
         frameTitle = 'Official YouTube music player';
       } else if (safeList) {
-        embedUrl = 'https://www.youtube-nocookie.com/embed/videoseries?list=' + encodeURIComponent(listId) + '&autoplay=1&playsinline=1&rel=0';
+        embedUrl = 'https://www.youtube-nocookie.com/embed/videoseries?list=' + encodeURIComponent(listId) + '&autoplay=1&playsinline=1&rel=0&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
         officialUrl = 'https://www.youtube.com/playlist?list=' + encodeURIComponent(listId);
         frameTitle = 'Official YouTube playlist player';
       } else {
@@ -559,7 +559,7 @@
         frame.src = embedUrl;
         frame.hidden = false;
         stage.hidden = false;
-        if (status) status.textContent = 'YouTube’s official player is loading. Start the song, then try the PiP button above the video. On Android, the button opens fullscreen so you can try system PiP; support depends on your browser, video and YouTube rules.';
+        if (status) status.textContent = 'YouTube’s official player is loading. Start playback, then try the mini-player button. Lock-screen controls are attempted where the browser supports Media Session; background playback is still controlled by YouTube, your browser and device.';
       }
     });
   }
