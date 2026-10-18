@@ -21,7 +21,7 @@
     current: null, recent: [], favorites: [], position: 0, volume: 0.8,
     isSeeking: false, installPrompt: null, toastTimer: null, lastSavedAt: 0,
     recognition: null, isVoiceSearching: false, isRestoring: false, isIdentifying: false, recorder: null, identifyTimer: null, mediaStream: null,
-    searchVersion: 0
+    searchVersion: 0, playbackVersion: 0, isResolvingPlayback: false
   };
 
   function readState() {
@@ -294,12 +294,27 @@
     return uniqueTracks(payload?.results ?? payload?.data ?? payload, normalizeAudiusTrack).slice(0, 45);
   }
 
+  function rememberedStreamUrl(track) {
+    if (!track) return '';
+    const id = trackId(track);
+    const source = String(track.source || '').trim().toLowerCase();
+    const saved = [...state.recent, ...state.queue, ...state.favorites].find(item =>
+      item && trackId(item) === id &&
+      String(item.source || '').trim().toLowerCase() === source &&
+      /^https:\/\//i.test(String(item.streamUrl || ''))
+    );
+    return saved ? String(saved.streamUrl) : '';
+  }
+
   async function resolveStreamURL(track) {
     const source = String(track?.source || '').toLowerCase();
+    // The active track is intentionally persisted without a URL so temporary stream links
+    // aren't put in the current-track record. Reuse the same track's saved catalogue URL
+    // when the user presses Play after reopening the app.
+    const streamUrl = String(track?.streamUrl || rememberedStreamUrl(track) || '');
     if (source === 'funkwhale / open audio' || source === 'funkwhale') {
-      const streamUrl = String(track.streamUrl || '');
       let parsed;
-      try { parsed = new URL(streamUrl); } catch (_) { throw new Error('Funkwhale did not provide a valid stream URL.'); }
+      try { parsed = new URL(streamUrl); } catch (_) { throw new Error('Funkwhale did not provide a valid stream URL. Search again to refresh it.'); }
       if (parsed.protocol !== 'https:' || parsed.hostname !== 'open.audio' || !/^\/api\/v[12]\/listen\//.test(parsed.pathname)) {
         throw new Error('Funkwhale did not provide a verified public audio stream.');
       }
@@ -311,40 +326,36 @@
       return `${AUDIUS_API_BASE}/tracks/${encodeURIComponent(id)}/stream?app_name=${encodeURIComponent(AUDIUS_APP_NAME)}`;
     }
     if (source === 'jamendo') {
-      if (track.streamUrl && /^https:\/\//i.test(track.streamUrl)) return track.streamUrl;
+      if (streamUrl && /^https:\/\//i.test(streamUrl)) return streamUrl;
       const id = String(track.jamendoId ?? track.id ?? '').trim();
       if (!id || !JAMENDO_BRIDGE_CONFIGURED) throw new Error('Jamendo playback needs the configured Jamendo bridge.');
       const payload = await getBridgeJson(`${JAMENDO_BRIDGE_BASE}/api/jamendo/track/${encodeURIComponent(id)}`, 12000);
-      const streamUrl = String(payload?.track?.audio || payload?.audio || '');
-      if (!/^https:\/\//i.test(streamUrl)) throw new Error('Jamendo did not return a playable audio stream for this track.');
-      return streamUrl;
+      const refreshedUrl = String(payload?.track?.audio || payload?.audio || '');
+      if (!/^https:\/\//i.test(refreshedUrl)) throw new Error('Jamendo did not return a playable audio stream for this track.');
+      return refreshedUrl;
     }
     if (source === 'wikimedia commons') {
-      const streamUrl = String(track.streamUrl || '');
-      if (!/^https:\/\//i.test(streamUrl)) throw new Error('Wikimedia Commons did not return a playable audio file.');
+      if (!/^https:\/\//i.test(streamUrl)) throw new Error('Wikimedia Commons did not return a playable audio file. Search again to refresh the result.');
       return streamUrl;
     }
     if (source === 'internet archive') {
       const id = String(track.archiveId ?? track.id ?? '').trim();
       if (!id || !JAMENDO_BRIDGE_CONFIGURED) throw new Error('Internet Archive playback needs the configured provider bridge.');
       const payload = await getBridgeJson(`${JAMENDO_BRIDGE_BASE}/api/archive/track/${encodeURIComponent(id)}`, 12000);
-      const streamUrl = String(payload?.track?.streamUrl || '');
-      if (!/^https:\/\//i.test(streamUrl)) throw new Error('Internet Archive did not return a playable audio file.');
-      return streamUrl;
+      const refreshedUrl = String(payload?.track?.streamUrl || '');
+      if (!/^https:\/\//i.test(refreshedUrl)) throw new Error('Internet Archive did not return a playable audio file.');
+      return refreshedUrl;
     }
     if (source === 'free to use') {
-      const streamUrl = String(track.streamUrl || '');
-      if (!/^https:\/\//i.test(streamUrl)) throw new Error('Free To Use did not return a playable audio file.');
+      if (!/^https:\/\//i.test(streamUrl)) throw new Error('Free To Use did not return a playable audio file. Search again to refresh the result.');
       return streamUrl;
     }
     if (source === 'ccmixter' || source === 'library of congress' || source === 'openverse' || source === 'radio browser') {
-      const streamUrl = String(track.streamUrl || '');
-      if (!/^https:\/\//i.test(streamUrl)) throw new Error('This provider did not return a playable audio file.');
+      if (!/^https:\/\//i.test(streamUrl)) throw new Error('This result has no saved audio URL. Search again to refresh the stream.');
       return streamUrl;
     }
     throw new Error('This saved item belongs to an older or unsupported music source. Search again to find a supported track.');
   }
-
   function artHTML(track, className = 'track-cover') {
     const art = track?.artwork;
     if (art && /^https?:\/\//i.test(art)) return `<div class="${className}"><img src="${escapeHTML(art)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove();this.parentElement.innerHTML='♫';"></div>`;
@@ -715,14 +726,16 @@
   }
   function updateCurrentTrackUI() {
     const track = state.current;
+    const loading = Boolean(state.isResolvingPlayback);
+    const playing = !audio.paused && !loading;
     const title = track?.title || 'Pick a track';
     const artist = track?.artist || 'Your next listen is one search away.';
     $('#now-title').textContent = title;
     $('#now-artist').textContent = artist;
     $('#bottom-title').textContent = track?.title || 'TuneWave is ready';
     $('#bottom-artist').textContent = track?.artist || 'Search, select, and press play';
-    $('#now-status').textContent = audio.paused ? (track ? 'READY TO PLAY' : 'READY WHEN YOU ARE') : 'PLAYING FROM OPEN SOURCE';
-    document.documentElement.classList.toggle('tw-is-playing', !audio.paused);
+    $('#now-status').textContent = loading ? 'CONNECTING TO AUDIO SOURCE' : (audio.paused ? (track ? 'READY TO PLAY' : 'READY WHEN YOU ARE') : 'PLAYING FROM OPEN SOURCE');
+    document.documentElement.classList.toggle('tw-is-playing', playing);
     const img = normalizeImageURL(track?.artwork);
     $('#now-art-wrap').innerHTML = `<img src="${escapeHTML(img)}" alt="" onerror="this.onerror=null;this.src='icon-512.png'"><div class="art-shine"></div>`;
     $('#bottom-art').innerHTML = `<img src="${escapeHTML(img)}" alt="" onerror="this.onerror=null;this.src='icon-192.png'">`;
@@ -730,11 +743,17 @@
     $('#bottom-like-button').textContent = liked ? '♥' : '♡';
     $('#bottom-like-button').classList.toggle('liked', Boolean(liked));
     $('#bottom-like-button').disabled = !track;
-    $('#main-play-icon').textContent = audio.paused ? '▶' : 'Ⅱ';
-    $('#bottom-play-icon').textContent = audio.paused ? '▶' : 'Ⅱ';
-    $('#main-play-button').setAttribute('aria-label', audio.paused ? 'Play' : 'Pause');
-    $('#bottom-play-button').setAttribute('aria-label', audio.paused ? 'Play' : 'Pause');
-    $('.equalizer-mini')?.classList.toggle('paused', audio.paused);
+    const playLabel = loading ? 'Connecting to track' : (audio.paused ? 'Play' : 'Pause');
+    $('#main-play-icon').textContent = loading ? '···' : (audio.paused ? '▶' : 'Ⅱ');
+    $('#bottom-play-icon').textContent = loading ? '···' : (audio.paused ? '▶' : 'Ⅱ');
+    ['#main-play-button', '#bottom-play-button'].forEach(selector => {
+      const button = $(selector);
+      button.setAttribute('aria-label', playLabel);
+      button.setAttribute('title', loading ? 'Connecting to audio source…' : (audio.paused ? 'Play' : 'Pause'));
+      button.classList.toggle('is-loading', loading);
+      button.setAttribute('aria-busy', loading ? 'true' : 'false');
+    });
+    $('.equalizer-mini')?.classList.toggle('paused', audio.paused || loading);
     renderQueue();
     if (track) updateMediaSession(track);
   }
@@ -777,10 +796,32 @@
     const sameTrack = state.current && trackId(state.current) === trackId(track);
     if (sameTrack && audio.src && !audio.error) {
       if (audio.paused) {
-        try { await audio.play(); } catch (_) { toast('Tap Play again to resume playback.'); }
-      } else audio.pause();
+        const requestId = ++state.playbackVersion;
+        state.isResolvingPlayback = true;
+        updateCurrentTrackUI();
+        try {
+          await audio.play();
+          if (requestId !== state.playbackVersion) return;
+          state.isResolvingPlayback = false;
+          updateCurrentTrackUI();
+          saveState(true);
+        } catch (_) {
+          if (requestId !== state.playbackVersion) return;
+          state.isResolvingPlayback = false;
+          updateCurrentTrackUI();
+          toast('Tap Play again to resume playback.');
+        }
+      } else {
+        state.playbackVersion++;
+        state.isResolvingPlayback = false;
+        audio.pause();
+        updateCurrentTrackUI();
+      }
       return;
     }
+
+    const requestId = ++state.playbackVersion;
+    state.isResolvingPlayback = true;
     if (index >= 0 && state.queue[index] && trackId(state.queue[index]) === trackId(track)) state.queueIndex = index;
     else {
       const foundIndex = state.queue.findIndex(item => trackId(item) === trackId(track));
@@ -794,14 +835,13 @@
     audio.load();
     audio.volume = state.volume;
     updateCurrentTrackUI();
-    $('#now-status').textContent = `CONNECTING TO ${String(state.current.source || 'MUSIC SOURCE').toUpperCase()}`;
     rememberTrack(state.current);
     saveState(true);
     const requestedId = trackId(state.current);
     try {
       const playableUrl = await resolveStreamURL(state.current);
-      // Ignore a slow response if the user selected a different song in the meantime.
-      if (!state.current || trackId(state.current) !== requestedId) return;
+      // Ignore a slow response if the user has selected or cancelled another track.
+      if (requestId !== state.playbackVersion || !state.current || trackId(state.current) !== requestedId) return;
       audio.volume = state.volume;
       audio.onloadedmetadata = () => {
         if (state.position > 0 && Number.isFinite(audio.duration)) audio.currentTime = Math.min(state.position, Math.max(0, audio.duration - .25));
@@ -810,11 +850,13 @@
       audio.src = playableUrl;
       audio.load();
       await audio.play();
-      $('#now-status').textContent = `PLAYING FROM ${String(state.current.source || 'MUSIC SOURCE').toUpperCase()}`;
+      if (requestId !== state.playbackVersion || !state.current || trackId(state.current) !== requestedId) return;
+      state.isResolvingPlayback = false;
       updateCurrentTrackUI();
       saveState(true);
     } catch (error) {
-      if (!state.current || trackId(state.current) !== requestedId) return;
+      if (requestId !== state.playbackVersion || !state.current || trackId(state.current) !== requestedId) return;
+      state.isResolvingPlayback = false;
       updateCurrentTrackUI();
       const msg = error?.name === 'NotSupportedError'
         ? 'This stream format is not supported in your browser. Try another result.'
@@ -1123,6 +1165,10 @@
     state.isSeeking = false; saveState(true);
   });
   function togglePlayback() {
+    if (state.isResolvingPlayback) {
+      toast('Still connecting to this track. Give it a moment to start.');
+      return;
+    }
     if (!state.current) {
       if (state.recent[0]) playTrack(state.recent[0], -1, state.position);
       else { toast('Search for a track first, then press Play.'); searchInput.focus(); }
