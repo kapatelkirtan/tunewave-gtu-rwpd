@@ -413,3 +413,31 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   .download-app-cta { min-height: 30px; }
   .install-dialog .install-guidance-list { font-size: 10px; gap: 8px; }
 }
+
+
+/* Install tip shown directly beneath the Download App button. */
+.download-app-group {
+  display: flex;
+  flex: 0 1 215px;
+  min-width: 155px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.download-app-tip {
+  max-width: 250px;
+  margin: 0;
+  color: #9eafba;
+  font-size: 8px;
+  line-height: 1.5;
+}
+.download-app-tip strong { color: var(--acid); font-weight: 700; }
+@media (max-width: 1050px) {
+  .download-app-group { flex-basis: 185px; min-width: 150px; }
+  .download-app-tip { font-size: 8px; }
+}
+@media (max-width: 620px) {
+  .download-app-group { flex: 1 1 100%; min-width: 0; gap: 5px; }
+  .download-app-group .download-app-cta { align-self: flex-start; }
+  .download-app-tip { max-width: 100%; font-size: 8px; line-height: 1.5; }
+}
