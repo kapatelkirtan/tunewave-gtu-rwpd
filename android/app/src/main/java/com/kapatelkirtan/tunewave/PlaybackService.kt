@@ -41,6 +41,7 @@ class PlaybackService : MediaSessionService() {
                 .setNotificationId(DefaultMediaNotificationProvider.DEFAULT_NOTIFICATION_ID)
                 .build()
         )
+        snapshotServiceAlive = true
         Log.i(TAG, "PlaybackService created; Media3 notification provider installed")
         player = ExoPlayer.Builder(this)
             .setAudioAttributes(
@@ -59,6 +60,7 @@ class PlaybackService : MediaSessionService() {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = publishState()
             override fun onPlayerError(error: PlaybackException) {
                 Log.e(TAG, "ExoPlayer error code=${error.errorCodeName}: ${error.message}", error)
+                snapshotLastError = error.errorCodeName + ": " + (error.cause?.javaClass?.simpleName ?: "PlaybackException")
                 snapshotIsPlaying = false
                 MainActivity.reportNativePlaybackState(
                     snapshotPositionMs, snapshotDurationMs, false, player.playbackState
@@ -141,6 +143,8 @@ class PlaybackService : MediaSessionService() {
         snapshotPositionMs = position
         snapshotDurationMs = duration
         snapshotIsPlaying = player.isPlaying
+        snapshotPlaybackState = player.playbackState
+        snapshotPlayWhenReady = player.playWhenReady
         MainActivity.reportNativePlaybackState(position, duration, player.isPlaying, player.playbackState)
     }
 
@@ -152,6 +156,10 @@ class PlaybackService : MediaSessionService() {
         mediaSession = null
         if (::player.isInitialized) player.release()
         snapshotIsPlaying = false
+        snapshotPlayWhenReady = false
+        snapshotPlaybackState = Player.STATE_IDLE
+        snapshotServiceAlive = false
+        Log.i(TAG, "PlaybackService destroyed")
         super.onDestroy()
     }
 
@@ -176,5 +184,15 @@ class PlaybackService : MediaSessionService() {
             private set
         @Volatile var snapshotIsPlaying: Boolean = false
             private set
+        @Volatile var snapshotPlaybackState: Int = Player.STATE_IDLE
+            private set
+        @Volatile var snapshotPlayWhenReady: Boolean = false
+            private set
+        @Volatile var snapshotServiceAlive: Boolean = false
+            private set
+        @Volatile var snapshotLastError: String = ""
+            internal set
+        @Volatile var snapshotCurrentHost: String = ""
+            internal set
     }
 }
