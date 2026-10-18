@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20261018-44">
+  <link rel="stylesheet" href="style.css?v=20261018-45">
   <script src="config.js"></script>
-  <script defer src="app.js?v=20261018-23"></script>
+  <script defer src="app.js?v=20261018-24"></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -201,34 +201,23 @@
             <div>
               <p class="section-kicker"><span class="status-kicker-dot"></span> OFFICIAL PLAYER CONNECTIONS</p>
               <h2 id="official-embed-title">Find a song, play it here</h2>
-              <p>Choose a service and paste its official track, album, playlist link or embed code to play it here.</p>
+              <p>Paste a YouTube song or playlist link and play it right here in TuneWave.</p>
             </div>
             <span class="external-link-label">EMBEDDED PLAYERS</span>
           </div>
           <form id="official-player-form" class="official-player-form">
-            <label class="sr-only" for="official-player-provider">Music service</label>
-            <select id="official-player-provider" name="provider" aria-label="Music service">
-              <option value="youtube">YouTube Music</option>
-              <option value="spotify">Spotify</option>
-              <option value="apple-music">Apple Music</option>
-              <option value="soundcloud">SoundCloud</option>
-              <option value="deezer">Deezer</option>
-              <option value="audiomack">Audiomack embed</option>
-              <option value="hearthis">HearThis.at embed</option>
-              <option value="bandcamp">Bandcamp embed</option>
-            </select>
-            <label class="sr-only" for="official-player-url">Official track URL or provider embed code</label>
-            <input id="official-player-url" name="trackUrl" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Paste a track / playlist URL or official embed code…" required>
+            <label class="sr-only" for="official-player-url">YouTube video or playlist link</label>
+            <input id="official-player-url" name="trackUrl" type="url" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Paste a YouTube link to play a song here…" aria-describedby="official-player-hint" required>
             <button type="submit" class="search-submit">Play here ↗</button>
           </form>
           <div class="official-provider-searches" aria-label="Search tracks on YouTube Music">
-            <p id="official-player-query">Search a title above, open a service, then paste its supported link or official embed code.</p>
+            <p id="official-player-query">Want a specific song? Find it on YouTube, copy its link, and paste it above.</p>
             <div class="official-provider-search-links">
               <a data-external-provider="youtube-music" href="https://music.youtube.com/search?q=ultrafunk" target="_blank" rel="noopener noreferrer">Find on YouTube Music ↗</a>
             </div>
-            <p class="official-player-search-help">For YouTube, Spotify, Apple Music, SoundCloud and Deezer, paste the normal share link. For Audiomack, HearThis.at and Bandcamp, paste the iframe code copied from that service’s Share / Embed tool.</p>
+            <p class="official-player-search-help" id="official-player-hint">Paste a YouTube video link (youtube.com/watch, youtu.be, YouTube Music, Shorts, or a playlist link). TuneWave will load YouTube’s official player below. Playback, ads and background play follow YouTube’s rules.</p>
           </div>
-          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Official player embeds follow each provider’s own ads, login, full-track, region and background-play rules. Only supported provider URLs and embed code are accepted.</p>
+          <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Paste a valid YouTube video or playlist URL. The song plays through YouTube’s official embedded player, so availability and ads are controlled by YouTube.</p>
 
           <div id="official-player-stage" class="official-player-stage" hidden>
             <iframe id="official-player-frame" title="Official embedded music player" width="100%" height="352" frameborder="0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen hidden></iframe>
