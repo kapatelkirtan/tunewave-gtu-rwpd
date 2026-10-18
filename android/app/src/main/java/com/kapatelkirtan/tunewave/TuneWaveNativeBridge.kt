@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.webkit.JavascriptInterface
+import org.json.JSONObject
 
 class TuneWaveNativeBridge(context: Context) {
     private val appContext = context.applicationContext
@@ -60,6 +61,18 @@ class TuneWaveNativeBridge(context: Context) {
 
     @JavascriptInterface
     fun isPlaying(): Boolean = PlaybackService.snapshotIsPlaying
+
+    @JavascriptInterface
+    fun getPlaybackDiagnostics(): String {
+        return JSONObject()
+            .put("serviceAlive", PlaybackService.snapshotServiceAlive)
+            .put("playbackState", PlaybackService.snapshotPlaybackState)
+            .put("playWhenReady", PlaybackService.snapshotPlayWhenReady)
+            .put("isPlaying", PlaybackService.snapshotIsPlaying)
+            .put("currentHost", PlaybackService.snapshotCurrentHost)
+            .put("lastError", PlaybackService.snapshotLastError)
+            .toString()
+    }
 
     private fun send(action: String, fill: Intent.() -> Unit = {}) {
         val intent = Intent(appContext, PlaybackService::class.java).apply {
