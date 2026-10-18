@@ -339,3 +339,28 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .seek-row input:focus-visible,#volume-input:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
 .bottom-player{isolation:isolate}
 @media(min-width:1051px){.bottom-player{min-height:82px;grid-template-columns:minmax(180px,.95fr) minmax(230px,1.2fr) minmax(130px,.58fr)}}
+
+/* Dock cleanup: remove the extra visualizer/volume cluster from the bottom bar.
+   Volume remains available from the existing Settings button. */
+@media (min-width:1051px) {
+  .bottom-player {
+    grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr)!important;
+    gap:22px!important;
+  }
+  .bottom-center {width:100%;min-width:0}
+  .transport-row {justify-content:center}
+  .seek-row {width:100%}
+}
+.settings-dialog {width:min(460px,calc(100% - 28px));padding:22px}
+.settings-dialog h2 {margin:0 0 10px;font:700 27px/1.05 'Space Grotesk',sans-serif;letter-spacing:-.06em}
+.settings-dialog>p:not(.section-kicker) {color:#98a8b2;font-size:10px;line-height:1.75}
+.settings-volume-panel {margin-top:18px;padding:14px;border:1px solid rgba(204,224,237,.12);border-radius:13px;background:rgba(255,255,255,.025)}
+.settings-volume-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px;color:#e7f0f4;font-size:11px;font-weight:700}
+.settings-volume-heading output {padding:5px 8px;border:1px solid rgba(217,255,57,.16);border-radius:7px;background:rgba(217,255,57,.04);color:var(--acid);font:500 9px 'DM Mono',monospace}
+.settings-volume-panel #volume-input {display:block;width:100%;max-width:100%;accent-color:var(--cyan)}
+.settings-volume-help {margin:12px 0 0;color:#82949f;font-size:9px;line-height:1.6}
+@media(max-width:620px) {
+  .settings-dialog {padding:16px}
+  .settings-dialog h2 {font-size:23px}
+  .settings-volume-panel {padding:12px}
+}
