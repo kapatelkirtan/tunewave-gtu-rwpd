@@ -50,15 +50,24 @@
         updateCurrentTrackUI();
       }
     };
-    window.onTuneWaveNativeState = (positionMs, durationMs, isPlaying) => {
+    window.onTuneWaveNativeState = (positionMs, durationMs, isPlaying, playbackState) => {
       nativePosition = Math.max(0, Number(positionMs) || 0) / 1000;
       nativeDuration = Math.max(0, Number(durationMs) || 0) / 1000;
       nativePlaying = Boolean(isPlaying);
       state.position = nativePosition;
-      state.isResolvingPlayback = false;
+      // ExoPlayer.STATE_BUFFERING is 2. Wait for Android to confirm actual playback.
+      state.isResolvingPlayback = Number(playbackState) === 2;
       updateCurrentTrackUI();
       updateProgress();
       saveState(false);
+    };
+    window.onTuneWaveNativeError = (errorCode, errorMessage) => {
+      nativePlaying = false;
+      state.isResolvingPlayback = false;
+      updateCurrentTrackUI();
+      const details = String(errorCode || 'UNKNOWN') + (errorMessage ? ': ' + String(errorMessage) : '');
+      $('#now-status').textContent = 'ANDROID PLAYBACK ERROR';
+      toast('Android could not play this stream (' + details + '). Try another result.', 6500);
     };
   }
 
@@ -951,8 +960,8 @@
         );
         if (!started) throw new Error('The Android background playback service did not start.');
         nativeTrackLoaded = true;
-        nativePlaying = true;
-        state.isResolvingPlayback = false;
+        nativePlaying = false;
+        state.isResolvingPlayback = true;
         updateCurrentTrackUI();
         updateProgress();
         saveState(true);
