@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20261018-41">
+  <link rel="stylesheet" href="style.css?v=20261018-42">
   <script src="config.js"></script>
-  <script defer src="app.js?v=20261018-20"></script>
+  <script defer src="app.js?v=20261018-21"></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -174,7 +174,7 @@
             <p id="now-artist" class="now-artist">Your next listen is one search away.</p>
             <div class="now-inline-controls">
               <button class="round-control" id="prev-button" aria-label="Previous track" title="Previous">|◀</button>
-              <button class="main-play" id="main-play-button" aria-label="Play" title="Play"><span id="main-play-icon">▶</span></button>
+              <button class="main-play energy-play-control" id="main-play-button" data-play-state="play" aria-label="Play" title="Play"><span id="main-play-icon" class="play-glyph" aria-hidden="true"></span></button>
               <button class="round-control" id="next-button" aria-label="Next track" title="Next">▶|</button>
             </div>
             <div class="now-progress"><span id="now-progress-fill"></span></div>
@@ -347,7 +347,7 @@
     <div class="bottom-center">
       <div class="transport-row">
         <button class="player-control" id="bottom-prev" aria-label="Previous track">|◀</button>
-        <button class="bottom-play" id="bottom-play-button" aria-label="Play"><span id="bottom-play-icon">▶</span></button>
+        <button class="bottom-play energy-play-control" id="bottom-play-button" data-play-state="play" aria-label="Play" title="Play"><span id="bottom-play-icon" class="play-glyph" aria-hidden="true"></span></button>
         <button class="player-control" id="bottom-next" aria-label="Next track">▶|</button>
       </div>
       <div class="seek-row"><span id="bottom-current-time">0:00</span><input id="seek-input" type="range" min="0" max="100" value="0" aria-label="Seek within track"><span id="bottom-total-time">0:00</span></div>
