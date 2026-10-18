@@ -94,3 +94,11 @@ The source-status panel confirms endpoint responses; it cannot guarantee every s
 The web UI keeps the nine open-catalogue endpoints separate from official destinations. The destination list includes YouTube Music, JioSaavn, Spotify, Amazon Music, Gaana, Apple Music, SoundCloud, Audiomack, HearThis.at, Bandcamp, Free Music Archive, Hungama and Saregama. Those are official search destinations; they are not represented as 13 direct-track APIs.
 
 The in-page official-player form supports YouTube, Spotify, Apple Music, SoundCloud and Deezer share links, plus official provider iframe codes for Audiomack, HearThis.at and Bandcamp. Embedded providers continue to control playback, advertising, log-in, subscription, region and background playback. Open-catalogue search expands up to three targeted variants for Audius and Free To Use and up to two for Internet Archive to improve Ultra Funk/phonk, Hindi and Gujarati/Garba discovery.
+
+## Song recognition and YouTube in-page search setup
+
+To enable the microphone "Identify a song by listening" feature, configure \`AUDD_API_TOKEN\` in the music bridge Render Web Service environment. The bridge accepts a short audio upload and forwards it to AudD server-side; the token is never sent to browser JavaScript. Obtain a token from the [AudD dashboard](https://dashboard.audd.io/). Recognition requests may be subject to the provider's usage limits or charges.
+
+To search YouTube and load the first embeddable match into TuneWave's existing official player section, enable YouTube Data API v3 in a Google Cloud project and configure \`YOUTUBE_API_KEY\` on the same bridge service. Keep the key server-side, restrict it in Google Cloud to the YouTube Data API, and monitor its quota. If no key is present, TuneWave will still search the nine open catalogues and explain why the automatic YouTube lookup could not run.
+
+Set both variables in Render → music bridge Web Service → Environment, then redeploy. \`.env.example\` shows variable names only; do not commit actual secrets.
