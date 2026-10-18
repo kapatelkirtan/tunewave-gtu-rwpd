@@ -16,70 +16,13 @@
   const searchInput = $('#search-input');
   const resultsArea = $('#results-area');
   const toastEl = $('#toast');
-  // In the Android APK, direct audio streams are delegated to a native Media3
-  // background service. A normal browser continues to use the HTMLAudioElement.
-  const nativePlayback = Boolean(window.TuneWaveNative && typeof window.TuneWaveNative.playTrack === 'function');
-  let nativeTrackLoaded = false;
-  let nativePlaying = false;
-  let nativePosition = 0;
-  let nativeDuration = 0;
-  let nativePlaybackState = 1;
-  let nativeStartTimeout = null;
-  let nativeWasPlayingWhenHidden = false;
-  const playbackPaused = () => nativePlayback ? !nativePlaying : audio.paused;
-  const playbackCurrentTime = () => nativePlayback ? nativePosition : audio.currentTime;
-  const playbackDuration = () => nativePlayback && nativeDuration > 0 ? nativeDuration : audio.duration;
   const state = {
     view: 'home', query: '', results: [], catalogResults: [], queue: [], queueIndex: -1,
     current: null, recent: [], favorites: [], position: 0, volume: 0.8,
-    isSeeking: false, toastTimer: null, lastSavedAt: 0,
+    isSeeking: false, installPrompt: null, toastTimer: null, lastSavedAt: 0,
     recognition: null, isVoiceSearching: false, isRestoring: false,
     searchVersion: 0, playbackVersion: 0, isResolvingPlayback: false
   };
-
-  if (nativePlayback) {
-    audio.play = () => {
-      if (nativeTrackLoaded) {
-        try { window.TuneWaveNative.resume(); } catch (_) {}
-        nativePlaying = true;
-        updateCurrentTrackUI();
-      }
-      return Promise.resolve();
-    };
-    audio.pause = () => {
-      if (nativeTrackLoaded) {
-        try { window.TuneWaveNative.pause(); } catch (_) {}
-        nativePlaying = false;
-        updateCurrentTrackUI();
-      }
-    };
-    window.onTuneWaveNativeState = (positionMs, durationMs, isPlaying, playbackState) => {
-      nativePosition = Math.max(0, Number(positionMs) || 0) / 1000;
-      nativeDuration = Math.max(0, Number(durationMs) || 0) / 1000;
-      nativePlaying = Boolean(isPlaying);
-      nativePlaybackState = Number(playbackState) || 1;
-      if (nativePlaying && nativeStartTimeout) {
-        clearTimeout(nativeStartTimeout);
-        nativeStartTimeout = null;
-      }
-      state.position = nativePosition;
-      // ExoPlayer.STATE_BUFFERING is 2. Wait for Android to confirm actual playback.
-      state.isResolvingPlayback = Number(playbackState) === 2;
-      updateCurrentTrackUI();
-      updateProgress();
-      saveState(false);
-    };
-    window.onTuneWaveNativeError = (errorCode, errorMessage) => {
-      if (nativeStartTimeout) clearTimeout(nativeStartTimeout);
-      nativeStartTimeout = null;
-      nativePlaying = false;
-      state.isResolvingPlayback = false;
-      updateCurrentTrackUI();
-      const details = String(errorCode || 'UNKNOWN') + (errorMessage ? ': ' + String(errorMessage) : '');
-      $('#now-status').textContent = 'ANDROID PLAYBACK ERROR';
-      toast('Android could not play this stream (' + details + '). Try another result.', 6500);
-    };
-  }
 
   function readState() {
     try {
@@ -115,8 +58,7 @@
     if (!force && now - state.lastSavedAt < 3500) return;
     state.lastSavedAt = now;
     try {
-      const playbackTime = playbackCurrentTime();
-      const position = Number.isFinite(playbackTime) && playbackTime > 0 ? playbackTime : state.position;
+      const position = Number.isFinite(audio.currentTime) && audio.currentTime > 0 ? audio.currentTime : state.position;
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         recent: state.recent.slice(0, 16), favorites: state.favorites.slice(0, 100),
         queue: state.queue.slice(0, 50), queueIndex: state.queueIndex,
@@ -596,22 +538,6 @@
         return;
       }
 
-      // In the Android APK, hand YouTube links to Edge/the external browser.
-      // Browser-managed playback may continue on the lock screen where supported.
-      if (nativePlayback && window.TuneWaveNative && typeof window.TuneWaveNative.openExternalUrl === 'function') {
-        let opened = false;
-        try { opened = Boolean(window.TuneWaveNative.openExternalUrl(officialUrl)); } catch (_) {}
-        if (status) status.textContent = opened
-          ? 'Opened this song in your browser. Start playback there, then lock your phone. Background playback depends on the browser and YouTube account/settings.'
-          : 'Could not open the browser. Use the Open this song in YouTube link below.';
-        if (openLink) {
-          openLink.href = officialUrl;
-          openLink.hidden = false;
-          openLink.textContent = safeVideo ? 'Open this song in YouTube ↗' : 'Open this playlist in YouTube ↗';
-        }
-        return;
-      }
-
       stopOfficialEmbed();
       state.playbackVersion++;
       state.isResolvingPlayback = false;
@@ -821,14 +747,14 @@
   function updateCurrentTrackUI() {
     const track = state.current;
     const loading = Boolean(state.isResolvingPlayback);
-    const playing = !playbackPaused() && !loading;
+    const playing = !audio.paused && !loading;
     const title = track?.title || 'Pick a track';
     const artist = track?.artist || 'Your next listen is one search away.';
     $('#now-title').textContent = title;
     $('#now-artist').textContent = artist;
     $('#bottom-title').textContent = track?.title || 'TuneWave is ready';
     $('#bottom-artist').textContent = track?.artist || 'Search, select, and press play';
-    $('#now-status').textContent = loading ? 'CONNECTING TO AUDIO SOURCE' : (playbackPaused() ? (track ? 'READY TO PLAY' : 'READY WHEN YOU ARE') : 'PLAYING FROM OPEN SOURCE');
+    $('#now-status').textContent = loading ? 'CONNECTING TO AUDIO SOURCE' : (audio.paused ? (track ? 'READY TO PLAY' : 'READY WHEN YOU ARE') : 'PLAYING FROM OPEN SOURCE');
     document.documentElement.classList.toggle('tw-is-playing', playing);
     const img = normalizeImageURL(track?.artwork);
     $('#now-art-wrap').innerHTML = `<img src="${escapeHTML(img)}" alt="" onerror="this.onerror=null;this.src='icon-512.png'"><div class="art-shine"></div>`;
@@ -837,17 +763,17 @@
     $('#bottom-like-button').textContent = liked ? '♥' : '♡';
     $('#bottom-like-button').classList.toggle('liked', Boolean(liked));
     $('#bottom-like-button').disabled = !track;
-    const playLabel = loading ? 'Connecting to track' : (playbackPaused() ? 'Play' : 'Pause');
-    const playState = loading ? 'loading' : (playbackPaused() ? 'play' : 'pause');
+    const playLabel = loading ? 'Connecting to track' : (audio.paused ? 'Play' : 'Pause');
+    const playState = loading ? 'loading' : (audio.paused ? 'play' : 'pause');
     ['#main-play-button', '#bottom-play-button'].forEach(selector => {
       const button = $(selector);
       button.dataset.playState = playState;
       button.setAttribute('aria-label', playLabel);
-      button.setAttribute('title', loading ? 'Connecting to audio source…' : (playbackPaused() ? 'Play' : 'Pause'));
+      button.setAttribute('title', loading ? 'Connecting to audio source…' : (audio.paused ? 'Play' : 'Pause'));
       button.classList.toggle('is-loading', loading);
       button.setAttribute('aria-busy', loading ? 'true' : 'false');
     });
-    $('.equalizer-mini')?.classList.toggle('paused', playbackPaused() || loading);
+    $('.equalizer-mini')?.classList.toggle('paused', audio.paused || loading);
     renderQueue();
     if (track) updateMediaSession(track);
   }
@@ -888,7 +814,7 @@
   }
 
   function updateMediaSessionPosition() {
-    if (nativePlayback || !('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
+    if (!('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
     try {
       if (Number.isFinite(audio.duration) && audio.duration > 0) {
         navigator.mediaSession.setPositionState({
@@ -901,10 +827,10 @@
   }
 
   function updateMediaSession(track) {
-    if (nativePlayback || !('mediaSession' in navigator)) return;
+    if (!('mediaSession' in navigator)) return;
     installMediaSessionActionHandlers();
     try {
-      navigator.mediaSession.playbackState = playbackPaused() ? 'paused' : 'playing';
+      navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
       if (typeof MediaMetadata === 'function') {
         const artworkUrl = new URL(normalizeImageURL(track.artwork), document.baseURI).href;
         navigator.mediaSession.metadata = new MediaMetadata({
@@ -921,8 +847,8 @@
   async function playTrack(track, index = -1, resumeAt = 0) {
     if (!track) return;
     const sameTrack = state.current && trackId(state.current) === trackId(track);
-    if (sameTrack && ((nativePlayback && nativeTrackLoaded) || (!nativePlayback && audio.src && !audio.error))) {
-      if (playbackPaused()) {
+    if (sameTrack && audio.src && !audio.error) {
+      if (audio.paused) {
         const requestId = ++state.playbackVersion;
         state.isResolvingPlayback = true;
         updateCurrentTrackUI();
@@ -969,42 +895,10 @@
       const playableUrl = await resolveStreamURL(state.current);
       // Ignore a slow response if the user has selected or cancelled another track.
       if (requestId !== state.playbackVersion || !state.current || trackId(state.current) !== requestedId) return;
-      audio.volume = nativePlayback ? 0 : state.volume;
-      if (nativePlayback) {
-        const startAt = Math.max(0, Number(state.position) || 0);
-        nativePosition = startAt;
-        nativeDuration = Math.max(0, Number(state.current.duration) || 0);
-        nativePlaying = false;
-        stopOfficialEmbed();
-        const started = window.TuneWaveNative.playTrack(
-          playableUrl,
-          String(state.current.title || 'TuneWave'),
-          String(state.current.artist || 'Unknown artist'),
-          String(normalizeImageURL(state.current.artwork)),
-          Math.round(startAt * 1000),
-          Number(state.volume)
-        );
-        if (!started) throw new Error('The Android background playback service did not start.');
-        nativeTrackLoaded = true;
-        nativePlaying = false;
-        state.isResolvingPlayback = true;
-        if (nativeStartTimeout) clearTimeout(nativeStartTimeout);
-        nativeStartTimeout = setTimeout(() => {
-          nativeStartTimeout = null;
-          if (nativePlaying || !state.current || trackId(state.current) !== requestedId) return;
-          state.isResolvingPlayback = false;
-          updateCurrentTrackUI();
-          $('#now-status').textContent = 'ANDROID PLAYBACK DID NOT START';
-          toast('Android player did not start within 12 seconds (state ' + nativePlaybackState + '). If no TuneWave media controls appear, send this status to support.', 8500);
-        }, 12000);
-        updateCurrentTrackUI();
-        updateProgress();
-        saveState(true);
-        return;
-      }
+      audio.volume = state.volume;
       audio.onloadedmetadata = () => {
         if (state.position > 0 && Number.isFinite(audio.duration)) audio.currentTime = Math.min(state.position, Math.max(0, audio.duration - .25));
-        if (playbackPaused()) updateProgress();
+        if (audio.paused) updateProgress();
       };
       audio.src = playableUrl;
       audio.load();
@@ -1122,10 +1016,8 @@
 
 
   function updateProgress() {
-    const playbackDurationSeconds = playbackDuration();
-    const playbackTimeSeconds = playbackCurrentTime();
-    const duration = Number.isFinite(playbackDurationSeconds) && playbackDurationSeconds > 0 ? playbackDurationSeconds : (state.current?.duration || 0);
-    const currentTime = Number.isFinite(playbackTimeSeconds) ? playbackTimeSeconds : state.position;
+    const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : (state.current?.duration || 0);
+    const currentTime = Number.isFinite(audio.currentTime) ? audio.currentTime : state.position;
     const pct = duration ? Math.min(100, currentTime / duration * 100) : 0;
     $('#seek-input').value = String(pct);
     $('#bottom-current-time').textContent = toDuration(currentTime);
@@ -1209,36 +1101,34 @@
     if (volumeInput && volumeValue) volumeValue.textContent = `${Math.round(Number(volumeInput.value) * 100)}%`;
     $('#audio-settings-dialog').showModal();
   });
+  $('#install-button').addEventListener('click', async () => {
+    if (state.installPrompt) {
+      state.installPrompt.prompt();
+      try { await state.installPrompt.userChoice; } catch (_) {}
+      state.installPrompt = null;
+    } else {
+      toast('To install: use your browser menu and choose “Install app” or “Add to Home screen”.', 4500);
+    }
+  });
   $('#volume-input').addEventListener('input', event => {
     state.volume = Math.min(1, Math.max(0, Number(event.target.value)));
-    audio.volume = nativePlayback ? 0 : state.volume;
-    if (nativePlayback && nativeTrackLoaded) {
-      try { window.TuneWaveNative.setVolume(Number(state.volume)); } catch (_) {}
-    }
+    audio.volume = state.volume;
     const readout = $('#volume-value');
     if (readout) readout.textContent = `${Math.round(state.volume * 100)}%`;
     saveState(true);
   });
   $('#seek-input').addEventListener('input', event => {
     state.isSeeking = true;
-    const dur = Number.isFinite(playbackDuration()) ? playbackDuration() : state.current?.duration || 0;
+    const dur = Number.isFinite(audio.duration) ? audio.duration : state.current?.duration || 0;
     const value = Number(event.target.value);
     $('#now-progress-fill').style.width = `${value}%`;
     $('#now-time-current').textContent = toDuration(dur * value / 100);
     $('#bottom-current-time').textContent = toDuration(dur * value / 100);
   });
   $('#seek-input').addEventListener('change', event => {
-    const duration = Number.isFinite(playbackDuration()) ? playbackDuration() : state.current?.duration || 0;
-    if (duration > 0) {
-      const seconds = duration * Number(event.target.value) / 100;
-      if (nativePlayback && nativeTrackLoaded) {
-        nativePosition = seconds;
-        try { window.TuneWaveNative.seekTo(Math.round(seconds * 1000)); } catch (_) {}
-      } else {
-        audio.currentTime = seconds;
-      }
-    }
-    state.isSeeking = false; saveState(true); updateProgress();
+    const duration = Number.isFinite(audio.duration) ? audio.duration : state.current?.duration || 0;
+    if (duration > 0) audio.currentTime = duration * Number(event.target.value) / 100;
+    state.isSeeking = false; saveState(true);
   });
   function togglePlayback() {
     // If the audio source is still being resolved, Play doubles as Cancel.
@@ -1246,7 +1136,7 @@
     if (state.isResolvingPlayback) {
       state.playbackVersion++;
       state.isResolvingPlayback = false;
-      const wasPlaying = !playbackPaused();
+      const wasPlaying = !audio.paused;
       audio.pause();
       updateCurrentTrackUI();
       saveState(true);
@@ -1258,7 +1148,7 @@
       else { toast('Search for a track first, then press Play.'); searchInput.focus(); }
       return;
     }
-    if (playbackPaused()) {
+    if (audio.paused) {
       // Go through playTrack so the loading state, resume position and errors are unified.
       playTrack(state.current, state.queueIndex, state.position);
     } else {
@@ -1291,49 +1181,13 @@
       state.position = 0; saveState(true);
     }
   });
+  window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); state.installPrompt = event; $('#install-button').title = 'Install TuneWave'; });
   window.addEventListener('appinstalled', () => toast('TuneWave was installed. Enjoy listening!'));
   window.addEventListener('pagehide', () => saveState(true));
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-      if (nativePlayback) nativeWasPlayingWhenHidden = nativePlaying;
-      saveState(true);
-      return;
-    }
-    // A WebView can be suspended while Android keeps the native service alive.
-    // Compare service state on return instead of trusting the last JS callback.
-    if (nativePlayback && nativeTrackLoaded && nativeWasPlayingWhenHidden) {
-      nativeWasPlayingWhenHidden = false;
-      setTimeout(() => {
-        try {
-          const diag = JSON.parse(window.TuneWaveNative.getPlaybackDiagnostics() || '{}');
-          nativePlaybackState = Number(diag.playbackState) || 1;
-          nativePosition = Math.max(0, Number(window.TuneWaveNative.getPositionMs()) || 0) / 1000;
-          nativePlaying = Boolean(diag.isPlaying);
-          state.position = nativePosition;
-          updateProgress();
-          if (!nativePlaying) {
-            state.isResolvingPlayback = false;
-            updateCurrentTrackUI();
-            $('#now-status').textContent = 'BACKGROUND PLAYBACK STOPPED';
-            const report = 'service=' + (diag.serviceAlive ? 'running' : 'stopped') +
-              ', state=' + nativePlaybackState +
-              ', playWhenReady=' + Boolean(diag.playWhenReady) +
-              ', host=' + String(diag.currentHost || 'unknown') +
-              ', error=' + String(diag.lastError || 'none');
-            toast('TuneWave background diagnostic: ' + report, 10000);
-          } else {
-            updateCurrentTrackUI();
-          }
-        } catch (_) {
-          $('#now-status').textContent = 'ANDROID PLAYBACK STATUS UNAVAILABLE';
-          toast('TuneWave could not read the Android playback service after returning. Try a connected catalogue track.', 8000);
-        }
-      }, 700);
-    }
-  });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveState(true); });
 
   function restoreSession() {
-    audio.volume = nativePlayback ? 0 : state.volume;
+    audio.volume = state.volume;
     $('#volume-input').value = String(state.volume);
     const volumeReadout = $('#volume-value');
     if (volumeReadout) volumeReadout.textContent = `${Math.round(state.volume * 100)}%`;

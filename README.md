@@ -2,16 +2,6 @@
 
 This archive is **root-ready**: `index.html`, `manifest.webmanifest`, `service-worker.js`, `assets/`, `robots.txt`, and `sitemap.xml` are directly at the archive root. Do not deploy this archive with an extra enclosing folder.
 
-## Android APK with lock-screen playback
-
-A native Android app project now lives in `android/`. It loads the same TuneWave site and routes direct HTTPS audio streams from the connected catalogues through Android Media3's background playback service, which provides Android media notification/lock-screen controls.
-
-- [Download the latest TuneWave APK release](https://github.com/kapatelkirtan/tunewave-gtu-rwpd/releases/latest)
-- [Android project and build notes](android/README.md)
-- GitHub Actions builds a debug-signed test APK when the Android project or website bridge changes.
-
-Pasted YouTube / YouTube Music links continue to use YouTube's official embedded player. Their background playback is controlled by YouTube and is not guaranteed by this app; TuneWave does not extract or re-host YouTube audio.
-
 ## Deploy to the existing Render Static Site
 
 1. Extract all files from this ZIP.
@@ -22,10 +12,11 @@ Pasted YouTube / YouTube Music links continue to use YouTube's official embedded
 
 ## How the Download App button behaves
 
-- The top-right Download App button downloads the native Android APK from the latest GitHub release: [Download TuneWave APK](https://github.com/kapatelkirtan/tunewave-gtu-rwpd/releases/latest/download/app-debug.apk).
-- On Android, open the downloaded APK and tap **Install**. If prompted, allow your browser to install unknown apps for this download.
-- To install the website itself as a PWA instead, use the browser menu and choose **Install app** or **Add to Home screen**.
+- Chromium browsers show their native install confirmation after the browser fires `beforeinstallprompt`. This build captures that event early and calls its prompt from the button click. The person must still confirm installation.
+- If the browser does not expose an install prompt, TuneWave shows the correct fallback instructions. Web pages cannot force-install themselves or silently create a native app.
+- On iPhone/iPad, use Safari's Share menu → Add to Home Screen → Add. Apple requires this user action; the website cannot trigger this installation sheet directly.
 - The site must be served from HTTPS (Render provides HTTPS) and the manifest, icon URLs, and service worker must all be accessible from the deployed site's root.
+- In Chrome, the browser may delay the native prompt until its installability/user-engagement heuristics are met, and it will not prompt if the app is already installed. Open Chrome's menu and choose **Install app** or **Add to Home screen** if the button falls back to instructions.
 
 ## Important limitations
 
