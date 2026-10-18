@@ -790,30 +790,58 @@
     saveState(true);
   }
 
+  let mediaSessionActionHandlersInstalled = false;
+
+  function installMediaSessionActionHandlers() {
+    if (!('mediaSession' in navigator) || typeof navigator.mediaSession.setActionHandler !== 'function' || mediaSessionActionHandlersInstalled) return;
+    const handlers = {
+      play: () => {
+        if (state.current && (!audio.src || audio.error)) playTrack(state.current, state.queueIndex, state.position);
+        else audio.play().catch(() => toast('Tap Play in TuneWave to resume.'));
+      },
+      pause: () => audio.pause(),
+      stop: () => { audio.pause(); try { audio.currentTime = 0; } catch (_) {} },
+      previoustrack: () => playRelative(-1),
+      nexttrack: () => playRelative(1),
+      seekbackward: details => { audio.currentTime = Math.max(0, audio.currentTime - (details.seekOffset || 10)); },
+      seekforward: details => { audio.currentTime = Math.min(Number.isFinite(audio.duration) ? audio.duration : audio.currentTime + 10, audio.currentTime + (details.seekOffset || 10)); },
+      seekto: details => { if (Number.isFinite(details.seekTime)) audio.currentTime = details.seekTime; }
+    };
+    for (const [action, handler] of Object.entries(handlers)) {
+      try { navigator.mediaSession.setActionHandler(action, handler); } catch (_) { /* Action support varies by browser. */ }
+    }
+    mediaSessionActionHandlersInstalled = true;
+  }
+
+  function updateMediaSessionPosition() {
+    if (!('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
+    try {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        navigator.mediaSession.setPositionState({
+          duration: audio.duration,
+          playbackRate: Number.isFinite(audio.playbackRate) && audio.playbackRate > 0 ? audio.playbackRate : 1,
+          position: Math.min(Math.max(0, Number(audio.currentTime) || 0), audio.duration)
+        });
+      }
+    } catch (_) { /* Position reporting is optional and browser-controlled. */ }
+  }
+
   function updateMediaSession(track) {
     if (!('mediaSession' in navigator)) return;
+    installMediaSessionActionHandlers();
     try {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: track.title || 'TuneWave', artist: track.artist || 'Unknown artist', album: `TuneWave · ${track.source || 'Music source'}`,
-        artwork: [96,128,192,256,512].map(size => ({ src: normalizeImageURL(track.artwork), sizes: `${size}x${size}` }))
-      });
       navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
-      const handlers = {
-        play: () => {
-          if (state.current && (!audio.src || audio.error)) playTrack(state.current, state.queueIndex, state.position);
-          else audio.play().catch(() => toast('Tap Play in TuneWave to resume.'));
-        },
-        pause: () => audio.pause(),
-        previoustrack: () => playRelative(-1),
-        nexttrack: () => playRelative(1),
-        seekbackward: details => { audio.currentTime = Math.max(0, audio.currentTime - (details.seekOffset || 10)); },
-        seekforward: details => { audio.currentTime = Math.min(Number.isFinite(audio.duration) ? audio.duration : audio.currentTime + 10, audio.currentTime + (details.seekOffset || 10)); },
-        seekto: details => { if (Number.isFinite(details.seekTime)) audio.currentTime = details.seekTime; }
-      };
-      for (const [action, handler] of Object.entries(handlers)) {
-        try { navigator.mediaSession.setActionHandler(action, handler); } catch (_) { /* Not every browser supports every action. */ }
+      if (typeof MediaMetadata === 'function') {
+        const artworkUrl = new URL(normalizeImageURL(track.artwork), document.baseURI).href;
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: track.title || 'TuneWave',
+          artist: track.artist || 'Unknown artist',
+          album: `TuneWave · ${track.source || 'Music source'}`,
+          artwork: [96, 128, 192, 256, 512].map(size => ({ src: artworkUrl, sizes: `${size}x${size}` }))
+        });
       }
-    } catch (_) { /* Media Session is an enhancement, never a playback requirement. */ }
+    } catch (_) { /* Metadata support varies; playback must keep working without it. */ }
+    updateMediaSessionPosition();
   }
 
   async function playTrack(track, index = -1, resumeAt = 0) {
@@ -1141,9 +1169,9 @@
     updateCurrentTrackUI();
   });
   audio.addEventListener('pause', () => { state.position = audio.currentTime || state.position; updateCurrentTrackUI(); saveState(true); });
-  audio.addEventListener('timeupdate', () => { updateProgress(); state.position = audio.currentTime || 0; saveState(false); });
-  audio.addEventListener('loadedmetadata', () => { updateProgress(); });
-  audio.addEventListener('durationchange', updateProgress);
+  audio.addEventListener('timeupdate', () => { updateProgress(); updateMediaSessionPosition(); state.position = audio.currentTime || 0; saveState(false); });
+  audio.addEventListener('loadedmetadata', () => { updateProgress(); updateMediaSessionPosition(); });
+  audio.addEventListener('durationchange', () => { updateProgress(); updateMediaSessionPosition(); });
   audio.addEventListener('ended', () => { state.position = 0; saveState(true); playRelative(1); });
   audio.addEventListener('error', () => {
     state.isResolvingPlayback = false;
