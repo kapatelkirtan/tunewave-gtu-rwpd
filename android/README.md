@@ -5,7 +5,7 @@ This Android app opens the existing TuneWave website and exposes a small, first-
 ## What this build supports
 
 - The current TuneWave site, its connected open/direct-audio music providers, search, favourites, and pasted official-player links.
-- Direct HTTPS audio streams returned by the supported catalogue providers are played by Android Media3 in a foreground media session, so background playback and lock-screen media controls are supported by Android.
+- Direct HTTPS audio streams returned by supported catalogue providers are delegated to Android Media3. The app now reports actual playback state and shows native player errors in the UI, helping identify a bad stream instead of displaying a false 'playing' state.
 - Track title, artist and artwork are sent to Android System UI where available.
 - The APK build is debug-signed for sideloading and testing.
 
