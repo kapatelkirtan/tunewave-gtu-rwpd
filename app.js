@@ -1123,21 +1123,28 @@
           form.append('file', wavBlob, 'tunewave-sample.wav');
           form.append('duration', '10');
           let response;
+          const recognitionController = new AbortController();
+          const recognitionTimeout = setTimeout(() => recognitionController.abort(), 18000);
           try {
             response = await fetch(apiBase + '/api/audd/recognize', {
               method: 'POST',
               body: form,
-              headers: { 'Accept': 'application/json' }
+              headers: { 'Accept': 'application/json' },
+              signal: recognitionController.signal
             });
-          } catch (_) {
-            recognitionFailure = 'Could not reach the recognition backend. Check that the music bridge has deployed.';
+          } catch (error) {
+            recognitionFailure = error?.name === 'AbortError'
+              ? 'The recognition backend timed out. Trying the next configured backend…'
+              : 'Could not reach the recognition backend. Trying the next configured backend…';
             continue;
+          } finally {
+            clearTimeout(recognitionTimeout);
           }
           const body = await response.json().catch(() => ({}));
           if (response.ok) { payload = body; break; }
           recognitionFailure = String(body?.error || body?.message || ('Recognition failed (' + response.status + ').'));
-          // Try the second configured backend if the first one lacks this route or its token.
-          if (![404, 405, 501, 503].includes(response.status)) break;
+          // Try the second configured backend if the first lacks this route, has no token,
+          // or returns an upstream error. This does not bypass provider authentication.
         }
         if (!payload) throw new Error(recognitionFailure);
         const result = payload?.result || payload?.song || payload?.data?.result || payload?.data || payload;
