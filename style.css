@@ -218,3 +218,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   .bottom-player { z-index:44; }
   .mobile-nav { z-index:45; }
 }
+
+/* Targeted UI bug fixes: keep the current appearance, but expose the real embedded player. */
+.topbar { background:rgba(7,10,14,.98); }
+#official-player-stage:not([hidden]) { display:block !important; min-height:352px; }
+#official-player-frame:not([hidden]) { display:block !important; width:100%; height:352px; min-height:352px; }
+.official-embed-panel p { letter-spacing:0; line-height:1.65; }
