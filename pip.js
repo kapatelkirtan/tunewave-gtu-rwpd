@@ -125,7 +125,7 @@
     }
     let url;
     try { url = new URL(src, document.baseURI); } catch (_) { return; }
-    if (!/(^|\\.)youtube(-nocookie)?\\.com$/i.test(url.hostname) || !url.pathname.includes('/embed/')) return;
+    if (!/(^|\.)youtube(-nocookie)?\.com$/i.test(url.hostname) || !url.pathname.includes('/embed/')) return;
 
     youtubeSessionActive = true;
     youtubeCurrentTime = 0;
@@ -183,7 +183,8 @@
 
   window.addEventListener('message', event => {
     if (!frame.contentWindow || event.source !== frame.contentWindow) return;
-    if (!/(^|\\.)youtube(-nocookie)?\\.com$/i.test(String(event.origin || '').replace(/^https:\\/\\//i, ''))) return;
+    const messageOriginHost = (() => { try { return new URL(event.origin).hostname; } catch (_) { return ''; } })();
+    if (!/(^|\.)youtube(-nocookie)?\.com$/i.test(messageOriginHost)) return;
     let payload = event.data;
     if (typeof payload === 'string') {
       try { payload = JSON.parse(payload); } catch (_) { return; }
@@ -195,10 +196,11 @@
       if (Number.isFinite(Number(info.duration)) && Number(info.duration) > 0) youtubeDuration = Number(info.duration);
       const video = info.videoData;
       if (video && (video.title || video.author)) setYouTubeMediaMetadata(video.title || youtubeVideoTitle, video.author || youtubeVideoArtist, video.video_id ? 'https://i.ytimg.com/vi/' + encodeURIComponent(video.video_id) + '/hqdefault.jpg' : defaultArtwork);
-      if (Number(info.playerState) === 1) setYouTubePlaybackState('playing');
-      else if ([0, 2, 5, -1].includes(Number(info.playerState))) setYouTubePlaybackState('paused');
-      else if (Number.isFinite(Number(info.playerState))) setYouTubePlaybackState('playing');
-      else setYouTubePlaybackState('playing');
+      if (info.playerState !== undefined && info.playerState !== null) {
+        const stateValue = Number(info.playerState);
+        if ([1, 3].includes(stateValue)) setYouTubePlaybackState('playing');
+        else if ([0, 2, 5, -1].includes(stateValue)) setYouTubePlaybackState('paused');
+      }
     } else if (payload.event === 'onStateChange') {
       const stateValue = Number(payload.info);
       if (stateValue === 1) setYouTubePlaybackState('playing');
