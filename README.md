@@ -87,3 +87,10 @@ The browser app uses the separate Render Web Service configured in `config.js` a
 In Render, the bridge service must use this repository, root directory `.`, Node runtime, and start command `npm start`. Keep the Static Site service separate and serving the repository root. The configured bridge health URL is `https://tunewave-gtu-rwpd-2.onrender.com/health`.
 
 The source-status panel confirms endpoint responses; it cannot guarantee every song exists or that every stream will play. Jamendo will show as needing setup until `JAMENDO_CLIENT_ID` is set in the bridge service environment.
+
+
+## Additional official music destinations and embedded players
+
+The web UI keeps the nine open-catalogue endpoints separate from official destinations. The destination list includes YouTube Music, JioSaavn, Spotify, Amazon Music, Gaana, Apple Music, SoundCloud, Audiomack, HearThis.at, Bandcamp, Free Music Archive, Hungama and Saregama. Those are official search destinations; they are not represented as 13 direct-track APIs.
+
+The in-page official-player form supports YouTube, Spotify, Apple Music, SoundCloud and Deezer share links, plus official provider iframe codes for Audiomack, HearThis.at and Bandcamp. Embedded providers continue to control playback, advertising, log-in, subscription, region and background playback. Open-catalogue search expands up to three targeted variants for Audius and Free To Use and up to two for Internet Archive to improve Ultra Funk/phonk, Hindi and Gujarati/Garba discovery.
