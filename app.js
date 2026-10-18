@@ -489,6 +489,13 @@
       hearthis: 'HearThis.at', bandcamp: 'Bandcamp'
     };
 
+    providerSelect?.addEventListener('change', () => {
+      const names = { youtube: 'YouTube Music', spotify: 'Spotify', 'apple-music': 'Apple Music', soundcloud: 'SoundCloud', deezer: 'Deezer', audiomack: 'Audiomack', hearthis: 'HearThis.at', bandcamp: 'Bandcamp' };
+      const query = String(state.query || searchInput.value || 'Ultra Funk').trim();
+      const caption = $('#official-player-query');
+      if (caption) caption.textContent = 'Find “' + query + '” on ' + (names[providerSelect.value] || 'your selected service') + ', then paste its supported link or official embed code above.';
+    });
+
     form.addEventListener('submit', event => {
       event.preventDefault();
       let raw = String(urlInput?.value || '').trim();
