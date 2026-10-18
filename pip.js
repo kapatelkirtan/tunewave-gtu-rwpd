@@ -124,9 +124,10 @@
 
       const removeTempClass = () => frame.classList.remove('tw-pip-video');
       back.addEventListener('click', () => {
+        const windowToClose = pipWindow;
         restoreFrame();
         removeTempClass();
-        try { if (pipWindow && !pipWindow.closed) pipWindow.close(); } catch (_) {}
+        try { if (windowToClose && !windowToClose.closed) windowToClose.close(); } catch (_) {}
         setStatus('Returned the YouTube player to TuneWave.');
       });
       pipWindow.addEventListener('pagehide', () => {
