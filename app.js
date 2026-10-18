@@ -29,7 +29,7 @@
   const state = {
     view: 'home', query: '', results: [], catalogResults: [], queue: [], queueIndex: -1,
     current: null, recent: [], favorites: [], position: 0, volume: 0.8,
-    isSeeking: false, installPrompt: null, toastTimer: null, lastSavedAt: 0,
+    isSeeking: false, toastTimer: null, lastSavedAt: 0,
     recognition: null, isVoiceSearching: false, isRestoring: false,
     searchVersion: 0, playbackVersion: 0, isResolvingPlayback: false
   };
@@ -1165,14 +1165,10 @@
     if (volumeInput && volumeValue) volumeValue.textContent = `${Math.round(Number(volumeInput.value) * 100)}%`;
     $('#audio-settings-dialog').showModal();
   });
-  $('#install-button').addEventListener('click', async () => {
-    if (state.installPrompt) {
-      state.installPrompt.prompt();
-      try { await state.installPrompt.userChoice; } catch (_) {}
-      state.installPrompt = null;
-    } else {
-      toast('To install: use your browser menu and choose “Install app” or “Add to Home screen”.', 4500);
-    }
+  // The top-right app button downloads the native Android APK from the latest release.
+  // Keep the versioned "latest/download" URL so future releases do not require a website code change.
+  $('#install-button').addEventListener('click', () => {
+    window.location.href = 'https://github.com/kapatelkirtan/tunewave-gtu-rwpd/releases/latest/download/app-debug.apk';
   });
   $('#volume-input').addEventListener('input', event => {
     state.volume = Math.min(1, Math.max(0, Number(event.target.value)));
@@ -1256,7 +1252,6 @@
       state.position = 0; saveState(true);
     }
   });
-  window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); state.installPrompt = event; $('#install-button').title = 'Install TuneWave'; });
   window.addEventListener('appinstalled', () => toast('TuneWave was installed. Enjoy listening!'));
   window.addEventListener('pagehide', () => saveState(true));
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveState(true); });
