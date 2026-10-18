@@ -457,9 +457,7 @@
     const caption = $('#external-music-query');
     if (caption) caption.textContent = 'Search “' + q + '” on these official music services.';
     const playerCaption = $('#official-player-query');
-    const service = String($('#official-player-provider')?.value || 'youtube');
-    const serviceNames = { youtube: 'YouTube Music', spotify: 'Spotify', 'apple-music': 'Apple Music', soundcloud: 'SoundCloud', deezer: 'Deezer', audiomack: 'Audiomack', hearthis: 'HearThis.at', bandcamp: 'Bandcamp' };
-    if (playerCaption) playerCaption.textContent = 'Find “' + q + '” on ' + (serviceNames[service] || 'your selected service') + ', then paste its supported link or official embed code above.';
+    if (playerCaption) playerCaption.textContent = 'Find “' + q + '” on YouTube or YouTube Music, copy the song or playlist link, and paste it above to play it in TuneWave.';
   }
 
   function stopOfficialEmbed() {
@@ -478,28 +476,13 @@
     const form = $('#official-player-form');
     if (!form) return;
     const urlInput = $('#official-player-url');
-    const providerSelect = $('#official-player-provider');
     const frame = $('#official-player-frame');
     const stage = $('#official-player-stage');
     const status = $('#official-player-status');
 
-    const providerNames = {
-      youtube: 'YouTube Music', spotify: 'Spotify', 'apple-music': 'Apple Music',
-      soundcloud: 'SoundCloud', deezer: 'Deezer', audiomack: 'Audiomack',
-      hearthis: 'HearThis.at', bandcamp: 'Bandcamp'
-    };
-
-    providerSelect?.addEventListener('change', () => {
-      const names = { youtube: 'YouTube Music', spotify: 'Spotify', 'apple-music': 'Apple Music', soundcloud: 'SoundCloud', deezer: 'Deezer', audiomack: 'Audiomack', hearthis: 'HearThis.at', bandcamp: 'Bandcamp' };
-      const query = String(state.query || searchInput.value || 'Ultra Funk').trim();
-      const caption = $('#official-player-query');
-      if (caption) caption.textContent = 'Find “' + query + '” on ' + (names[providerSelect.value] || 'your selected service') + ', then paste its supported link or official embed code above.';
-    });
-
     form.addEventListener('submit', event => {
       event.preventDefault();
       let raw = String(urlInput?.value || '').trim();
-      let provider = String(providerSelect?.value || 'youtube');
       const pastedEmbed = /<iframe\b/i.test(raw);
       const iframeSrc = raw.match(/<iframe\b[\s\S]*?\bsrc\s*=\s*["']([^"']+)["']/i)
         || raw.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
@@ -510,126 +493,37 @@
         parsed = new URL(raw);
         if (parsed.protocol !== 'https:') throw new Error('Use HTTPS.');
       } catch (_) {
-        if (status) status.textContent = 'Paste a valid HTTPS share URL or official embed code from the selected service.';
+        if (status) status.textContent = 'Paste a valid YouTube video or playlist URL.';
         return;
       }
 
       const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
-      const pathParts = parsed.pathname.split('/').filter(Boolean);
-      if (pastedEmbed) {
-        if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com' || host === 'youtu.be' || host === 'youtube-nocookie.com') provider = 'youtube';
-        else if (host === 'open.spotify.com') provider = 'spotify';
-        else if (host === 'embed.music.apple.com') provider = 'apple-music';
-        else if (host === 'w.soundcloud.com' && parsed.pathname.startsWith('/player/')) provider = 'soundcloud';
-        else if (host === 'widget.deezer.com' && parsed.pathname.includes('/widget/')) provider = 'deezer';
-        else if (host === 'audiomack.com' && /\/embed\//i.test(parsed.pathname)) provider = 'audiomack';
-        else if (host === 'hearthis.at' && /\/embed\/?/i.test(parsed.pathname)) provider = 'hearthis';
-        else if (host === 'bandcamp.com' && /\/EmbeddedPlayer\//i.test(parsed.pathname)) provider = 'bandcamp';
-        if (providerSelect) providerSelect.value = provider;
+      const allowedHosts = ['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be', 'youtube-nocookie.com'];
+      if (!allowedHosts.includes(host)) {
+        if (status) status.textContent = 'This player accepts YouTube and YouTube Music links only.';
+        return;
       }
 
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      let videoId = '';
+      if (host === 'youtu.be') videoId = parts[0] || '';
+      else if (['embed', 'shorts', 'live', 'v'].includes(parts[0])) videoId = parts[1] || '';
+      else videoId = parsed.searchParams.get('v') || '';
+      const listId = parsed.searchParams.get('list') || '';
+      const safeVideo = /^[A-Za-z0-9_-]{11}$/.test(videoId);
+      const safeList = /^[A-Za-z0-9_-]{10,80}$/.test(listId);
       let embedUrl = '';
       let frameTitle = '';
-      const fail = message => { if (status) status.textContent = message; };
 
-      if (provider === 'youtube') {
-        if (!['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be', 'youtube-nocookie.com'].includes(host)) {
-          fail('Choose YouTube Music and paste its video or playlist link.');
-          return;
-        }
-        let videoId = '';
-        if (host === 'youtu.be') videoId = pathParts[0] || '';
-        else if (['embed', 'shorts', 'live'].includes(pathParts[0])) videoId = pathParts[1] || '';
-        else videoId = parsed.searchParams.get('v') || '';
-        const listId = parsed.searchParams.get('list') || '';
-        if (/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
-          embedUrl = 'https://www.youtube-nocookie.com/embed/' + videoId + '?playsinline=1&rel=0';
-          if (/^[A-Za-z0-9_-]+$/.test(listId)) embedUrl += '&list=' + encodeURIComponent(listId);
-          frameTitle = 'Official YouTube Music player';
-        } else if (listId && /^[A-Za-z0-9_-]+$/.test(listId)) {
-          embedUrl = 'https://www.youtube-nocookie.com/embed/videoseries?list=' + encodeURIComponent(listId);
-          frameTitle = 'Official YouTube Music playlist player';
-        } else {
-          fail('That YouTube link does not include a supported video or playlist ID.');
-          return;
-        }
-      } else if (provider === 'spotify') {
-        if (host !== 'open.spotify.com') {
-          fail('Choose Spotify and paste a link from open.spotify.com.');
-          return;
-        }
-        const supportedTypes = ['track', 'album', 'playlist'];
-        const typeIndex = pathParts.findIndex((part, index) => supportedTypes.includes(part.toLowerCase()) && Boolean(pathParts[index + 1]));
-        const contentType = typeIndex >= 0 ? pathParts[typeIndex].toLowerCase() : '';
-        const spotifyId = typeIndex >= 0 ? pathParts[typeIndex + 1] : '';
-        if (!contentType || !/^[A-Za-z0-9]{22}$/.test(spotifyId)) {
-          fail('Paste a Spotify track, album, or playlist share link.');
-          return;
-        }
-        embedUrl = 'https://open.spotify.com/embed/' + contentType + '/' + spotifyId;
-        frameTitle = 'Official Spotify player';
-      } else if (provider === 'apple-music') {
-        if (!['music.apple.com', 'embed.music.apple.com', 'geo.music.apple.com'].includes(host)) {
-          fail('Choose Apple Music and paste an Apple Music song, album or playlist link.');
-          return;
-        }
-        if (!/(^|\/)(album|playlist|music-video)\//i.test(parsed.pathname)) {
-          fail('That Apple Music URL does not look like a song, album, playlist or music-video link.');
-          return;
-        }
-        parsed.hostname = 'embed.music.apple.com';
-        embedUrl = parsed.href;
-        frameTitle = 'Official Apple Music preview player';
-      } else if (provider === 'soundcloud') {
-        if (host === 'w.soundcloud.com' && parsed.pathname.startsWith('/player/')) {
-          embedUrl = parsed.href;
-        } else if (host === 'soundcloud.com' || host === 'm.soundcloud.com') {
-          embedUrl = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(parsed.href) + '&color=%2350e8ff&auto_play=false&visual=true';
-        } else {
-          fail('Choose SoundCloud and paste a track/playlist link or the iframe code from Share → Embed.');
-          return;
-        }
-        frameTitle = 'Official SoundCloud player';
-      } else if (provider === 'deezer') {
-        if (host === 'widget.deezer.com' && parsed.pathname.startsWith('/widget/')) {
-          embedUrl = parsed.href;
-        } else if (['deezer.com', 'link.deezer.com'].includes(host)) {
-          const typeIndex = pathParts.findIndex((part,index) => ['track','album','playlist'].includes(part.toLowerCase()) && Boolean(pathParts[index + 1]));
-          const contentType = typeIndex >= 0 ? pathParts[typeIndex].toLowerCase() : '';
-          const deezerId = typeIndex >= 0 ? pathParts[typeIndex + 1] : '';
-          if (!contentType || !/^\d{1,20}$/.test(deezerId)) {
-            fail('Paste a Deezer track, album or playlist link.');
-            return;
-          }
-          embedUrl = 'https://widget.deezer.com/widget/dark/' + contentType + '/' + deezerId;
-        } else {
-          fail('Choose Deezer and paste a public track, album, playlist or widget link.');
-          return;
-        }
-        frameTitle = 'Official Deezer player';
-      } else if (provider === 'audiomack') {
-        if (host !== 'audiomack.com' || !/\/embed\//i.test(parsed.pathname)) {
-          fail('For Audiomack, open a track and copy the official iframe code from its Share / Embed option.');
-          return;
-        }
-        embedUrl = parsed.href;
-        frameTitle = 'Official Audiomack player';
-      } else if (provider === 'hearthis') {
-        if (host !== 'hearthis.at' || !/\/embed\/?/i.test(parsed.pathname)) {
-          fail('For HearThis.at, copy the official iframe code from the track’s Share / Embed option.');
-          return;
-        }
-        embedUrl = parsed.href;
-        frameTitle = 'Official HearThis.at player';
-      } else if (provider === 'bandcamp') {
-        if (host !== 'bandcamp.com' || !/\/EmbeddedPlayer\//i.test(parsed.pathname)) {
-          fail('For Bandcamp, paste the official iframe code from the track or album’s Share / Embed option.');
-          return;
-        }
-        embedUrl = parsed.href;
-        frameTitle = 'Official Bandcamp player';
+      if (safeVideo) {
+        embedUrl = 'https://www.youtube-nocookie.com/embed/' + videoId + '?playsinline=1&rel=0';
+        if (safeList) embedUrl += '&list=' + encodeURIComponent(listId);
+        frameTitle = 'Official YouTube music player';
+      } else if (safeList) {
+        embedUrl = 'https://www.youtube-nocookie.com/embed/videoseries?list=' + encodeURIComponent(listId) + '&playsinline=1&rel=0';
+        frameTitle = 'Official YouTube playlist player';
       } else {
-        fail('Choose one of the supported official music providers.');
+        if (status) status.textContent = 'That YouTube link does not contain a supported video ID or playlist ID.';
         return;
       }
 
@@ -643,19 +537,13 @@
         frame.setAttribute('width', '100%');
         frame.setAttribute('height', '352');
         frame.setAttribute('frameborder', '0');
-        frame.setAttribute('allow', 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture');
+        frame.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
         frame.setAttribute('allowfullscreen', '');
-        frame.removeAttribute('referrerpolicy');
         frame.title = frameTitle;
         frame.src = embedUrl;
         frame.hidden = false;
         stage.hidden = false;
-        const serviceName = providerNames[provider] || 'official music';
-        const fullTrackHelp = $('#official-player-fulltrack-help');
-        const openLink = $('#official-player-open-link');
-        if (fullTrackHelp) fullTrackHelp.hidden = provider !== 'spotify';
-        if (openLink && provider === 'spotify') openLink.href = parsed.href;
-        if (status) status.textContent = 'Loading the official ' + serviceName + ' player. Full-track access, ads and background playback depend on that service, account, track and device.';
+        if (status) status.textContent = 'Loading YouTube’s official player. Song availability, ads, full-track access and background playback follow YouTube’s rules.';
       }
     });
   }
