@@ -1133,7 +1133,7 @@
       steps = [
         'Open the browser menu (⋮) and look for “Install app” or “Add to Home screen”.',
         'Choose “Install” or “Add” and confirm when asked.',
-        'If that option is missing, open the same HTTPS website in Chrome or Edge and tap “Download App” again.'
+        'If that option is missing, open the same HTTPS website in Chrome or Edge and tap the install icon beside Settings in the top-right corner.'
       ];
     } else if (isMacSafari) {
       intro.textContent = 'Safari may not show a website install prompt on this device.';
