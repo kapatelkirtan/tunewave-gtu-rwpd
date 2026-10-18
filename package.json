@@ -1,6 +1,6 @@
 {
   "name": "tunewave-backend",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "TuneWave public music-provider bridge and Jamendo backend",
   "main": "server.js",
   "scripts": {
@@ -10,7 +10,6 @@
     "node": ">=18"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "multer": "^2.0.2"
+    "express": "^4.21.2"
   }
 }
