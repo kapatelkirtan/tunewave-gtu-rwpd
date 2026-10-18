@@ -1,6 +1,6 @@
-const CACHE_NAME = 'tunewave-shell-v78';
+const CACHE_NAME = 'tunewave-shell-v79';
 const APP_SHELL = [
-  './', './index.html', './style.css', './app.js', './pip.js?v=20261018-4', './config.js', './manifest.webmanifest',
+  './', './index.html', './style.css', './app.js', './pip.js?v=20261018-5', './config.js', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png'
 ];
 self.addEventListener('install', event => {
