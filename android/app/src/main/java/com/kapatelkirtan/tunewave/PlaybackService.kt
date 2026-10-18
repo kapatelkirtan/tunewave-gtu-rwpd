@@ -48,8 +48,9 @@ class PlaybackService : MediaSessionService() {
             override fun onPlayerError(error: PlaybackException) {
                 snapshotIsPlaying = false
                 MainActivity.reportNativePlaybackState(
-                    snapshotPositionMs, snapshotDurationMs, false
+                    snapshotPositionMs, snapshotDurationMs, false, player.playbackState
                 )
+                MainActivity.reportNativePlaybackError(error.errorCodeName, error.message ?: "The stream failed to load.")
             }
         })
 
@@ -112,7 +113,7 @@ class PlaybackService : MediaSessionService() {
         snapshotPositionMs = position
         snapshotDurationMs = duration
         snapshotIsPlaying = player.isPlaying
-        MainActivity.reportNativePlaybackState(position, duration, player.isPlaying)
+        MainActivity.reportNativePlaybackState(position, duration, player.isPlaying, player.playbackState)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
