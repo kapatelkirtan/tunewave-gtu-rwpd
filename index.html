@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20261018-47">
+  <link rel="stylesheet" href="style.css?v=20261019-1">
   <script src="config.js"></script>
-  <script defer src="app.js?v=20261018-33"></script>
+  <script defer src="app.js?v=20261019-1"></script>
   <script defer src="pip.js?v=20261018-5"></script>
 </head>
 <body>
@@ -82,6 +82,7 @@
           </div>
           <div class="hero-actions" aria-label="Quick music actions">
             <button type="button" class="hero-cta hero-cta-primary" data-view="discover">Explore music <span aria-hidden="true">↗</span></button>
+            <button type="button" class="hero-cta hero-cta-secondary download-app-cta" id="download-app-button" aria-label="Download and install TuneWave as an app"><span aria-hidden="true">⇩</span> Download App</button>
             <button type="button" class="hero-cta hero-cta-secondary" data-query="Ultra Funk">Try Ultra Funk <span aria-hidden="true">♫</span></button>
           </div>
         </div>
@@ -372,6 +373,16 @@
 
   <audio id="audio-player" preload="metadata"></audio>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <dialog class="info-dialog install-dialog" id="install-dialog" aria-labelledby="install-dialog-title">
+    <form method="dialog"><button class="dialog-close" aria-label="Close install guide">×</button></form>
+    <div class="dialog-logo"><img src="icon-192.png" alt=""></div>
+    <p class="section-kicker">INSTALL TUNEWAVE</p>
+    <h2 id="install-dialog-title">Bring your sound<br><span>wherever you go.</span></h2>
+    <p id="install-dialog-intro">Your browser has not offered a one-tap install prompt. Follow the steps for your device.</p>
+    <ol class="install-guidance-list" id="install-guidance-list" aria-live="polite"></ol>
+    <p class="dialog-note install-dialog-note">For your security, your browser or operating system may require you to confirm installation. A website cannot bypass that confirmation or force-install itself.</p>
+  </dialog>
 
   <dialog class="info-dialog settings-dialog" id="audio-settings-dialog" aria-labelledby="audio-settings-title">
     <form method="dialog"><button class="dialog-close" aria-label="Close settings">×</button></form>
