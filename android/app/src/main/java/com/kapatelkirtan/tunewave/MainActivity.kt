@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import java.lang.ref.WeakReference
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
@@ -98,12 +99,23 @@ class MainActivity : AppCompatActivity() {
         @Volatile private var activeWebView: WeakReference<WebView>? = null
 
         @JvmStatic
-        fun reportNativePlaybackState(positionMs: Long, durationMs: Long, isPlaying: Boolean) {
+        fun reportNativePlaybackState(positionMs: Long, durationMs: Long, isPlaying: Boolean, playbackState: Int) {
             val view = activeWebView?.get() ?: return
             val safePosition = positionMs.coerceAtLeast(0L)
             val safeDuration = durationMs.coerceAtLeast(0L)
             view.post {
-                val script = "window.onTuneWaveNativeState && window.onTuneWaveNativeState($safePosition,$safeDuration,$isPlaying);"
+                val script = "window.onTuneWaveNativeState && window.onTuneWaveNativeState($safePosition,$safeDuration,$isPlaying,$playbackState);"
+                view.evaluateJavascript(script, null)
+            }
+        }
+
+        @JvmStatic
+        fun reportNativePlaybackError(errorCode: String, message: String) {
+            val view = activeWebView?.get() ?: return
+            val safeCode = JSONObject.quote(errorCode.take(80))
+            val safeMessage = JSONObject.quote(message.take(500))
+            view.post {
+                val script = "window.onTuneWaveNativeError && window.onTuneWaveNativeError($safeCode,$safeMessage);"
                 view.evaluateJavascript(script, null)
             }
         }
