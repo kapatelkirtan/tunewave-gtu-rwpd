@@ -23,7 +23,7 @@
   let nativePlaying = false;
   let nativePosition = 0;
   let nativeDuration = 0;
-  const playbackPaused = () => nativePlayback ? !nativePlaying : playbackPaused();
+  const playbackPaused = () => nativePlayback ? !nativePlaying : audio.paused;
   const playbackCurrentTime = () => nativePlayback ? nativePosition : audio.currentTime;
   const playbackDuration = () => nativePlayback && nativeDuration > 0 ? nativeDuration : audio.duration;
   const state = {
