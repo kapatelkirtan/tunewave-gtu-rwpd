@@ -559,7 +559,7 @@
         frame.src = embedUrl;
         frame.hidden = false;
         stage.hidden = false;
-        if (status) status.textContent = 'YouTube’s official player is loading. Start playback, then try the mini-player button. Lock-screen controls are attempted where the browser supports Media Session; background playback is still controlled by YouTube, your browser and device.';
+        if (status) status.textContent = 'YouTube’s official player is loading. Start playback, then use the mini-player button to keep it visible on this page. TuneWave cannot force an embedded YouTube song to continue after you lock your phone; use the official YouTube app for eligible background playback.';
       }
     });
   }
