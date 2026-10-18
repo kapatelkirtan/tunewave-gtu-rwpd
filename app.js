@@ -464,12 +464,14 @@
     const frame = $('#official-player-frame');
     const stage = $('#official-player-stage');
     const fullTrackHelp = $('#official-player-fulltrack-help');
+    const openLink = $('#official-player-open-link');
     if (frame) {
       frame.removeAttribute('src');
       frame.hidden = true;
     }
     if (stage) stage.hidden = true;
     if (fullTrackHelp) fullTrackHelp.hidden = true;
+    if (openLink) openLink.hidden = true;
   }
 
   function setupOfficialPlayer() {
@@ -479,9 +481,11 @@
     const frame = $('#official-player-frame');
     const stage = $('#official-player-stage');
     const status = $('#official-player-status');
+    const openLink = $('#official-player-open-link');
 
     form.addEventListener('submit', event => {
       event.preventDefault();
+      if (openLink) openLink.hidden = true;
       let raw = String(urlInput?.value || '').trim();
       const pastedEmbed = /<iframe\b/i.test(raw);
       const iframeSrc = raw.match(/<iframe\b[\s\S]*?\bsrc\s*=\s*["']([^"']+)["']/i)
@@ -513,14 +517,20 @@
       const safeVideo = /^[A-Za-z0-9_-]{11}$/.test(videoId);
       const safeList = /^[A-Za-z0-9_-]{10,80}$/.test(listId);
       let embedUrl = '';
+      let officialUrl = '';
       let frameTitle = '';
 
       if (safeVideo) {
         embedUrl = 'https://www.youtube-nocookie.com/embed/' + videoId + '?autoplay=1&playsinline=1&rel=0';
-        if (safeList) embedUrl += '&list=' + encodeURIComponent(listId);
+        officialUrl = 'https://www.youtube.com/watch?v=' + videoId;
+        if (safeList) {
+          embedUrl += '&list=' + encodeURIComponent(listId);
+          officialUrl += '&list=' + encodeURIComponent(listId);
+        }
         frameTitle = 'Official YouTube music player';
       } else if (safeList) {
         embedUrl = 'https://www.youtube-nocookie.com/embed/videoseries?list=' + encodeURIComponent(listId) + '&autoplay=1&playsinline=1&rel=0';
+        officialUrl = 'https://www.youtube.com/playlist?list=' + encodeURIComponent(listId);
         frameTitle = 'Official YouTube playlist player';
       } else {
         if (status) status.textContent = 'That YouTube link does not contain a supported video ID or playlist ID.';
@@ -533,6 +543,11 @@
       audio.pause();
       updateCurrentTrackUI();
       saveState(true);
+      if (openLink) {
+        openLink.href = officialUrl;
+        openLink.hidden = false;
+        openLink.textContent = safeVideo ? 'Open this song in YouTube ↗' : 'Open this playlist in YouTube ↗';
+      }
       if (frame && stage) {
         frame.setAttribute('width', '100%');
         frame.setAttribute('height', '352');
@@ -543,7 +558,7 @@
         frame.src = embedUrl;
         frame.hidden = false;
         stage.hidden = false;
-        if (status) status.textContent = 'Loading YouTube’s official player. Song availability, ads, full-track access and background playback follow YouTube’s rules.';
+        if (status) status.textContent = 'Loading YouTube’s official player. For background playback, use the Open in YouTube link below; TuneWave cannot override YouTube’s playback rules.';
       }
     });
   }

@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=20261018-46">
+  <link rel="stylesheet" href="style.css?v=20261018-47">
   <script src="config.js"></script>
-  <script defer src="app.js?v=20261018-28"></script>
+  <script defer src="app.js?v=20261018-29"></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -218,6 +218,8 @@
             <p class="official-player-search-help" id="official-player-hint">Paste a YouTube video link (youtube.com/watch, youtu.be, YouTube Music, Shorts, or a playlist link). TuneWave will load YouTube’s official player below. Playback, ads and background play follow YouTube’s rules.</p>
           </div>
           <p class="official-player-note" id="official-player-status" role="status" aria-live="polite">Paste a valid YouTube video or playlist URL. The song plays through YouTube’s official embedded player, so availability and ads are controlled by YouTube.</p>
+          <a id="official-player-open-link" class="official-player-open-link" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" hidden>Open this song in YouTube ↗</a>
+          <p class="official-player-background-note" id="official-player-background-note"><strong>Background playback:</strong> Embedded YouTube playback may stop when you minimize TuneWave or turn off your screen. Use the button above to open the song in YouTube; background playback depends on YouTube and your account. Tracks in TuneWave’s own player can continue in compatible browsers.</p>
 
           <div id="official-player-stage" class="official-player-stage" hidden>
             <iframe id="official-player-frame" title="Official embedded music player" width="100%" height="352" frameborder="0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen hidden></iframe>
