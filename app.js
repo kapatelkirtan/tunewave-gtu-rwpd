@@ -461,6 +461,7 @@
   }
 
   function stopOfficialEmbed() {
+    if (window.TuneWaveYouTubePiP && typeof window.TuneWaveYouTubePiP.close === 'function') window.TuneWaveYouTubePiP.close();
     const frame = $('#official-player-frame');
     const stage = $('#official-player-stage');
     const fullTrackHelp = $('#official-player-fulltrack-help');
@@ -558,7 +559,7 @@
         frame.src = embedUrl;
         frame.hidden = false;
         stage.hidden = false;
-        if (status) status.textContent = 'Loading YouTube’s official player. For background playback, use the Open in YouTube link below; TuneWave cannot override YouTube’s playback rules.';
+        if (status) status.textContent = 'YouTube’s official player is loading. Start the song, then try the PiP button above the video. On Android, the button opens fullscreen so you can try system PiP; support depends on your browser, video and YouTube rules.';
       }
     });
   }
