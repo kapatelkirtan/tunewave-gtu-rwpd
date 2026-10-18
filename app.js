@@ -516,11 +516,11 @@
       let frameTitle = '';
 
       if (safeVideo) {
-        embedUrl = 'https://www.youtube-nocookie.com/embed/' + videoId + '?playsinline=1&rel=0';
+        embedUrl = 'https://www.youtube-nocookie.com/embed/' + videoId + '?autoplay=1&playsinline=1&rel=0';
         if (safeList) embedUrl += '&list=' + encodeURIComponent(listId);
         frameTitle = 'Official YouTube music player';
       } else if (safeList) {
-        embedUrl = 'https://www.youtube-nocookie.com/embed/videoseries?list=' + encodeURIComponent(listId) + '&playsinline=1&rel=0';
+        embedUrl = 'https://www.youtube-nocookie.com/embed/videoseries?list=' + encodeURIComponent(listId) + '&autoplay=1&playsinline=1&rel=0';
         frameTitle = 'Official YouTube playlist player';
       } else {
         if (status) status.textContent = 'That YouTube link does not contain a supported video ID or playlist ID.';
@@ -673,7 +673,7 @@
         ' Open-source audio results include licence/source links; check the original rights page before reuse.' + failureSummary;
       $('#results-kicker').textContent = 'YOUR SEARCH, MULTIPLE SOURCES';
       renderQueue(); saveState(true);
-      return;
+      return tracks;
     }
 
     const successfulProviderCount = providerRuns.length - failedProviders.length;
@@ -694,6 +694,7 @@
       $('#search-hint').textContent = 'All provider searches failed. Details: ' + failureSummary;
       $('#retry-search')?.addEventListener('click', () => searchCatalog(q));
     }
+    return [];
   }
 
   function updateNavigation() {
@@ -969,6 +970,86 @@
     try { recognition.start(); } catch (_) { state.isVoiceSearching = false; $('#voice-button').classList.remove('listening'); toast('Voice search could not start. Please try again.'); }
   }
 
+  async function convertRecordingToWav(blob) {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) throw new Error('This browser cannot prepare the microphone sample. Try Chrome or Edge.');
+    let context;
+    try {
+      context = new AudioContextCtor();
+      const decoded = await context.decodeAudioData(await blob.arrayBuffer());
+      const targetRate = 16000;
+      const sampleCount = Math.max(1, Math.ceil(decoded.duration * targetRate));
+      const buffer = new ArrayBuffer(44 + sampleCount * 2);
+      const view = new DataView(buffer);
+      const writeText = (offset, value) => {
+        for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i));
+      };
+      writeText(0, 'RIFF');
+      view.setUint32(4, 36 + sampleCount * 2, true);
+      writeText(8, 'WAVE');
+      writeText(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, targetRate, true);
+      view.setUint32(28, targetRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeText(36, 'data');
+      view.setUint32(40, sampleCount * 2, true);
+      const channels = [];
+      for (let ch = 0; ch < decoded.numberOfChannels; ch++) channels.push(decoded.getChannelData(ch));
+      const ratio = decoded.sampleRate / targetRate;
+      for (let i = 0; i < sampleCount; i++) {
+        const position = i * ratio;
+        const lo = Math.min(decoded.length - 1, Math.floor(position));
+        const hi = Math.min(decoded.length - 1, lo + 1);
+        const mix = position - lo;
+        let sample = 0;
+        for (const channel of channels) sample += channel[lo] + ((channel[hi] - channel[lo]) * mix);
+        sample /= channels.length;
+        sample = Math.max(-1, Math.min(1, sample));
+        view.setInt16(44 + i * 2, sample < 0 ? sample * 32768 : sample * 32767, true);
+      }
+      return new Blob([buffer], { type: 'audio/wav' });
+    } catch (error) {
+      throw new Error('Could not prepare the recorded audio for recognition. Try again in Chrome or Edge.');
+    } finally {
+      if (context && context.state !== 'closed') {
+        try { await context.close(); } catch (_) {}
+      }
+    }
+  }
+
+  function chooseRecognizedCatalogTrack(tracks, title, artist) {
+    const clean = value => String(value || '').toLowerCase().normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+    const targetTitle = clean(title);
+    const targetArtist = clean(artist);
+    const significant = value => clean(value).split(/\s+/).filter(word => word.length > 2 && !['the','and','song','official','audio','video','lyrics','remix'].includes(word));
+    const titleWords = new Set(significant(title));
+    let best = null;
+    let bestScore = 0;
+    for (const track of tracks || []) {
+      if (!track || String(track.source || '').toLowerCase() === 'radio browser') continue;
+      const candidateTitle = clean(track.title);
+      const candidateArtist = clean(track.artist);
+      let score = 0;
+      if (targetTitle && candidateTitle === targetTitle) score += 12;
+      else if (targetTitle && (candidateTitle.includes(targetTitle) || targetTitle.includes(candidateTitle)) && Math.min(targetTitle.length, candidateTitle.length) >= 5) score += 7;
+      const candidateWords = new Set(significant(track.title));
+      const overlap = [...titleWords].filter(word => candidateWords.has(word)).length;
+      if (titleWords.size) score += 6 * overlap / titleWords.size;
+      if (targetArtist && candidateArtist) {
+        if (candidateArtist === targetArtist) score += 4;
+        else if (candidateArtist.includes(targetArtist) || targetArtist.includes(candidateArtist)) score += 2.5;
+      }
+      if (track.streamUrl || ['audius', 'jamendo', 'internet archive'].includes(String(track.source || '').toLowerCase())) score += 0.5;
+      if (score > bestScore) { best = track; bestScore = score; }
+    }
+    return bestScore >= 6 ? best : null;
+  }
+
   async function identifySongByListening() {
     const button = $('#identify-button');
     const status = $('#identify-status');
@@ -981,8 +1062,11 @@
       status.textContent = 'This browser cannot record audio for identification.';
       return;
     }
-    const apiBase = String(window.TUNEWAVE_API_BASE || '').trim().replace(/\/$/, '');
-    if (!apiBase) {
+    const apiBases = [...new Set([
+      window.TUNEWAVE_API_BASE,
+      window.TUNEWAVE_JAMENDO_API_BASE
+    ].map(value => String(value || '').trim().replace(/\/$/, '')).filter(Boolean))];
+    if (!apiBases.length) {
       toast('TuneWave backend is not configured for song identification.');
       status.textContent = 'Recognition backend is not configured.';
       return;
@@ -1020,42 +1104,104 @@
     };
     recorder.addEventListener('stop', async () => {
       cleanup();
-      const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
-      if (blob.size < 4000) { status.textContent = 'The sample was too short. Try again with the song playing louder.'; toast(status.textContent); return; }
-      status.textContent = 'Identifying the song…';
-      setLoading('Identifying the music you heard…');
+      const recordedBlob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+      if (recordedBlob.size < 4000) {
+        status.textContent = 'The sample was too short. Try again with the song playing louder.';
+        toast(status.textContent);
+        return;
+      }
+      status.textContent = 'Preparing the audio sample…';
+      setLoading('Preparing your 10-second audio sample…');
       $('#results-kicker').textContent = 'MUSIC RECOGNITION';
       $('#results-title').textContent = 'Identifying your song';
-      const form = new FormData();
-      const ext = String(blob.type).includes('mp4') ? 'm4a' : 'webm';
-      form.append('file', blob, `tunewave-sample.${ext}`);
-      form.append('duration', '10');
       try {
-        const response = await fetch(`${apiBase}/api/audd/recognize`, { method: 'POST', body: form, headers: { 'Accept': 'application/json' } });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          const serverMessage = payload?.error || payload?.message || '';
-          if (response.status === 404) throw new Error('Your backend does not have the song-recognition route yet. Recognition needs a backend route and a valid AudD token.');
-          if (response.status === 401 || response.status === 403) throw new Error('The recognition service rejected its credentials. A valid AudD token is required.');
-          throw new Error(serverMessage || `Recognition failed (${response.status}).`);
+        const wavBlob = await convertRecordingToWav(recordedBlob);
+        let payload = null;
+        let recognitionFailure = 'Song recognition service is not responding.';
+        for (const apiBase of apiBases) {
+          const form = new FormData();
+          form.append('file', wavBlob, 'tunewave-sample.wav');
+          form.append('duration', '10');
+          let response;
+          try {
+            response = await fetch(apiBase + '/api/audd/recognize', {
+              method: 'POST',
+              body: form,
+              headers: { 'Accept': 'application/json' }
+            });
+          } catch (_) {
+            recognitionFailure = 'Could not reach the recognition backend. Check that the music bridge has deployed.';
+            continue;
+          }
+          const body = await response.json().catch(() => ({}));
+          if (response.ok) { payload = body; break; }
+          recognitionFailure = String(body?.error || body?.message || ('Recognition failed (' + response.status + ').'));
+          // Try the second configured backend if the first one lacks this route or its token.
+          if (![404, 405, 501, 503].includes(response.status)) break;
         }
+        if (!payload) throw new Error(recognitionFailure);
         const result = payload?.result || payload?.song || payload?.data?.result || payload?.data || payload;
         const title = String(result?.title || result?.track?.title || '').trim();
         const artist = String(result?.artist || result?.track?.artist || '').trim();
         if (!title) {
           status.textContent = 'No song match found. Try a clearer 10-second sample with less background noise.';
-          resultsArea.innerHTML = `<div class="no-results"><strong>Couldn't identify that song</strong>Try again with the song playing clearly near your microphone, or type its title in the search box.</div>`;
+          resultsArea.innerHTML = '<div class="no-results"><strong>Couldn’t identify that song</strong>Try again with the song playing clearly near your microphone, or type its title in the search box.</div>';
           $('#result-count').textContent = '';
           return;
         }
-        searchInput.value = title;
-        status.textContent = `Recognized: ${title}${artist ? ` — ${artist}` : ''}. Searching by song title…`;
-        toast(`Recognized “${title}”. Finding playable results…`, 3500);
-        await searchCatalog(title);
+
+        const recognizedQuery = [title, artist].filter(Boolean).join(' ');
+        searchInput.value = recognizedQuery;
+        status.textContent = 'Recognized: ' + title + (artist ? ' — ' + artist : '') + '. Searching all nine connected catalogues and YouTube…';
+        toast('Recognized “' + title + '”. Searching connected catalogues and YouTube…', 3500);
+
+        const bridgeBase = String(window.TUNEWAVE_JAMENDO_API_BASE || '').trim().replace(/\/$/, '');
+        const youtubePromise = bridgeBase
+          ? getBridgeJson(bridgeBase + '/api/youtube/search?q=' + encodeURIComponent(recognizedQuery), 14000)
+              .catch(error => ({ error: String(error?.message || 'YouTube search is unavailable.') }))
+          : Promise.resolve({ error: 'YouTube search backend is not configured.' });
+        const catalogPromise = searchCatalog(recognizedQuery).catch(error => {
+          return [];
+        });
+        const outcomes = await Promise.all([catalogPromise, youtubePromise]);
+        const catalogTracks = outcomes[0] || [];
+        const youtubePayload = outcomes[1] || {};
+        const video = Array.isArray(youtubePayload.results) ? youtubePayload.results[0] : null;
+        let audioStarted = false;
+
+        if (video && /^[A-Za-z0-9_-]{11}$/.test(String(video.videoId || ''))) {
+          const playerForm = $('#official-player-form');
+          const playerUrl = $('#official-player-url');
+          if (playerForm && playerUrl) {
+            playerUrl.value = String(video.url || ('https://www.youtube.com/watch?v=' + video.videoId));
+            playerForm.requestSubmit();
+            $('#official-embed-title').textContent = 'YouTube match · ' + title;
+            status.textContent = 'Recognized ' + title + (artist ? ' — ' + artist : '') + '. YouTube match loaded in the official player below. If it does not start automatically, press Play in the video.';
+            const section = document.querySelector('.official-embed-panel');
+            if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        } else {
+          const bestTrack = chooseRecognizedCatalogTrack(catalogTracks, title, artist);
+          if (bestTrack) {
+            const queueIndex = state.queue.findIndex(track => trackId(track) === trackId(bestTrack));
+            playTrack(bestTrack, queueIndex);
+            audioStarted = true;
+          }
+          const issue = String(youtubePayload.error || 'No embeddable YouTube result was returned.');
+          status.textContent = 'Recognized ' + title + (artist ? ' — ' + artist : '') +
+            (audioStarted ? '. Playing a matching result from ' + bestTrack.source + '.' : '. Catalogues searched; no confident playable catalogue match was found.') +
+            ' YouTube: ' + issue;
+        }
+
+        if (video) {
+          const section = document.querySelector('.official-embed-panel');
+          if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       } catch (error) {
         const message = error?.message || 'Song identification is unavailable right now.';
         status.textContent = message;
-        resultsArea.innerHTML = `<div class="error-panel"><strong>Song identification unavailable</strong>${escapeHTML(message)}<br>Type the song title to search normally, or retry listening after the recognition backend is configured.</div>`;
+        resultsArea.innerHTML = '<div class="error-panel"><strong>Song identification unavailable</strong>' + escapeHTML(message) +
+          '<br>Check the AudD token on the Render music bridge, or type the song title to search normally.</div>';
         $('#result-count').textContent = '';
       }
     }, { once: true });
