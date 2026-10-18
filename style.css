@@ -387,3 +387,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   .official-player-form { grid-template-columns:minmax(0,1fr); }
   .official-player-form input,.official-player-form .search-submit { width:100%; height:42px; }
 }
+
+
+/* Prominent PWA install call-to-action and browser-specific install fallback. */
+.download-app-cta {
+  border-color: rgba(217,255,57,.32);
+  background: linear-gradient(120deg,rgba(217,255,57,.12),rgba(80,232,255,.12));
+  color: #eaffbd;
+  box-shadow: inset 0 1px rgba(255,255,255,.05);
+}
+.download-app-cta span { color: var(--acid); font-size: 12px; }
+.install-dialog .install-guidance-list {
+  display: grid;
+  gap: 9px;
+  margin: 16px 0;
+  padding-left: 24px;
+  color: #c0cbd4;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.install-dialog .install-guidance-list li { padding-left: 3px; }
+.install-dialog .install-guidance-list li::marker { color: var(--acid); font-weight: 800; }
+.install-dialog-note { margin-top: 16px; }
+@media (max-width: 620px) {
+  .download-app-cta { min-height: 30px; }
+  .install-dialog .install-guidance-list { font-size: 10px; gap: 8px; }
+}
