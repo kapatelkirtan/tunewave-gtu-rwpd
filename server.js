@@ -2,9 +2,12 @@
 'use strict';
 
 const express = require('express');
+const multer = require('multer');
 const app = express();
 const PORT = Number(process.env.PORT || 10000);
 const JAMENDO_CLIENT_ID = String(process.env.JAMENDO_CLIENT_ID || '').trim();
+const AUDD_API_TOKEN = String(process.env.AUDD_API_TOKEN || '').trim();
+const YOUTUBE_API_KEY = String(process.env.YOUTUBE_API_KEY || '').trim();
 const OPENVERSE_CLIENT_ID = String(process.env.OPENVERSE_CLIENT_ID || '').trim();
 const OPENVERSE_CLIENT_SECRET = String(process.env.OPENVERSE_CLIENT_SECRET || '').trim();
 const OPEN_AUDIO_BASE = 'https://open.audio';
@@ -162,6 +165,8 @@ function sourceHealth() {
     service: 'tunewave-jamendo-bridge',
     configured: jamendoConfigured(),
     jamendoEnabled: jamendoConfigured(),
+    songRecognitionConfigured: Boolean(AUDD_API_TOKEN),
+    youtubeSearchConfigured: Boolean(YOUTUBE_API_KEY),
     audiusEnabled: true,
     freeToUseEnabled: true,
     internetArchiveEnabled: true,
@@ -575,6 +580,88 @@ app.get('/api/radio/search', handleRoute(async req => {
     }).filter(Boolean);
     return { query: q, total: results.length, results };
   });
+}));
+
+
+const recognitionUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024, files: 1, fields: 5 }
+});
+
+app.post('/api/audd/recognize',
+  (req, res, next) => recognitionUpload.single('file')(req, res, error => {
+    if (error) {
+      const status = error.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+      return res.status(status).json({ error: error.code === 'LIMIT_FILE_SIZE'
+        ? 'The recording is too large. Please record a shorter sample.'
+        : 'The audio recording could not be uploaded for recognition.' });
+    }
+    next();
+  }),
+  handleRoute(async req => {
+    if (!AUDD_API_TOKEN) {
+      throw publicError('Song identification is not configured yet. Add AUDD_API_TOKEN to the music bridge service environment on Render.', 503);
+    }
+    if (!req.file || !req.file.buffer || req.file.buffer.length < 4000) {
+      throw publicError('The recorded sample is missing or too short. Try again with music playing clearly.', 400);
+    }
+    const fileType = String(req.file.mimetype || '').toLowerCase();
+    if (!fileType.startsWith('audio/')) {
+      throw publicError('The upload is not an audio sample. Please try recording again.', 415);
+    }
+    const form = new FormData();
+    form.append('api_token', AUDD_API_TOKEN);
+    form.append('return', 'apple_music,spotify,deezer,musicbrainz');
+    const filename = String(req.file.originalname || '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 90) || 'tunewave-sample.wav';
+    form.append('file', new Blob([req.file.buffer], { type: fileType }), filename);
+    const payload = await fetchJson('https://api.audd.io/', {
+      method: 'POST',
+      body: form,
+      timeoutMs: 18000
+    });
+    if (payload && payload.status && payload.status !== 'success') {
+      const message = String(payload.error?.error_message || payload.error?.message || 'The recognition service could not identify this sample.');
+      const error = publicError(message, 502);
+      error.code = payload.error?.error_code;
+      throw error;
+    }
+    return { status: 'success', result: payload?.result || null };
+  })
+);
+
+app.get('/api/youtube/search', handleRoute(async req => {
+  const query = cleanQuery(req.query.q);
+  if (!YOUTUBE_API_KEY) {
+    throw publicError('YouTube in-page search is not configured yet. Add YOUTUBE_API_KEY to the music bridge service environment on Render.', 503);
+  }
+  return cached('youtube-search:' + query.toLowerCase(), async () => {
+    const url = new URL('https://www.googleapis.com/youtube/v3/search');
+    url.searchParams.set('part', 'snippet');
+    url.searchParams.set('type', 'video');
+    url.searchParams.set('q', query);
+    url.searchParams.set('maxResults', '5');
+    url.searchParams.set('videoEmbeddable', 'true');
+    url.searchParams.set('videoSyndicated', 'true');
+    url.searchParams.set('regionCode', 'IN');
+    url.searchParams.set('safeSearch', 'moderate');
+    url.searchParams.set('key', YOUTUBE_API_KEY);
+    const payload = await fetchJson(url.href, { timeoutMs: 11000 });
+    const results = (Array.isArray(payload.items) ? payload.items : []).map(item => {
+      const videoId = String(item?.id?.videoId || '').trim();
+      const snippet = item?.snippet || {};
+      if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return null;
+      const thumbnail = snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || '';
+      return {
+        videoId,
+        title: String(snippet.title || 'YouTube video').slice(0, 240),
+        artist: String(snippet.channelTitle || 'YouTube channel').slice(0, 160),
+        thumbnail: httpsUrl(thumbnail),
+        url: 'https://www.youtube.com/watch?v=' + videoId,
+        embedUrl: 'https://www.youtube-nocookie.com/embed/' + videoId
+      };
+    }).filter(Boolean);
+    return { query, total: results.length, results };
+  }, 120000);
 }));
 
 app.listen(PORT, '0.0.0.0', () => {
