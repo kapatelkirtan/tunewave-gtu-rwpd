@@ -1101,15 +1101,86 @@
     if (volumeInput && volumeValue) volumeValue.textContent = `${Math.round(Number(volumeInput.value) * 100)}%`;
     $('#audio-settings-dialog').showModal();
   });
-  $('#install-button').addEventListener('click', async () => {
-    if (state.installPrompt) {
-      state.installPrompt.prompt();
-      try { await state.installPrompt.userChoice; } catch (_) {}
-      state.installPrompt = null;
+  function renderInstallGuide() {
+    const dialog = $('#install-dialog');
+    const intro = $('#install-dialog-intro');
+    const list = $('#install-guidance-list');
+    const userAgent = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/i.test(userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(userAgent);
+    const isMacSafari = /Macintosh|Mac OS X/i.test(userAgent) &&
+      /Safari/i.test(userAgent) && !/Chrome|Chromium|Edg|OPR/i.test(userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      navigator.standalone === true;
+
+    let steps;
+    if (isStandalone) {
+      intro.textContent = 'TuneWave appears to be running as an installed app on this device.';
+      steps = [
+        'Return to your home screen or app list to find TuneWave.',
+        'Open TuneWave from its app icon for the standalone experience.'
+      ];
+    } else if (isIOS) {
+      intro.textContent = 'On iPhone or iPad, open TuneWave in Safari to add it to your Home Screen.';
+      steps = [
+        'Open this website in Safari (not inside WhatsApp, Instagram, or another in-app browser).',
+        'Tap Share — the square with the upward arrow.',
+        'Choose “Add to Home Screen”, then tap “Add”.'
+      ];
+    } else if (isAndroid) {
+      intro.textContent = 'This browser has not provided a one-tap install prompt. You can still check its app or Home Screen options.';
+      steps = [
+        'Open the browser menu (⋮) and look for “Install app” or “Add to Home screen”.',
+        'Choose “Install” or “Add” and confirm when asked.',
+        'If that option is missing, open the same HTTPS website in Chrome or Edge and tap “Download App” again.'
+      ];
+    } else if (isMacSafari) {
+      intro.textContent = 'Safari may not show a website install prompt on this device.';
+      steps = [
+        'On supported macOS versions, choose File → Add to Dock in Safari.',
+        'Alternatively, open TuneWave in Chrome or Edge and use the browser’s “Install this site as an app” option if available.'
+      ];
     } else {
-      toast('To install: use your browser menu and choose “Install app” or “Add to Home screen”.', 4500);
+      intro.textContent = 'This browser did not offer its one-tap install prompt. Try the browser’s own install option.';
+      steps = [
+        'In Chrome or Edge, open the browser menu and look for “Install TuneWave” or “Install this site as an app”. You may also see an install icon near the address bar.',
+        'On Android, look for “Install app” or “Add to Home screen” in the browser menu. On iPhone or iPad, open TuneWave in Safari and use Share → Add to Home Screen.',
+        'If your browser offers no installation option, it cannot install this website as an app. Try a browser with PWA install support and make sure TuneWave is open over HTTPS.'
+      ];
     }
-  });
+
+    list.replaceChildren(...steps.map(step => {
+      const item = document.createElement('li');
+      item.textContent = step;
+      return item;
+    }));
+    if (!dialog.open) dialog.showModal();
+  }
+
+  async function requestTuneWaveInstall() {
+    if (!state.installPrompt) {
+      renderInstallGuide();
+      return;
+    }
+
+    const installEvent = state.installPrompt;
+    state.installPrompt = null;
+    try {
+      installEvent.prompt();
+      const choice = await installEvent.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        toast('TuneWave installation was accepted by your browser.', 3500);
+      } else {
+        toast('Installation was cancelled. You can try the Download App button again.', 4000);
+      }
+    } catch (_) {
+      renderInstallGuide();
+    }
+  }
+
+  $('#install-button').addEventListener('click', requestTuneWaveInstall);
+  $('#download-app-button').addEventListener('click', requestTuneWaveInstall);
   $('#volume-input').addEventListener('input', event => {
     state.volume = Math.min(1, Math.max(0, Number(event.target.value)));
     audio.volume = state.volume;
@@ -1181,7 +1252,7 @@
       state.position = 0; saveState(true);
     }
   });
-  window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); state.installPrompt = event; $('#install-button').title = 'Install TuneWave'; });
+  window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); state.installPrompt = event; $('#install-button').title = 'Download and install TuneWave'; $('#download-app-button').title = 'Download and install TuneWave'; });
   window.addEventListener('appinstalled', () => toast('TuneWave was installed. Enjoy listening!'));
   window.addEventListener('pagehide', () => saveState(true));
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveState(true); });
