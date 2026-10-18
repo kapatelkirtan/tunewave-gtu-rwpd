@@ -2,6 +2,16 @@
 
 This archive is **root-ready**: `index.html`, `manifest.webmanifest`, `service-worker.js`, `assets/`, `robots.txt`, and `sitemap.xml` are directly at the archive root. Do not deploy this archive with an extra enclosing folder.
 
+## Android APK with lock-screen playback
+
+A native Android app project now lives in `android/`. It loads the same TuneWave site and routes direct HTTPS audio streams from the connected catalogues through Android Media3's background playback service, which provides Android media notification/lock-screen controls.
+
+- [Download the latest TuneWave APK release](https://github.com/kapatelkirtan/tunewave-gtu-rwpd/releases/latest)
+- [Android project and build notes](android/README.md)
+- GitHub Actions builds a debug-signed test APK when the Android project or website bridge changes.
+
+Pasted YouTube / YouTube Music links continue to use YouTube's official embedded player. Their background playback is controlled by YouTube and is not guaranteed by this app; TuneWave does not extract or re-host YouTube audio.
+
 ## Deploy to the existing Render Static Site
 
 1. Extract all files from this ZIP.
