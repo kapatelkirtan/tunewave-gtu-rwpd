@@ -23,6 +23,8 @@
   let nativePlaying = false;
   let nativePosition = 0;
   let nativeDuration = 0;
+  let nativePlaybackState = 1;
+  let nativeStartTimeout = null;
   const playbackPaused = () => nativePlayback ? !nativePlaying : audio.paused;
   const playbackCurrentTime = () => nativePlayback ? nativePosition : audio.currentTime;
   const playbackDuration = () => nativePlayback && nativeDuration > 0 ? nativeDuration : audio.duration;
@@ -54,6 +56,11 @@
       nativePosition = Math.max(0, Number(positionMs) || 0) / 1000;
       nativeDuration = Math.max(0, Number(durationMs) || 0) / 1000;
       nativePlaying = Boolean(isPlaying);
+      nativePlaybackState = Number(playbackState) || 1;
+      if (nativePlaying && nativeStartTimeout) {
+        clearTimeout(nativeStartTimeout);
+        nativeStartTimeout = null;
+      }
       state.position = nativePosition;
       // ExoPlayer.STATE_BUFFERING is 2. Wait for Android to confirm actual playback.
       state.isResolvingPlayback = Number(playbackState) === 2;
@@ -62,6 +69,8 @@
       saveState(false);
     };
     window.onTuneWaveNativeError = (errorCode, errorMessage) => {
+      if (nativeStartTimeout) clearTimeout(nativeStartTimeout);
+      nativeStartTimeout = null;
       nativePlaying = false;
       state.isResolvingPlayback = false;
       updateCurrentTrackUI();
@@ -962,6 +971,15 @@
         nativeTrackLoaded = true;
         nativePlaying = false;
         state.isResolvingPlayback = true;
+        if (nativeStartTimeout) clearTimeout(nativeStartTimeout);
+        nativeStartTimeout = setTimeout(() => {
+          nativeStartTimeout = null;
+          if (nativePlaying || !state.current || trackId(state.current) !== requestedId) return;
+          state.isResolvingPlayback = false;
+          updateCurrentTrackUI();
+          $('#now-status').textContent = 'ANDROID PLAYBACK DID NOT START';
+          toast('Android player did not start within 12 seconds (state ' + nativePlaybackState + '). If no TuneWave media controls appear, send this status to support.', 8500);
+        }, 12000);
         updateCurrentTrackUI();
         updateProgress();
         saveState(true);
