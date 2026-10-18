@@ -1209,11 +1209,6 @@
     if (volumeInput && volumeValue) volumeValue.textContent = `${Math.round(Number(volumeInput.value) * 100)}%`;
     $('#audio-settings-dialog').showModal();
   });
-  // The top-right app button downloads the native Android APK from the latest release.
-  // Keep the versioned "latest/download" URL so future releases do not require a website code change.
-  $('#install-button').addEventListener('click', () => {
-    window.location.href = 'https://github.com/kapatelkirtan/tunewave-gtu-rwpd/releases/latest/download/app-debug.apk';
-  });
   $('#volume-input').addEventListener('input', event => {
     state.volume = Math.min(1, Math.max(0, Number(event.target.value)));
     audio.volume = nativePlayback ? 0 : state.volume;
