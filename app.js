@@ -512,16 +512,68 @@
     return officialYouTubeApiPromise;
   }
 
+  function notifyNativePlaybackState(playing, title, artist) {
+    try {
+      const bridge = window.TuneWaveAndroidBridge;
+      if (bridge && typeof bridge.onPlaybackStateChanged === 'function') {
+        bridge.onPlaybackStateChanged(
+          Boolean(playing),
+          String(title || state.current?.title || 'TuneWave'),
+          String(artist || state.current?.artist || 'Music')
+        );
+      }
+    } catch (_) { /* The Android bridge is only present inside the native app. */ }
+  }
+
+  // Native Android Picture-in-Picture controls call these methods through WebView.
+  window.TuneWaveAndroidControls = {
+    play() {
+      if (officialYouTubeActive) {
+        if (officialYouTubePlayer && typeof officialYouTubePlayer.playVideo === 'function') officialYouTubePlayer.playVideo();
+        return;
+      }
+      if (state.current && (audio.paused || !audio.src || audio.error)) playTrack(state.current, state.queueIndex, state.position);
+      else if (!state.current && state.recent[0]) playTrack(state.recent[0], -1, state.position);
+    },
+    pause() {
+      if (officialYouTubeActive) {
+        if (officialYouTubePlayer && typeof officialYouTubePlayer.pauseVideo === 'function') officialYouTubePlayer.pauseVideo();
+        return;
+      }
+      audio.pause();
+    },
+    toggle() {
+      if (officialYouTubeActive) {
+        if (officialYouTubePlaying) this.pause();
+        else this.play();
+      } else if (audio.paused) this.play();
+      else this.pause();
+    },
+    next() {
+      if (officialYouTubeActive) {
+        if (officialYouTubePlayer && typeof officialYouTubePlayer.nextVideo === 'function') officialYouTubePlayer.nextVideo();
+      } else playRelative(1);
+    },
+    previous() {
+      if (officialYouTubeActive) {
+        if (officialYouTubePlayer && typeof officialYouTubePlayer.previousVideo === 'function') officialYouTubePlayer.previousVideo();
+      } else playRelative(-1);
+    }
+  };
+
   function handleOfficialYouTubeStateChange(event) {
     if (!officialYouTubeActive || !event || !event.target) return;
     if (officialYouTubePlayer && event.target !== officialYouTubePlayer) return;
 
     const playerState = Number(event.data);
     officialYouTubePlaying = playerState === 1;
+    let nativeArtist = 'YouTube';
     try {
       const data = event.target.getVideoData ? event.target.getVideoData() : {};
       if (data && data.title) officialYouTubeRequestedTitle = String(data.title);
-    } catch (_) { /* The title is optional. */ }
+      if (data && data.author) nativeArtist = String(data.author);
+    } catch (_) { /* The title and artist are optional. */ }
+    notifyNativePlaybackState(officialYouTubePlaying, officialYouTubeRequestedTitle, nativeArtist);
 
     if (playerState === 1) {
       updateOfficialYouTubeMediaSession('playing');
@@ -1484,13 +1536,20 @@
     state.isResolvingPlayback = false;
     stopOfficialEmbed();
     updateCurrentTrackUI();
+    notifyNativePlaybackState(true, state.current?.title, state.current?.artist);
     saveState(true);
   });
   audio.addEventListener('playing', () => {
     state.isResolvingPlayback = false;
     updateCurrentTrackUI();
+    notifyNativePlaybackState(true, state.current?.title, state.current?.artist);
   });
-  audio.addEventListener('pause', () => { state.position = audio.currentTime || state.position; updateCurrentTrackUI(); saveState(true); });
+  audio.addEventListener('pause', () => {
+    state.position = audio.currentTime || state.position;
+    updateCurrentTrackUI();
+    notifyNativePlaybackState(false, state.current?.title, state.current?.artist);
+    saveState(true);
+  });
   audio.addEventListener('timeupdate', () => { updateProgress(); updateMediaSessionPosition(); state.position = audio.currentTime || 0; saveState(false); });
   audio.addEventListener('loadedmetadata', () => { updateProgress(); updateMediaSessionPosition(); });
   audio.addEventListener('durationchange', () => { updateProgress(); updateMediaSessionPosition(); });
