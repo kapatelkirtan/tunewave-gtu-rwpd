@@ -6,9 +6,15 @@
   'use strict';
 
   const stage = document.getElementById('official-player-stage');
-  const frame = document.getElementById('official-player-frame');
+  let frame = document.getElementById('official-player-frame');
   const status = document.getElementById('official-player-status');
   if (!stage || !frame) return;
+  // YouTube's IFrame API can replace its iframe node during initialization.
+  // Refresh our reference so the PiP and fullscreen controls still target it.
+  window.addEventListener('tunewave:official-player-frame-updated', () => {
+    const updatedFrame = document.getElementById('official-player-frame');
+    if (updatedFrame) frame = updatedFrame;
+  });
 
   const isAndroid = /Android/i.test(navigator.userAgent || '');
   const canDocumentPiP = !isAndroid &&
