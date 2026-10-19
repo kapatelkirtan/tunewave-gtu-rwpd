@@ -41,15 +41,17 @@
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'official-player-pip-button';
-  button.textContent = canDocumentPiP ? '▣ Open mini-player (PiP)' : '▣ Open mini-player';
+  button.textContent = canDocumentPiP ? '▣ Open floating mini-player' : (isAndroid ? '▣ Try system PiP' : '▣ Open in-page mini-player');
   button.setAttribute('aria-label', 'Try Picture-in-Picture for the YouTube song pasted into TuneWave');
   stage.insertBefore(button, frame);
 
   const help = document.createElement('p');
   help.className = 'official-player-pip-help';
   help.textContent = canDocumentPiP
-    ? 'Opens a compact floating PiP window on supported desktop browsers.'
-    : 'Opens a compact floating mini-player on this TuneWave page. It will not stay over other apps; true Android PiP depends on browser and YouTube support.';
+    ? 'Click before minimizing Edge. The floating PiP window can stay above other desktop windows on supported browsers.'
+    : isAndroid
+      ? 'Tap to try fullscreen YouTube, then swipe Home to test your device’s system PiP. Edge for Android may not keep embedded videos floating over other apps.'
+      : 'This mini-player stays inside the TuneWave page. Browsers without system PiP cannot keep it visible over other apps.';
   stage.insertBefore(help, frame);
 
   let pipWindow = null;
@@ -291,8 +293,16 @@
     }
     button.disabled = true;
     try {
-      if (canDocumentPiP) await openDocumentPiP();
-      else openInlineMiniPlayer();
+      if (canDocumentPiP) {
+        await openDocumentPiP();
+      } else if (isAndroid) {
+        // The Android web platform does not expose Document Picture-in-Picture.
+        // Fullscreen is the best website-level attempt; the browser/OS decides
+        // whether leaving the fullscreen video can enter native PiP.
+        tryFullscreenPiP();
+      } else {
+        openInlineMiniPlayer();
+      }
     } catch (error) {
       if (error && error.name === 'NotAllowedError') {
         setStatus('Your browser blocked PiP. Start the YouTube song first, then tap this button again; browser and YouTube eligibility rules still apply.');
