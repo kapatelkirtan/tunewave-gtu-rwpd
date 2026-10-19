@@ -543,6 +543,12 @@
           events: {
             onReady: event => {
               officialYouTubePlayer = event.target || officialYouTubePlayer;
+              const readyFrame = event.target && typeof event.target.getIframe === 'function'
+                ? event.target.getIframe() : document.getElementById('official-player-frame');
+              if (readyFrame) {
+                readyFrame.id = 'official-player-frame';
+                try { window.dispatchEvent(new Event('tunewave:official-player-frame-updated')); } catch (_) {}
+              }
               if (!officialYouTubeActive) return;
               try { event.target.playVideo(); } catch (_) { /* Native YouTube controls remain available. */ }
               updateOfficialYouTubeMediaSession('paused');
