@@ -8,6 +8,14 @@
   const JAMENDO_BRIDGE_BASE = String(window.TUNEWAVE_JAMENDO_API_BASE || '').trim().replace(/\/+$/, '');
   const JAMENDO_BRIDGE_CONFIGURED = /^https?:\/\//i.test(JAMENDO_BRIDGE_BASE) && !/YOUR[-_ ]?JAMENDO|example\.com/i.test(JAMENDO_BRIDGE_BASE);
   const STORAGE_KEY = 'tunewave-player-v4';
+  // Track the official YouTube iframe as a browser media session too, so Edge
+  // can expose its play/pause/seek controls where the provider/browser supports it.
+  let officialYouTubePlayer = null;
+  let officialYouTubeApiPromise = null;
+  let officialYouTubeSessionVersion = 0;
+  let officialYouTubeActive = false;
+  let officialYouTubePlaying = false;
+  let officialYouTubeRequestedTitle = 'YouTube music';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -460,37 +468,152 @@
     if (playerCaption) playerCaption.textContent = 'Find “' + q + '” on YouTube or YouTube Music, copy the song or playlist link, and paste it above to play it in TuneWave.';
   }
 
+  function loadYouTubeIframeAPI() {
+    if (window.YT && typeof window.YT.Player === 'function') return Promise.resolve(window.YT);
+    if (officialYouTubeApiPromise) return officialYouTubeApiPromise;
+
+    officialYouTubeApiPromise = new Promise((resolve, reject) => {
+      let settled = false;
+      let timeoutHandle = null;
+      const finish = (error, api) => {
+        if (settled) return;
+        settled = true;
+        if (timeoutHandle !== null) window.clearTimeout(timeoutHandle);
+        if (error) reject(error);
+        else resolve(api);
+      };
+      const previousReady = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = function () {
+        if (typeof previousReady === 'function') {
+          try { previousReady(); } catch (_) { /* Do not block TuneWave's handler. */ }
+        }
+        if (window.YT && typeof window.YT.Player === 'function') finish(null, window.YT);
+        else finish(new Error('YouTube player API did not become ready.'));
+      };
+      timeoutHandle = window.setTimeout(() => finish(new Error('YouTube player API timed out.')), 15000);
+
+      let script = document.querySelector('script[data-tunewave-youtube-api]');
+      const onError = () => finish(new Error('YouTube player API could not be loaded.'));
+      if (!script) {
+        script = document.createElement('script');
+        script.src = 'https://www.youtube.com/iframe_api';
+        script.async = true;
+        script.dataset.tunewaveYoutubeApi = 'true';
+        script.addEventListener('error', onError, { once: true });
+        document.head.appendChild(script);
+      } else {
+        script.addEventListener('error', onError, { once: true });
+      }
+    }).catch(error => {
+      officialYouTubeApiPromise = null;
+      throw error;
+    });
+
+    return officialYouTubeApiPromise;
+  }
+
+  function handleOfficialYouTubeStateChange(event) {
+    if (!officialYouTubeActive || !event || !event.target) return;
+    if (officialYouTubePlayer && event.target !== officialYouTubePlayer) return;
+
+    const playerState = Number(event.data);
+    officialYouTubePlaying = playerState === 1;
+    try {
+      const data = event.target.getVideoData ? event.target.getVideoData() : {};
+      if (data && data.title) officialYouTubeRequestedTitle = String(data.title);
+    } catch (_) { /* The title is optional. */ }
+
+    if (playerState === 1) {
+      updateOfficialYouTubeMediaSession('playing');
+      const status = $('#official-player-status');
+      if (status) status.textContent = 'YouTube is playing. Edge lock-screen controls are connected where supported; continued playback after screen lock is still controlled by Edge and YouTube.';
+    } else if (playerState === 2 || playerState === 5) {
+      updateOfficialYouTubeMediaSession('paused');
+    } else if (playerState === 0) {
+      updateOfficialYouTubeMediaSession('none');
+    }
+  }
+
+  function attachOfficialYouTubePlayer(frame, sessionVersion) {
+    loadYouTubeIframeAPI().then(api => {
+      if (sessionVersion !== officialYouTubeSessionVersion || !officialYouTubeActive ||
+          !frame || !frame.isConnected || officialYouTubePlayer) return;
+      try {
+        officialYouTubePlayer = new api.Player(frame, {
+          events: {
+            onReady: event => {
+              officialYouTubePlayer = event.target || officialYouTubePlayer;
+              if (!officialYouTubeActive) return;
+              try { event.target.playVideo(); } catch (_) { /* Native YouTube controls remain available. */ }
+              updateOfficialYouTubeMediaSession('paused');
+            },
+            onStateChange: handleOfficialYouTubeStateChange,
+            onError: () => {
+              if (sessionVersion !== officialYouTubeSessionVersion) return;
+              const status = $('#official-player-status');
+              if (status) status.textContent = 'YouTube could not play this video in the embedded player. Check availability or open it in YouTube.';
+              officialYouTubePlaying = false;
+              updateOfficialYouTubeMediaSession('none');
+            }
+          }
+        });
+      } catch (_) {
+        const status = $('#official-player-status');
+        if (status) status.textContent = 'The official YouTube player is shown, but browser media controls could not connect. Use the player controls or open it in YouTube.';
+      }
+    }).catch(() => {
+      if (sessionVersion !== officialYouTubeSessionVersion) return;
+      const status = $('#official-player-status');
+      if (status) status.textContent = 'The official YouTube player is shown. TuneWave could not connect extra lock-screen controls; use the player controls or open it in YouTube.';
+    });
+  }
+
   function stopOfficialEmbed() {
+    officialYouTubeSessionVersion++;
+    officialYouTubeActive = false;
+    officialYouTubePlaying = false;
     if (window.TuneWaveYouTubePiP && typeof window.TuneWaveYouTubePiP.close === 'function') window.TuneWaveYouTubePiP.close();
     const frame = $('#official-player-frame');
     const stage = $('#official-player-stage');
     const fullTrackHelp = $('#official-player-fulltrack-help');
     const openLink = $('#official-player-open-link');
-    if (frame) {
+
+    // Keep an initialized IFrame API player reusable. Removing its src would
+    // detach its API connection and break the next pasted YouTube link.
+    if (officialYouTubePlayer && typeof officialYouTubePlayer.stopVideo === 'function') {
+      try { officialYouTubePlayer.stopVideo(); } catch (_) {}
+    } else if (frame) {
       frame.removeAttribute('src');
-      frame.hidden = true;
     }
+    if (frame) frame.hidden = true;
     if (stage) stage.hidden = true;
     if (fullTrackHelp) fullTrackHelp.hidden = true;
     if (openLink) openLink.hidden = true;
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.playbackState = 'none';
+        navigator.mediaSession.metadata = null;
+      } catch (_) { /* Media Session is optional. */ }
+    }
   }
 
   function setupOfficialPlayer() {
     const form = $('#official-player-form');
     if (!form) return;
     const urlInput = $('#official-player-url');
-    const frame = $('#official-player-frame');
+    let frame = $('#official-player-frame');
     const stage = $('#official-player-stage');
     const status = $('#official-player-status');
     const openLink = $('#official-player-open-link');
 
     form.addEventListener('submit', event => {
       event.preventDefault();
+      frame = $('#official-player-frame');
+      if (!frame || !stage) return;
       if (openLink) openLink.hidden = true;
       let raw = String(urlInput?.value || '').trim();
-      const pastedEmbed = /<iframe\b/i.test(raw);
-      const iframeSrc = raw.match(/<iframe\b[\s\S]*?\bsrc\s*=\s*["']([^"']+)["']/i)
-        || raw.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
+      const iframeSrc = raw.match(/<iframe\\b[\\s\\S]*?\\bsrc\\s*=\\s*["']([^"']+)["']/i)
+        || raw.match(/\\bsrc\\s*=\\s*["']([^"']+)["']/i);
       if (iframeSrc) raw = iframeSrc[1].replace(/&amp;/gi, '&').trim();
 
       let parsed;
@@ -502,7 +625,7 @@
         return;
       }
 
-      const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+      const host = parsed.hostname.toLowerCase().replace(/^www\\./, '');
       const allowedHosts = ['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be', 'youtube-nocookie.com'];
       if (!allowedHosts.includes(host)) {
         if (status) status.textContent = 'This player accepts YouTube and YouTube Music links only.';
@@ -538,7 +661,14 @@
         return;
       }
 
-      stopOfficialEmbed();
+      if (window.TuneWaveYouTubePiP && typeof window.TuneWaveYouTubePiP.close === 'function') {
+        window.TuneWaveYouTubePiP.close();
+      }
+      const sessionVersion = ++officialYouTubeSessionVersion;
+      officialYouTubeActive = true;
+      officialYouTubePlaying = false;
+      officialYouTubeRequestedTitle = safeVideo ? 'YouTube music' : 'YouTube playlist';
+
       state.playbackVersion++;
       state.isResolvingPlayback = false;
       audio.pause();
@@ -549,18 +679,32 @@
         openLink.hidden = false;
         openLink.textContent = safeVideo ? 'Open this song in YouTube ↗' : 'Open this playlist in YouTube ↗';
       }
-      if (frame && stage) {
-        frame.setAttribute('width', '100%');
-        frame.setAttribute('height', '352');
-        frame.setAttribute('frameborder', '0');
-        frame.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
-        frame.setAttribute('allowfullscreen', '');
-        frame.title = frameTitle;
+
+      frame.setAttribute('width', '100%');
+      frame.setAttribute('height', '352');
+      frame.setAttribute('frameborder', '0');
+      frame.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture; web-share');
+      frame.setAttribute('allowfullscreen', '');
+      frame.title = frameTitle;
+      frame.hidden = false;
+      stage.hidden = false;
+
+      if (officialYouTubePlayer) {
+        try {
+          if (safeVideo) officialYouTubePlayer.loadVideoById({ videoId: videoId, startSeconds: 0 });
+          else officialYouTubePlayer.loadPlaylist({ list: listId, listType: 'playlist', index: 0 });
+          officialYouTubePlayer.playVideo();
+        } catch (_) {
+          frame.src = embedUrl;
+          attachOfficialYouTubePlayer(frame, sessionVersion);
+        }
+      } else {
         frame.src = embedUrl;
-        frame.hidden = false;
-        stage.hidden = false;
-        if (status) status.textContent = 'YouTube’s official player is loading. Start playback, then use the mini-player button to keep it visible on this page. TuneWave cannot force an embedded YouTube song to continue after you lock your phone; use the official YouTube app for eligible background playback.';
+        attachOfficialYouTubePlayer(frame, sessionVersion);
       }
+
+      updateOfficialYouTubeMediaSession('paused');
+      if (status) status.textContent = 'Loading the official YouTube player. TuneWave connects lock-screen media controls where supported; Edge and YouTube still control background playback after the screen locks.';
     });
   }
 
@@ -794,18 +938,79 @@
 
   function installMediaSessionActionHandlers() {
     if (!('mediaSession' in navigator) || typeof navigator.mediaSession.setActionHandler !== 'function' || mediaSessionActionHandlersInstalled) return;
+    const youtubeActive = () => Boolean(officialYouTubeActive);
     const handlers = {
       play: () => {
+        if (youtubeActive()) {
+          if (officialYouTubePlayer && typeof officialYouTubePlayer.playVideo === 'function') officialYouTubePlayer.playVideo();
+          return;
+        }
         if (state.current && (!audio.src || audio.error)) playTrack(state.current, state.queueIndex, state.position);
         else audio.play().catch(() => toast('Tap Play in TuneWave to resume.'));
       },
-      pause: () => audio.pause(),
-      stop: () => { audio.pause(); try { audio.currentTime = 0; } catch (_) {} },
-      previoustrack: () => playRelative(-1),
-      nexttrack: () => playRelative(1),
-      seekbackward: details => { audio.currentTime = Math.max(0, audio.currentTime - (details.seekOffset || 10)); },
-      seekforward: details => { audio.currentTime = Math.min(Number.isFinite(audio.duration) ? audio.duration : audio.currentTime + 10, audio.currentTime + (details.seekOffset || 10)); },
-      seekto: details => { if (Number.isFinite(details.seekTime)) audio.currentTime = details.seekTime; }
+      pause: () => {
+        if (youtubeActive()) {
+          if (officialYouTubePlayer && typeof officialYouTubePlayer.pauseVideo === 'function') officialYouTubePlayer.pauseVideo();
+          return;
+        }
+        audio.pause();
+      },
+      stop: () => {
+        if (youtubeActive()) {
+          if (officialYouTubePlayer && typeof officialYouTubePlayer.stopVideo === 'function') officialYouTubePlayer.stopVideo();
+          return;
+        }
+        audio.pause();
+        try { audio.currentTime = 0; } catch (_) {}
+      },
+      previoustrack: () => {
+        if (youtubeActive()) {
+          if (officialYouTubePlayer && typeof officialYouTubePlayer.previousVideo === 'function') officialYouTubePlayer.previousVideo();
+          return;
+        }
+        playRelative(-1);
+      },
+      nexttrack: () => {
+        if (youtubeActive()) {
+          if (officialYouTubePlayer && typeof officialYouTubePlayer.nextVideo === 'function') officialYouTubePlayer.nextVideo();
+          return;
+        }
+        playRelative(1);
+      },
+      seekbackward: details => {
+        if (youtubeActive()) {
+          try {
+            const player = officialYouTubePlayer;
+            if (player && typeof player.getCurrentTime === 'function' && typeof player.seekTo === 'function') {
+              player.seekTo(Math.max(0, player.getCurrentTime() - (details?.seekOffset || 10)), true);
+            }
+          } catch (_) {}
+          return;
+        }
+        audio.currentTime = Math.max(0, audio.currentTime - (details?.seekOffset || 10));
+      },
+      seekforward: details => {
+        if (youtubeActive()) {
+          try {
+            const player = officialYouTubePlayer;
+            if (player && typeof player.getCurrentTime === 'function' && typeof player.seekTo === 'function') {
+              const duration = Number(player.getDuration());
+              player.seekTo(Math.min(Number.isFinite(duration) && duration > 0 ? duration : player.getCurrentTime() + 10, player.getCurrentTime() + (details?.seekOffset || 10)), true);
+            }
+          } catch (_) {}
+          return;
+        }
+        audio.currentTime = Math.min(Number.isFinite(audio.duration) ? audio.duration : audio.currentTime + 10, audio.currentTime + (details?.seekOffset || 10));
+      },
+      seekto: details => {
+        if (youtubeActive()) {
+          try {
+            if (officialYouTubePlayer && Number.isFinite(details?.seekTime)) officialYouTubePlayer.seekTo(details.seekTime, true);
+          } catch (_) {}
+          return;
+        }
+        if (Number.isFinite(details?.seekTime)) audio.currentTime = details.seekTime;
+      }
     };
     for (const [action, handler] of Object.entries(handlers)) {
       try { navigator.mediaSession.setActionHandler(action, handler); } catch (_) { /* Action support varies by browser. */ }
@@ -815,6 +1020,20 @@
 
   function updateMediaSessionPosition() {
     if (!('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
+    if (officialYouTubeActive && officialYouTubePlayer) {
+      try {
+        const duration = Number(officialYouTubePlayer.getDuration());
+        const position = Number(officialYouTubePlayer.getCurrentTime());
+        if (Number.isFinite(duration) && duration > 0 && Number.isFinite(position)) {
+          navigator.mediaSession.setPositionState({
+            duration: duration,
+            playbackRate: 1,
+            position: Math.min(Math.max(0, position), duration)
+          });
+        }
+      } catch (_) { /* YouTube position reporting is optional. */ }
+      return;
+    }
     try {
       if (Number.isFinite(audio.duration) && audio.duration > 0) {
         navigator.mediaSession.setPositionState({
@@ -826,9 +1045,36 @@
     } catch (_) { /* Position reporting is optional and browser-controlled. */ }
   }
 
+  function updateOfficialYouTubeMediaSession(playbackState) {
+    if (!('mediaSession' in navigator)) return;
+    installMediaSessionActionHandlers();
+    try {
+      const data = officialYouTubePlayer && typeof officialYouTubePlayer.getVideoData === 'function'
+        ? officialYouTubePlayer.getVideoData() : {};
+      const videoId = String(data?.video_id || '');
+      const artworkUrl = /^[A-Za-z0-9_-]{11}$/.test(videoId)
+        ? 'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg' : '';
+      if (data?.title) officialYouTubeRequestedTitle = String(data.title);
+      navigator.mediaSession.playbackState = playbackState;
+      if (typeof MediaMetadata === 'function') {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: officialYouTubeRequestedTitle || 'YouTube music',
+          artist: String(data?.author || 'YouTube'),
+          album: 'YouTube · TuneWave',
+          artwork: artworkUrl ? [{ src: artworkUrl, sizes: '480x360', type: 'image/jpeg' }] : []
+        });
+      }
+    } catch (_) { /* Media Session metadata is optional. */ }
+    updateMediaSessionPosition();
+  }
+
   function updateMediaSession(track) {
     if (!('mediaSession' in navigator)) return;
     installMediaSessionActionHandlers();
+    if (officialYouTubeActive) {
+      updateOfficialYouTubeMediaSession(officialYouTubePlaying ? 'playing' : 'paused');
+      return;
+    }
     try {
       navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
       if (typeof MediaMetadata === 'function') {
@@ -836,8 +1082,8 @@
         navigator.mediaSession.metadata = new MediaMetadata({
           title: track.title || 'TuneWave',
           artist: track.artist || 'Unknown artist',
-          album: `TuneWave · ${track.source || 'Music source'}`,
-          artwork: [96, 128, 192, 256, 512].map(size => ({ src: artworkUrl, sizes: `${size}x${size}` }))
+          album: 'TuneWave · ' + (track.source || 'Music source'),
+          artwork: [96, 128, 192, 256, 512].map(size => ({ src: artworkUrl, sizes: size + 'x' + size }))
         });
       }
     } catch (_) { /* Metadata support varies; playback must keep working without it. */ }
