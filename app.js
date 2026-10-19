@@ -539,7 +539,7 @@
       if (sessionVersion !== officialYouTubeSessionVersion || !officialYouTubeActive ||
           !frame || !frame.isConnected || officialYouTubePlayer) return;
       try {
-        officialYouTubePlayer = new api.Player(frame, {
+        officialYouTubePlayer = new api.Player('official-player-frame', {
           events: {
             onReady: event => {
               officialYouTubePlayer = event.target || officialYouTubePlayer;
