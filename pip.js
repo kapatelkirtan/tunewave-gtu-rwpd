@@ -10,7 +10,7 @@
   const status = document.getElementById('official-player-status');
   if (!stage || !frame) return;
   // YouTube's IFrame API can replace its iframe node during initialization.
-  // Refresh our reference so the PiP and fullscreen controls still target it.
+  // Refresh our reference if YouTube's IFrame API replaces its iframe node.
   window.addEventListener('tunewave:official-player-frame-updated', () => {
     const updatedFrame = document.getElementById('official-player-frame');
     if (updatedFrame) frame = updatedFrame;
@@ -28,12 +28,11 @@
     '.official-player-pip-button:hover{border-color:rgba(80,232,255,.7);background:rgba(80,232,255,.16)}',
     '.official-player-pip-button:focus-visible{outline:2px solid #50e8ff;outline-offset:3px}',
     '.official-player-pip-help{margin:0 0 12px;color:#9fb0bc;font-size:12px;line-height:1.6}',
-    '#official-player-frame.tw-pip-fullscreen-target:fullscreen{display:block!important;width:100vw!important;height:100vh!important;max-width:none!important;min-height:100vh!important;border:0!important;background:#000!important}',
-    '.tw-pip-inline-shell{position:fixed;right:12px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:2147483000;display:flex;flex-direction:column;gap:5px;width:min(320px,calc(100vw - 24px));padding:7px;border:1px solid rgba(80,232,255,.35);border-radius:12px;background:#070a0e;box-shadow:0 10px 38px rgba(0,0,0,.55);}',
+    '.tw-pip-inline-shell{position:fixed;right:12px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:2147483000;display:flex;flex-direction:column;gap:5px;width:min(300px,calc(100vw - 24px));padding:7px;border:1px solid rgba(80,232,255,.35);border-radius:12px;background:#070a0e;box-shadow:0 10px 38px rgba(0,0,0,.55);}',
     '.tw-pip-inline-bar{height:25px;min-height:25px;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#dffaff;font:700 11px/1.2 system-ui,sans-serif;}',
     '.tw-pip-inline-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
     '.tw-pip-inline-return{flex:0 0 auto;border:1px solid rgba(80,232,255,.35);border-radius:7px;background:#111d25;color:#dffaff;padding:5px 8px;font:700 10px/1 system-ui,sans-serif;cursor:pointer;}',
-    '#official-player-frame.tw-pip-inline-video{display:block!important;width:100%!important;height:174px!important;min-height:0!important;max-width:none!important;border:0!important;border-radius:8px;background:#000!important;}',
+    '#official-player-frame.tw-pip-inline-video{display:block!important;width:100%!important;height:min(169px,calc((100vw - 24px)*.5625))!important;min-height:0!important;max-width:none!important;border:0!important;border-radius:8px;background:#000!important;}',
     '@media(max-width:360px){#official-player-frame.tw-pip-inline-video{height:calc((100vw - 38px)*.5625)!important;}}'
   ].join('');
   document.head.appendChild(style);
@@ -41,42 +40,27 @@
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'official-player-pip-button';
-  button.textContent = canDocumentPiP ? '▣ Open floating mini-player' : (isAndroid ? '▣ Try system PiP' : '▣ Open in-page mini-player');
+  button.textContent = canDocumentPiP ? '▣ Open floating mini-player' : '▣ Open mini-player';
   button.setAttribute('aria-label', 'Try Picture-in-Picture for the YouTube song pasted into TuneWave');
   stage.insertBefore(button, frame);
 
   const help = document.createElement('p');
   help.className = 'official-player-pip-help';
   help.textContent = canDocumentPiP
-    ? 'Click before minimizing Edge. The floating PiP window can stay above other desktop windows on supported browsers.'
-    : isAndroid
-      ? 'Tap to try fullscreen YouTube, then swipe Home to test your device’s system PiP. Edge for Android may not keep embedded videos floating over other apps.'
-      : 'This mini-player stays inside the TuneWave page. Browsers without system PiP cannot keep it visible over other apps.';
+    ? 'Opens a small floating mini-player window on supported desktop browsers.'
+    : 'Opens a compact floating player inside TuneWave. It stays on this webpage and cannot overlay other apps when TuneWave is minimized.';
   stage.insertBefore(help, frame);
 
   let pipWindow = null;
   let placeholder = null;
   let pipOriginalStyle = null;
   let pipOriginalTitle = null;
-  let fullscreenOriginalStyle = null;
-  let fullscreenMode = false;
   let inlineMiniShell = null;
   let inlineOriginalStyle = null;
   let inlineOriginalTitle = null;
 
   function setStatus(message) {
     if (status) status.textContent = message;
-  }
-
-  function restoreFullscreenStyle() {
-    if (fullscreenOriginalStyle !== null) {
-      if (fullscreenOriginalStyle === '') frame.removeAttribute('style');
-      else frame.setAttribute('style', fullscreenOriginalStyle);
-    }
-    fullscreenOriginalStyle = null;
-    frame.classList.remove('tw-pip-fullscreen-target');
-    fullscreenMode = false;
-    button.textContent = canDocumentPiP ? '▣ Open mini-player (PiP)' : '▣ Open mini-player';
   }
 
   function restoreDocumentPiPFrame() {
@@ -103,56 +87,12 @@
   }
 
   function closePip() {
-    if (document.fullscreenElement === frame && document.exitFullscreen) {
-      try { document.exitFullscreen(); } catch (_) {}
-    }
-    if (fullscreenMode) restoreFullscreenStyle();
     if (inlineMiniShell) restoreInlineMiniPlayer();
     if (pipWindow || placeholder) restoreDocumentPiPFrame();
   }
 
   // Let the page's existing stop/reset logic restore the player before replacing a link.
   window.TuneWaveYouTubePiP = { close: closePip };
-
-  document.addEventListener('fullscreenchange', () => {
-    if (fullscreenMode && document.fullscreenElement !== frame) restoreFullscreenStyle();
-  });
-
-  function tryFullscreenPiP() {
-    if (!frame.requestFullscreen) {
-      setStatus('This browser cannot request fullscreen for the embedded YouTube player. PiP is controlled by the browser and YouTube; try the YouTube player’s own fullscreen/PiP controls if available.');
-      return;
-    }
-
-    fullscreenOriginalStyle = frame.getAttribute('style') || '';
-    fullscreenMode = true;
-    frame.classList.add('tw-pip-fullscreen-target');
-    frame.style.setProperty('display', 'block', 'important');
-    frame.style.setProperty('width', '100vw', 'important');
-    frame.style.setProperty('height', '100vh', 'important');
-    frame.style.setProperty('max-width', 'none', 'important');
-    frame.style.setProperty('min-height', '100vh', 'important');
-
-    let request;
-    try {
-      request = frame.requestFullscreen({ navigationUI: 'hide' });
-    } catch (_) {
-      try { request = frame.requestFullscreen(); } catch (error) { request = Promise.reject(error); }
-    }
-
-    Promise.resolve(request).then(() => {
-      button.textContent = '▣ Fullscreen active — swipe Home';
-      if (isAndroid) {
-        setStatus('The YouTube player is fullscreen. Keep the song playing, then swipe up to Home or press Home to try Android PiP. The browser may not offer PiP for every YouTube music video.');
-      } else {
-        setStatus('The player is fullscreen. If your browser supports video PiP, use its PiP option or leave fullscreen while playback is active. TuneWave cannot force PiP in this browser.');
-      }
-    }).catch(() => {
-      restoreFullscreenStyle();
-      setStatus('Fullscreen/PiP was blocked by this browser. Play the YouTube song in the embedded player; any floating-player option is controlled by your browser and YouTube.');
-    });
-  }
-
 
   function restoreInlineMiniPlayer() {
     if (!inlineMiniShell) return;
@@ -295,12 +235,9 @@
     try {
       if (canDocumentPiP) {
         await openDocumentPiP();
-      } else if (isAndroid) {
-        // The Android web platform does not expose Document Picture-in-Picture.
-        // Fullscreen is the best website-level attempt; the browser/OS decides
-        // whether leaving the fullscreen video can enter native PiP.
-        tryFullscreenPiP();
       } else {
+        // Compact in-page fallback. Do not switch to fullscreen when system PiP
+        // is unavailable; native overlays require explicit browser/OS support.
         openInlineMiniPlayer();
       }
     } catch (error) {
