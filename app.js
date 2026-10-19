@@ -612,8 +612,8 @@
       if (!frame || !stage) return;
       if (openLink) openLink.hidden = true;
       let raw = String(urlInput?.value || '').trim();
-      const iframeSrc = raw.match(/<iframe\\b[\\s\\S]*?\\bsrc\\s*=\\s*["']([^"']+)["']/i)
-        || raw.match(/\\bsrc\\s*=\\s*["']([^"']+)["']/i);
+      const iframeSrc = raw.match(/<iframe\b[\s\S]*?\bsrc\s*=\s*["']([^"']+)["']/i)
+        || raw.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
       if (iframeSrc) raw = iframeSrc[1].replace(/&amp;/gi, '&').trim();
 
       let parsed;
@@ -625,7 +625,7 @@
         return;
       }
 
-      const host = parsed.hostname.toLowerCase().replace(/^www\\./, '');
+      const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
       const allowedHosts = ['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be', 'youtube-nocookie.com'];
       if (!allowedHosts.includes(host)) {
         if (status) status.textContent = 'This player accepts YouTube and YouTube Music links only.';
