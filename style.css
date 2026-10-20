@@ -1018,3 +1018,51 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   #install-button, #settings-button { flex-basis: 32px !important; width: 32px !important; height: 32px !important; }
   .top-install-tip { font-size: 8px !important; }
 }
+
+
+/* Desktop top-right header: remove badge spacing and give the install tip readable room. */
+@media (min-width: 1051px) {
+  .top-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    gap: 14px !important;
+  }
+  .free-pill { display: none !important; }
+  .top-install-group {
+    display: grid !important;
+    flex: 0 1 300px !important;
+    min-width: 250px !important;
+    grid-template-columns: 42px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  .top-install-group #install-button {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 42px !important;
+    height: 42px !important;
+  }
+  .top-install-tip {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    max-width: 240px !important;
+    width: 100% !important;
+    font-size: 9px !important;
+    line-height: 1.45 !important;
+    text-align: left !important;
+    overflow-wrap: normal !important;
+  }
+  #settings-button {
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    height: 42px !important;
+  }
+}
+@media (min-width: 1051px) and (max-width: 1290px) {
+  .top-actions { gap: 10px !important; }
+  .top-install-group { flex-basis: 250px !important; min-width: 210px !important; gap: 9px !important; }
+  .top-install-tip { font-size: 8.5px !important; }
+}
