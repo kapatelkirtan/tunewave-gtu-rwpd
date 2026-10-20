@@ -920,3 +920,101 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   .now-card { padding: 22px; }
   .bottom-player { gap: 34px; }
 }
+
+
+/* Final header overlap fix: use flex wrapping instead of nested grid/absolute positioning. */
+@media (max-width: 1050px) {
+  .topbar {
+    display: flex !important;
+    flex-flow: row wrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 7px 9px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 10px 16px 11px !important;
+    margin: 0 -16px !important;
+    overflow: visible !important;
+  }
+  .mobile-brand {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    order: 0 !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    justify-content: flex-start !important;
+    white-space: nowrap !important;
+    font-size: 19px !important;
+  }
+  .mobile-brand .brand-mark {
+    width: 35px !important;
+    height: 35px !important;
+    flex: 0 0 35px !important;
+  }
+  .breadcrumb, .free-pill { display: none !important; }
+  .top-actions, .top-install-group { display: contents !important; }
+  #install-button {
+    order: 1 !important;
+    position: static !important;
+    flex: 0 0 38px !important;
+    width: 38px !important;
+    height: 38px !important;
+    margin-left: auto !important;
+  }
+  #settings-button {
+    order: 2 !important;
+    position: static !important;
+    flex: 0 0 38px !important;
+    width: 38px !important;
+    height: 38px !important;
+  }
+  .top-install-tip {
+    order: 3 !important;
+    display: block !important;
+    position: static !important;
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 1px 0 0 !important;
+    color: #a8b7c1 !important;
+    font-size: 9px !important;
+    line-height: 1.45 !important;
+    text-align: left !important;
+    overflow-wrap: normal !important;
+  }
+}
+@media (max-width: 620px) {
+  .topbar {
+    padding: 9px 12px 10px !important;
+    margin-left: -12px !important;
+    margin-right: -12px !important;
+    gap: 6px 7px !important;
+  }
+  .mobile-brand {
+    font-size: 17px !important;
+    gap: 7px !important;
+  }
+  .mobile-brand .brand-mark {
+    width: 32px !important;
+    height: 32px !important;
+    flex-basis: 32px !important;
+  }
+  #install-button, #settings-button {
+    flex-basis: 35px !important;
+    width: 35px !important;
+    height: 35px !important;
+  }
+  .top-install-tip {
+    font-size: 9px !important;
+    line-height: 1.4 !important;
+  }
+}
+@media (max-width: 365px) {
+  .mobile-brand { font-size: 16px !important; gap: 5px !important; }
+  .mobile-brand .brand-mark { width: 29px !important; height: 29px !important; flex-basis: 29px !important; }
+  #install-button, #settings-button { flex-basis: 32px !important; width: 32px !important; height: 32px !important; }
+  .top-install-tip { font-size: 8px !important; }
+}
