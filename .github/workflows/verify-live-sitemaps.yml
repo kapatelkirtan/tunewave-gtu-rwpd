@@ -22,11 +22,12 @@ jobs:
       - name: Verify current deployed sitemap routes
         run: |
           node <<'NODE'
-          const base = 'https://tunewave-gtu-rwpd-1.onrender.com';
+          const base = 'https://tunewave-gtu-rwpd.onrender.com';
           const checks = [
             ['/robots.txt', r => r.status === 200 && r.body.includes('Sitemap: ' + base + '/sitemap.txt') && r.body.includes('Allow: /')],
             ['/sitemap.xml', r => r.status === 200 && r.body.includes('<urlset') && r.body.includes(base + '/') && r.body.includes('<lastmod>2026-10-20</lastmod>')],
-            ['/sitemap.txt', r => r.status === 200 && r.body.trim() === base + '/']
+            ['/sitemap.txt', r => r.status === 200 && r.body.trim() === base + '/'],
+            ['/', r => r.status === 200 && r.body.includes('<link rel="canonical" href="' + base + '/">')]
           ];
           (async () => {
             const results = [];

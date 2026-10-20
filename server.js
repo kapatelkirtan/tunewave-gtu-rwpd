@@ -9,7 +9,7 @@ const YOUTUBE_API_KEY = String(process.env.YOUTUBE_API_KEY || '').trim();
 const OPENVERSE_CLIENT_ID = String(process.env.OPENVERSE_CLIENT_ID || '').trim();
 const OPENVERSE_CLIENT_SECRET = String(process.env.OPENVERSE_CLIENT_SECRET || '').trim();
 const OPEN_AUDIO_BASE = 'https://open.audio';
-const USER_AGENT = 'TuneWaveMusicBridge/1.0 (+https://tunewave-gtu-rwpd-1.onrender.com)';
+const USER_AGENT = 'TuneWaveMusicBridge/1.0 (+https://tunewave-gtu-rwpd.onrender.com)';
 const CACHE_TTL_MS = 25000;
 const responseCache = new Map();
 let openverseToken = '';
@@ -26,7 +26,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '32kb' }));
-const TUNEWAVE_PUBLIC_ORIGIN = 'https://tunewave-gtu-rwpd-1.onrender.com';
+const TUNEWAVE_PUBLIC_ORIGIN = 'https://tunewave-gtu-rwpd.onrender.com';
 const TUNEWAVE_SITEMAP_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
