@@ -43,7 +43,7 @@ jobs:
               let desktopPage;
               for (let attempt = 1; attempt <= 18; attempt++) {
                 const context = await browser.newContext({
-                  viewport: { width: 1728, height: 1000 },
+                  viewport: { width: 1728, height: 884 },
                   deviceScaleFactor: 1,
                   serviceWorkers: 'block'
                 });
