@@ -35,7 +35,7 @@ const TUNEWAVE_SITEMAP_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </url>
 </urlset>
 `;
-const TUNEWAVE_SITEMAP_TEXT = TUNEWAVE_PUBLIC_ORIGIN + '/\\n';
+const TUNEWAVE_SITEMAP_TEXT = TUNEWAVE_PUBLIC_ORIGIN + '/' + String.fromCharCode(10);
 const TUNEWAVE_ROBOTS_TEXT = `User-agent: *
 Allow: /
 
