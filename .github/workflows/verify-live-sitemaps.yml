@@ -13,43 +13,49 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
-      - name: Fetch sitemap endpoints with Googlebot user agent
+      - name: Wait until the latest sitemap files are published
         run: |
           node <<'NODE'
-          const urls = [
-            'https://tunewave-gtu-rwpd-1.onrender.com/robots.txt',
-            'https://tunewave-gtu-rwpd-1.onrender.com/sitemap.xml',
-            'https://tunewave-gtu-rwpd-1.onrender.com/sitemap.txt'
-          ];
+          const base = 'https://tunewave-gtu-rwpd-1.onrender.com';
+          const expected = {
+            '/robots.txt': body => body.includes('/sitemap.txt'),
+            '/sitemap.xml': body => body.includes('<lastmod>2026-10-20</lastmod>'),
+            '/sitemap.txt': body => body.trim() === base + '/'
+          };
           (async () => {
-            const results = [];
-            for (const url of urls) {
-              try {
-                const res = await fetch(url, {
-                  redirect: 'follow',
-                  signal: AbortSignal.timeout(30000),
-                  headers: { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' }
-                });
-                const body = await res.text();
-                results.push({
-                  url, finalUrl: res.url, status: res.status, contentType: res.headers.get('content-type'),
-                  bytes: body.length, body: body.slice(0, 700).replace(/\s+/g, ' '),
-                  hasHome: body.includes('https://tunewave-gtu-rwpd-1.onrender.com/'),
-                  hasAllowedRule: body.includes('Allow: /'),
-                  hasXmlRoot: body.includes('<urlset')
-                });
-              } catch (e) { results.push({ url, error: String(e) }); }
+            let ready = false;
+            let last = {};
+            for (let attempt = 1; attempt <= 24; attempt++) {
+              last = {};
+              for (const [path, check] of Object.entries(expected)) {
+                try {
+                  const response = await fetch(base + path + '?check=' + Date.now(), {
+                    redirect: 'follow',
+                    signal: AbortSignal.timeout(20000),
+                    headers: { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' }
+                  });
+                  const body = await response.text();
+                  last[path] = {
+                    status: response.status,
+                    contentType: response.headers.get('content-type'),
+                    length: body.length,
+                    body: body.slice(0, 400).replace(/\s+/g, ' '),
+                    latestContent: response.ok && check(body)
+                  };
+                } catch (error) {
+                  last[path] = { error: String(error), latestContent: false };
+                }
+              }
+              console.log(JSON.stringify({ attempt, last }, null, 2));
+              ready = Object.keys(expected).every(path => last[path]?.latestContent);
+              if (ready) break;
+              await new Promise(resolve => setTimeout(resolve, 10000));
             }
-            console.log(JSON.stringify(results, null, 2));
-            if (results.some(x => x.status !== 200 || x.bytes < 1)) {
-              console.error('One or more sitemap endpoints could not be fetched.');
-              process.exitCode = 1;
-            }
-            const txt = results.find(x => x.url.endsWith('/sitemap.txt'));
-            if (txt && !txt.hasHome) {
-              console.error('Text sitemap did not include canonical homepage URL.');
+            console.log('FINAL_LIVE_SITEMAP_STATUS=' + JSON.stringify({ ready, last }));
+            if (!ready) {
+              console.error('Render is still serving older sitemap/robots files or the text sitemap is not publicly accessible.');
               process.exitCode = 1;
             }
           })();
