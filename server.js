@@ -26,6 +26,27 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '32kb' }));
+const TUNEWAVE_PUBLIC_ORIGIN = 'https://tunewave-gtu-rwpd-1.onrender.com';
+const TUNEWAVE_SITEMAP_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${TUNEWAVE_PUBLIC_ORIGIN}/</loc>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+</urlset>
+`;
+const TUNEWAVE_SITEMAP_TEXT = TUNEWAVE_PUBLIC_ORIGIN + '/\\n';
+const TUNEWAVE_ROBOTS_TEXT = `User-agent: *
+Allow: /
+
+Sitemap: ${TUNEWAVE_PUBLIC_ORIGIN}/sitemap.xml
+Sitemap: ${TUNEWAVE_PUBLIC_ORIGIN}/sitemap.txt
+`;
+
+app.get('/robots.txt', (req, res) => res.status(200).type('text/plain').send(TUNEWAVE_ROBOTS_TEXT));
+app.get('/sitemap.xml', (req, res) => res.status(200).type('application/xml').send(TUNEWAVE_SITEMAP_XML));
+app.get('/sitemap.txt', (req, res) => res.status(200).type('text/plain').send(TUNEWAVE_SITEMAP_TEXT));
+
 app.use(express.static(__dirname));
 
 function cleanQuery(value) {
