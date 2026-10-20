@@ -15,8 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Wait for static-site deploy
-        run: sleep 60
       - name: Fetch sitemap endpoints with Googlebot user agent
         run: |
           node <<'NODE'
