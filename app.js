@@ -12,6 +12,16 @@
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
   const audio = $('#audio-player');
+
+  // Ask browsers that expose the Audio Session API to treat this as music playback.
+  // This is a best-effort hint only; the browser and operating system still decide
+  // whether a page may continue playing after it is backgrounded or the screen locks.
+  function preferMusicPlaybackSession() {
+    try {
+      const session = navigator.audioSession;
+      if (session && session.type !== 'playback') session.type = 'playback';
+    } catch (_) { /* The experimental Audio Session API is not supported everywhere. */ }
+  }
   let officialEmbedActive = false;
   const searchForm = $('#search-form');
   const searchInput = $('#search-input');
@@ -864,6 +874,7 @@
 
   async function playTrack(track, index = -1, resumeAt = 0) {
     if (!track) return;
+    preferMusicPlaybackSession();
     const sameTrack = state.current && trackId(state.current) === trackId(track);
     if (sameTrack && audio.src && !audio.error) {
       if (audio.paused) {
@@ -1249,10 +1260,12 @@
   audio.addEventListener('play', () => {
     state.isResolvingPlayback = false;
     stopOfficialEmbed();
+    preferMusicPlaybackSession();
     updateCurrentTrackUI();
     saveState(true);
   });
   audio.addEventListener('playing', () => {
+    preferMusicPlaybackSession();
     state.isResolvingPlayback = false;
     updateCurrentTrackUI();
   });
