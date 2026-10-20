@@ -1,0 +1,78 @@
+name: Diagnose live TuneWave indexing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-live-indexing.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check live homepage and crawler files
+        run: |
+          node <<'NODE'
+          const urls = [
+            'https://tunewave-gtu-rwpd-1.onrender.com/',
+            'https://tunewave-gtu-rwpd-1.onrender.com/robots.txt',
+            'https://tunewave-gtu-rwpd-1.onrender.com/sitemap.xml',
+            'https://tunewave-gtu-rwpd-1.onrender.com/googleb139d466be0d0b8e%20(1).html'
+          ];
+          async function inspect(url, ua) {
+            try {
+              const res = await fetch(url, {
+                redirect: 'follow',
+                signal: AbortSignal.timeout(25000),
+                headers: { 'user-agent': ua }
+              });
+              const body = await res.text();
+              return {
+                requested: url,
+                finalUrl: res.url,
+                status: res.status,
+                ok: res.ok,
+                redirected: res.redirected,
+                contentType: res.headers.get('content-type'),
+                xRobotsTag: res.headers.get('x-robots-tag'),
+                cache: res.headers.get('cache-control'),
+                bodyLength: body.length,
+                hasNoindex: /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(body) ||
+                  /<meta[^>]+content=["'][^"']*noindex[^"']*["'][^>]+name=["']robots/i.test(body),
+                hasExpectedRobots: body.includes('User-agent: *') && body.includes('Allow: /'),
+                hasSitemapRef: body.includes('sitemap.xml'),
+                hasCanonical: body.includes('rel="canonical"'),
+                hasIndexFollow: body.includes('index, follow'),
+                bodyStart: body.slice(0, 500).replace(/\s+/g, ' ')
+              };
+            } catch (e) {
+              return { requested: url, error: String(e) };
+            }
+          }
+          (async () => {
+            const result = [];
+            for (const url of urls) {
+              result.push(await inspect(url, 'Mozilla/5.0 (compatible; TuneWave-live-diagnostic/1.0)'));
+            }
+            result.push({
+              googlebotHomepage: await inspect(
+                'https://tunewave-gtu-rwpd-1.onrender.com/',
+                'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+              )
+            });
+            console.log(JSON.stringify(result, null, 2));
+            const home = result[0];
+            const robots = result[1];
+            const sitemap = result[2];
+            if (!home.ok || home.hasNoindex || !home.hasCanonical || !home.hasIndexFollow ||
+                !robots.ok || !robots.hasExpectedRobots || !robots.hasSitemapRef || !sitemap.ok) {
+              console.error('One or more live indexing checks failed.');
+              process.exitCode = 1;
+            }
+          })();
+          NODE
