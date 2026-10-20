@@ -1066,3 +1066,144 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   .top-install-group { flex-basis: 250px !important; min-width: 210px !important; gap: 9px !important; }
   .top-install-tip { font-size: 8.5px !important; }
 }
+
+
+/* Desktop hero containment: keep the TuneWave artwork in its own grid column. */
+@media (min-width: 1051px) {
+  .launch-deck {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr) !important;
+    gap: clamp(12px, 1.2vw, 20px) !important;
+    align-items: stretch !important;
+  }
+  .welcome-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) clamp(76px, 5.2vw, 88px) !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    column-gap: 12px !important;
+    padding: clamp(20px, 1.6vw, 28px) !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  .welcome-row > div:first-child {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: initial !important;
+    z-index: 2 !important;
+  }
+  .welcome-row h1 {
+    max-width: 100% !important;
+    font-size: clamp(38px, 2.8vw, 50px) !important;
+    line-height: .99 !important;
+    letter-spacing: -.075em !important;
+    overflow-wrap: normal !important;
+  }
+  .welcome-row h1 span {
+    white-space: nowrap !important;
+  }
+  .welcome-copy {
+    max-width: 100% !important;
+    font-size: 11px !important;
+    line-height: 1.65 !important;
+    margin-top: 11px !important;
+    overflow-wrap: break-word !important;
+  }
+  .eyebrow {
+    max-width: 100% !important;
+    font-size: 7px !important;
+    line-height: 1.5 !important;
+    letter-spacing: .9px !important;
+    margin-bottom: 12px !important;
+  }
+  .hero-capabilities {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+    margin-top: 13px !important;
+  }
+  .hero-capabilities span {
+    font-size: 7px !important;
+    padding: 6px 7px !important;
+  }
+  .hero-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 7px !important;
+    margin-top: 12px !important;
+  }
+  .hero-cta {
+    min-height: 35px !important;
+    padding: 0 10px !important;
+    font-size: 8px !important;
+  }
+  .hero-art {
+    position: relative !important;
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    justify-self: center !important;
+    align-self: center !important;
+    flex: none !important;
+    width: clamp(76px, 5.2vw, 88px) !important;
+    height: 115px !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+  .hero-art > img {
+    width: clamp(58px, 4.2vw, 70px) !important;
+    height: clamp(58px, 4.2vw, 70px) !important;
+    border-radius: 18px !important;
+  }
+  .hero-ring.ring-a { width: 96px !important; height: 41px !important; }
+  .hero-ring.ring-b { width: 112px !important; height: 58px !important; }
+  .hero-note { font-size: 14px !important; }
+  .hero-spectrum {
+    right: -3px !important;
+    bottom: 8px !important;
+    transform: scale(.88) !important;
+    transform-origin: bottom right !important;
+  }
+  .hero-caption { display: none !important; }
+
+  /* Keep the search form and the music rail contained at common laptop widths. */
+  .search-section { min-width: 0 !important; }
+  .search-intro { align-items: flex-start !important; }
+  .search-intro-note { max-width: 45%; white-space: normal !important; }
+  .search-box { min-width: 0 !important; }
+  .search-box input { min-width: 0 !important; }
+  .genre-chips { min-width: 0 !important; }
+  .now-card { min-width: 0 !important; }
+}
+@media (min-width: 1051px) and (max-width: 1290px) {
+  .launch-deck {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 1.02fr) !important;
+    gap: 10px !important;
+  }
+  .welcome-row {
+    grid-template-columns: minmax(0, 1fr) 72px !important;
+    column-gap: 8px !important;
+    padding: 18px !important;
+  }
+  .hero-art { width: 72px !important; height: 104px !important; }
+  .hero-art > img { width: 58px !important; height: 58px !important; }
+  .hero-ring.ring-a { width: 82px !important; height: 35px !important; }
+  .hero-ring.ring-b { width: 96px !important; height: 50px !important; }
+  .welcome-row h1 { font-size: 37px !important; }
+  .welcome-copy { font-size: 10px !important; }
+  .hero-capabilities span { font-size: 6.5px !important; }
+}
+@media (min-width: 1500px) {
+  .launch-deck {
+    grid-template-columns: minmax(0, 1.02fr) minmax(390px, .98fr) !important;
+  }
+  .welcome-row {
+    grid-template-columns: minmax(0, 1fr) 88px !important;
+    padding: clamp(23px, 1.8vw, 30px) !important;
+  }
+  .welcome-row h1 { font-size: clamp(44px, 2.9vw, 50px) !important; }
+  .welcome-copy { max-width: 100% !important; }
+}
