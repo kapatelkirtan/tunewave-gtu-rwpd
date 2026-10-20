@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://tunewave-gtu-rwpd-1.onrender.com/sitemap.xml
+Sitemap: https://tunewave-gtu-rwpd-1.onrender.com/sitemap.txt
