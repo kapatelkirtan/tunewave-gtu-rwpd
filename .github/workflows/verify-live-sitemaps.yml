@@ -1,0 +1,66 @@
+name: Verify live TuneWave sitemap endpoints
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-live-sitemaps.yml'
+      - 'server.js'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - 'sitemap.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify current deployed sitemap routes
+        run: |
+          node <<'NODE'
+          const base = 'https://tunewave-gtu-rwpd-1.onrender.com';
+          const checks = [
+            ['/robots.txt', r => r.status === 200 && r.body.includes('Sitemap: ' + base + '/sitemap.txt') && r.body.includes('Allow: /')],
+            ['/sitemap.xml', r => r.status === 200 && r.body.includes('<urlset') && r.body.includes(base + '/') && r.body.includes('<lastmod>2026-10-20</lastmod>')],
+            ['/sitemap.txt', r => r.status === 200 && r.body.trim() === base + '/']
+          ];
+          (async () => {
+            const results = [];
+            for (const [path, valid] of checks) {
+              let outcome = null;
+              for (let attempt = 1; attempt <= 8; attempt++) {
+                try {
+                  const response = await fetch(base + path + '?verify=' + Date.now(), {
+                    redirect: 'follow',
+                    signal: AbortSignal.timeout(20000),
+                    headers: { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' }
+                  });
+                  const body = await response.text();
+                  outcome = {
+                    path, attempt, status: response.status,
+                    contentType: response.headers.get('content-type'),
+                    bytes: body.length,
+                    valid: valid({status: response.status, body}),
+                    body: body.slice(0, 350).replace(/\s+/g, ' ')
+                  };
+                } catch (error) {
+                  outcome = {path, attempt, error: String(error), valid: false};
+                }
+                if (outcome.valid) break;
+                await new Promise(resolve => setTimeout(resolve, 6000));
+              }
+              results.push(outcome);
+            }
+            console.log(JSON.stringify(results, null, 2));
+            if (results.some(r => !r.valid)) {
+              console.error('LIVE SITEMAP VERIFICATION FAILED');
+              process.exitCode = 1;
+            } else {
+              console.log('LIVE SITEMAP VERIFICATION PASSED');
+            }
+          })();
+          NODE
