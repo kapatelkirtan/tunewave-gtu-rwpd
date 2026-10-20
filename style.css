@@ -690,3 +690,233 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   .seek-row input { height: 12px; }
   .mobile-nav { min-height: 42px; }
 }
+
+
+/* Desktop UI refinement — independent of the mobile/tablet layout. */
+@media (min-width: 1051px) {
+  .app-shell {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+  .sidebar {
+    padding: 22px 8px 18px;
+  }
+  .brand-mark {
+    width: 46px;
+    height: 46px;
+  }
+  .nav-item {
+    min-height: 59px;
+    gap: 6px;
+    font-size: 8px;
+  }
+  .nav-icon { font-size: 23px; }
+  .side-label, .source-indicator { font-size: 8px; }
+  .subtle-link { font-size: 8px; }
+
+  .main-area {
+    min-width: 0;
+    max-width: 1980px;
+    padding: 0 clamp(24px, 2.6vw, 52px) 150px;
+  }
+  .topbar {
+    height: 82px;
+    margin-left: calc(clamp(24px, 2.6vw, 52px) * -1);
+    margin-right: calc(clamp(24px, 2.6vw, 52px) * -1);
+    padding-left: clamp(24px, 2.6vw, 52px);
+    padding-right: clamp(24px, 2.6vw, 52px);
+    gap: 18px;
+    background: rgba(7, 10, 14, .96);
+  }
+  .breadcrumb {
+    flex: 0 0 auto;
+    font-size: 11px;
+  }
+  .top-actions {
+    flex: 0 1 auto;
+    min-width: 0;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .free-pill {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    font-size: 10px;
+  }
+  /* Keep the install action and its explanatory tip in their own predictable columns. */
+  .top-install-group {
+    display: grid !important;
+    flex: 0 1 245px;
+    min-width: 188px;
+    grid-template-columns: 38px minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+  }
+  .top-install-group .icon-button {
+    grid-column: 1;
+    grid-row: 1;
+    width: 38px;
+    height: 38px;
+  }
+  .top-install-tip {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    max-width: 198px;
+    margin: 0;
+    color: #9eacb7;
+    font-size: 9px;
+    line-height: 1.45;
+    text-align: left;
+    overflow-wrap: break-word;
+  }
+  #settings-button {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+  }
+
+  /* Clear columns and a consistent gap make the first-screen content feel intentional. */
+  .launch-deck {
+    grid-template-columns: minmax(0, 1.08fr) minmax(370px, .92fr);
+    gap: 18px;
+    align-items: stretch;
+    margin-bottom: 28px;
+  }
+  .welcome-row {
+    min-width: 0;
+    padding: clamp(24px, 2.2vw, 38px);
+  }
+  .welcome-row > div:first-child {
+    max-width: 650px;
+  }
+  .welcome-row h1 {
+    font-size: clamp(40px, 3.15vw, 62px);
+    line-height: .98;
+  }
+  .welcome-copy {
+    max-width: 490px;
+    font-size: 12px;
+    line-height: 1.75;
+  }
+  .eyebrow { font-size: 8px; }
+  .hero-capabilities span { font-size: 8px; padding: 7px 9px; }
+  .hero-cta { min-height: 38px; padding: 0 13px; font-size: 9px; }
+
+  .search-section {
+    min-width: 0;
+    padding: clamp(16px, 1.8vw, 24px);
+  }
+  .search-intro h2 { font-size: clamp(21px, 1.6vw, 27px); }
+  .search-intro .section-kicker,
+  .genre-label-row .section-kicker { font-size: 8px; }
+  .search-intro-note { font-size: 8px; }
+  .search-box { min-height: 56px; }
+  .search-box input { min-width: 0; font-size: 12px; }
+  .voice-button, .search-submit { min-height: 39px; font-size: 9px; }
+  .search-meta, .genre-label-row > span:last-child { font-size: 8px; }
+  .genre-chip { min-height: 30px; padding: 7px 9px; font-size: 8px; }
+
+  .content-grid {
+    grid-template-columns: minmax(0, 1.58fr) minmax(300px, .82fr);
+    align-items: start;
+    gap: clamp(18px, 2vw, 32px);
+  }
+  .feed-column, .right-column { min-width: 0; }
+  .right-column { gap: 13px; }
+  .now-card {
+    top: 94px;
+    padding: clamp(16px, 1.5vw, 22px);
+  }
+  .now-art-wrap {
+    max-width: clamp(180px, 19vw, 290px);
+    margin-bottom: 16px;
+  }
+  .now-status { font-size: 8px; }
+  .now-card > h3 { font-size: clamp(18px, 1.55vw, 23px); }
+  .now-artist { font-size: 11px; }
+  .round-control { width: 34px; height: 34px; }
+  .main-play.energy-play-control { width: 50px !important; height: 50px !important; }
+  .now-tags { font-size: 8px; }
+
+  /* Player dock uses a clear track-information zone and a wide, usable control zone. */
+  .bottom-player {
+    left: 92px;
+    right: 0;
+    min-height: 86px;
+    grid-template-columns: minmax(200px, .78fr) minmax(310px, 1.22fr);
+    align-items: center;
+    gap: clamp(16px, 2vw, 30px);
+    padding: 10px clamp(20px, 2.5vw, 38px) calc(10px + env(safe-area-inset-bottom));
+    background: rgba(8, 12, 17, .97);
+  }
+  .bottom-track { gap: 11px; }
+  .bottom-art { width: 48px; height: 48px; flex-basis: 48px; }
+  .bottom-track-copy { flex: 1 1 auto; }
+  .bottom-track-copy strong { font-size: 11px; }
+  .bottom-track-copy span { font-size: 9px; }
+  .bottom-center {
+    display: grid;
+    grid-template-columns: auto minmax(140px, 1fr);
+    align-items: center;
+    column-gap: clamp(16px, 2vw, 30px);
+    row-gap: 0;
+  }
+  .transport-row { justify-content: flex-start; gap: 15px; }
+  .player-control { min-width: 24px; font-size: 12px; }
+  .bottom-play.energy-play-control { width: 44px !important; height: 44px !important; }
+  .seek-row { width: 100%; gap: 9px; }
+  .seek-row span { font-size: 8px; }
+  .seek-row input { min-width: 80px; }
+}
+@media (min-width: 1051px) and (max-width: 1290px) {
+  .app-shell { grid-template-columns: 84px minmax(0, 1fr); }
+  .sidebar { padding-left: 6px; padding-right: 6px; }
+  .bottom-player { left: 84px; }
+  .main-area { padding-left: 22px; padding-right: 22px; }
+  .topbar {
+    margin-left: -22px;
+    margin-right: -22px;
+    padding-left: 22px;
+    padding-right: 22px;
+    gap: 12px;
+  }
+  .top-actions { gap: 7px; }
+  .top-install-group { flex-basis: 210px; min-width: 172px; gap: 7px; }
+  .top-install-tip { font-size: 8px; }
+  .launch-deck {
+    grid-template-columns: minmax(0, 1fr) minmax(330px, 1.02fr);
+    gap: 12px;
+  }
+  .welcome-row { padding: 22px; }
+  .welcome-row h1 { font-size: clamp(37px, 3.1vw, 43px); }
+  .hero-art { flex-basis: 76px; width: 76px; height: 126px; }
+  .hero-art > img { width: 68px; height: 68px; }
+  .ring-a { width: 100px; height: 42px; }
+  .ring-b { width: 118px; height: 61px; }
+  .content-grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(270px, .9fr);
+    gap: 16px;
+  }
+  .now-card { padding: 15px; }
+  .bottom-player {
+    grid-template-columns: minmax(180px, .72fr) minmax(0, 1.28fr);
+    gap: 14px;
+    padding-left: 17px;
+    padding-right: 17px;
+  }
+  .bottom-center { column-gap: 14px; }
+  .transport-row { gap: 9px; }
+}
+@media (min-width: 1500px) {
+  .launch-deck {
+    grid-template-columns: minmax(0, 1.12fr) minmax(430px, .88fr);
+    gap: 22px;
+  }
+  .content-grid {
+    grid-template-columns: minmax(0, 1.65fr) minmax(360px, .8fr);
+    gap: 34px;
+  }
+  .welcome-row h1 { font-size: clamp(52px, 3.4vw, 72px); }
+  .now-card { padding: 22px; }
+  .bottom-player { gap: 34px; }
+}
