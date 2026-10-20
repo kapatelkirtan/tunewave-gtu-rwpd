@@ -487,16 +487,41 @@
     if (openLink) openLink.hidden = true;
   }
 
-  function clearTuneWaveMediaSessionForEmbed() {
+  function sendYouTubePlayerCommand(command) {
+    const frame = $('#official-player-frame');
+    if (!frame?.contentWindow) return;
+    try {
+      frame.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func: command, args: [] }),
+        'https://www.youtube-nocookie.com'
+      );
+    } catch (_) { /* The embedded player may not be ready or commands may be blocked. */ }
+  }
+
+  function setYouTubeMediaSession() {
     if (!('mediaSession' in navigator)) return;
     const session = navigator.mediaSession;
+    // Replace the catalogue-audio handlers with controls for the pasted YouTube player.
     for (const action of ['play', 'pause', 'stop', 'previoustrack', 'nexttrack', 'seekbackward', 'seekforward', 'seekto']) {
       try { session.setActionHandler(action, null); } catch (_) { /* Action support varies by browser. */ }
     }
+    const commands = { play: 'playVideo', pause: 'pauseVideo', stop: 'stopVideo' };
+    for (const [action, command] of Object.entries(commands)) {
+      try { session.setActionHandler(action, () => sendYouTubePlayerCommand(command)); }
+      catch (_) { /* Some browsers do not expose every media action. */ }
+    }
     try {
-      session.metadata = null;
-      session.playbackState = 'none';
-    } catch (_) { /* The embedded player may provide its own session where supported. */ }
+      if (typeof MediaMetadata === 'function') {
+        session.metadata = new MediaMetadata({
+          title: 'YouTube playback',
+          artist: 'TuneWave',
+          album: 'YouTube player',
+          artwork: [{ src: new URL('icon-512.png', document.baseURI).href, sizes: '512x512' }]
+        });
+      }
+      session.playbackState = 'playing';
+    } catch (_) { /* Metadata support varies by browser. */ }
+    // Allow the catalogue handlers to be reinstalled after audio playback resumes.
     mediaSessionActionHandlersInstalled = false;
   }
 
@@ -569,8 +594,7 @@
       state.isResolvingPlayback = false;
       audio.pause();
       updateCurrentTrackUI();
-      // Do not let the previous direct-audio track's metadata/actions shadow YouTube's player.
-      clearTuneWaveMediaSessionForEmbed();
+      // Keep a media session available and route lock-screen controls to the pasted YouTube player.
       saveState(true);
       if (openLink) {
         openLink.href = officialUrl;
@@ -587,6 +611,7 @@
         frame.src = embedUrl;
         frame.hidden = false;
         stage.hidden = false;
+        setYouTubeMediaSession();
         if (status) status.textContent = 'YouTube’s official player is loading. YouTube may stop embedded playback when TuneWave is minimized or the screen is locked; TuneWave cannot override that restriction. For a better chance of background playback, choose a playable direct-audio track from TuneWave’s catalogue, or use an official YouTube option supported by your account.';
       }
     });
