@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/verify-live-sitemaps.yml'
+      - 'server.js'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - 'sitemap.txt'
   workflow_dispatch:
 
 permissions:
