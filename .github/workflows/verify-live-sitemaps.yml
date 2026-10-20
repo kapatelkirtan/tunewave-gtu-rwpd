@@ -1,0 +1,58 @@
+name: Verify live TuneWave sitemaps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-live-sitemaps.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Wait for static-site deploy
+        run: sleep 60
+      - name: Fetch sitemap endpoints with Googlebot user agent
+        run: |
+          node <<'NODE'
+          const urls = [
+            'https://tunewave-gtu-rwpd-1.onrender.com/robots.txt',
+            'https://tunewave-gtu-rwpd-1.onrender.com/sitemap.xml',
+            'https://tunewave-gtu-rwpd-1.onrender.com/sitemap.txt'
+          ];
+          (async () => {
+            const results = [];
+            for (const url of urls) {
+              try {
+                const res = await fetch(url, {
+                  redirect: 'follow',
+                  signal: AbortSignal.timeout(30000),
+                  headers: { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' }
+                });
+                const body = await res.text();
+                results.push({
+                  url, finalUrl: res.url, status: res.status, contentType: res.headers.get('content-type'),
+                  bytes: body.length, body: body.slice(0, 700).replace(/\s+/g, ' '),
+                  hasHome: body.includes('https://tunewave-gtu-rwpd-1.onrender.com/'),
+                  hasAllowedRule: body.includes('Allow: /'),
+                  hasXmlRoot: body.includes('<urlset')
+                });
+              } catch (e) { results.push({ url, error: String(e) }); }
+            }
+            console.log(JSON.stringify(results, null, 2));
+            if (results.some(x => x.status !== 200 || x.bytes < 1)) {
+              console.error('One or more sitemap endpoints could not be fetched.');
+              process.exitCode = 1;
+            }
+            const txt = results.find(x => x.url.endsWith('/sitemap.txt'));
+            if (txt && !txt.hasHome) {
+              console.error('Text sitemap did not include canonical homepage URL.');
+              process.exitCode = 1;
+            }
+          })();
+          NODE
