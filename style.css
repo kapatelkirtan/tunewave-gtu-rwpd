@@ -1207,3 +1207,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   .welcome-row h1 { font-size: clamp(44px, 2.9vw, 50px) !important; }
   .welcome-copy { max-width: 100% !important; }
 }
+
+
+/* Compact desktop breakpoint: stack the hero and search card before their columns become cramped. */
+@media (min-width: 1051px) and (max-width: 1199px) {
+  .launch-deck {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+  }
+  .welcome-row {
+    grid-template-columns: minmax(0, 1fr) 88px !important;
+    padding: 24px !important;
+    column-gap: 18px !important;
+  }
+  .welcome-row h1 { font-size: 44px !important; }
+  .welcome-copy { max-width: 500px !important; }
+  .hero-art { width: 84px !important; height: 118px !important; }
+  .hero-art > img { width: 66px !important; height: 66px !important; }
+}
