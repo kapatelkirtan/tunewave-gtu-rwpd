@@ -468,3 +468,42 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
     line-height: 1.35;
   }
 }
+
+
+/* Mobile header repair: keep the brand, install/settings controls, and tip in separate rows. */
+.top-install-group{display:flex;align-items:center;gap:10px;min-width:0}
+.top-install-tip{max-width:245px;margin:0;color:#8998a4;font-size:8px;line-height:1.35;text-align:right}
+@media (max-width:760px){
+  .main-area{padding-left:19px;padding-right:19px}
+  .topbar{
+    height:auto;min-height:72px;display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"brand actions" "tip tip";
+    align-content:center;column-gap:12px;row-gap:7px;
+    padding:12px 19px;margin:0 -19px;
+  }
+  .mobile-brand{grid-area:brand;display:flex;align-items:center;gap:9px;min-width:0;font:800 19px/1 'Space Grotesk',sans-serif;white-space:nowrap}
+  .mobile-brand .brand-mark{width:36px;height:36px;flex:0 0 36px}
+  .mobile-brand>span>span{color:transparent;background:linear-gradient(90deg,var(--cyan),var(--acid));background-clip:text;-webkit-background-clip:text}
+  .breadcrumb{display:none}
+  .top-actions{grid-area:actions;display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:0}
+  .free-pill{display:none}
+  .top-install-group{display:contents}
+  #install-button{grid-area:install}
+  #settings-button{grid-area:settings}
+  .top-install-tip{grid-area:tip;display:block;max-width:none;width:100%;padding:0 1px 1px;text-align:left;font-size:10px;line-height:1.45;color:#9eacb7}
+  .icon-button{width:38px;height:38px;flex:0 0 38px}
+  .launch-deck{grid-template-columns:minmax(0,1fr);gap:14px}
+  .welcome-row{min-height:0}
+}
+@media (max-width:420px){
+  .main-area{padding-left:12px;padding-right:12px;padding-bottom:190px}
+  .topbar{margin:0 -12px;padding:11px 12px;column-gap:8px}
+  .mobile-brand{font-size:17px;gap:7px}
+  .mobile-brand .brand-mark{width:33px;height:33px;flex-basis:33px}
+  .top-actions{gap:5px}
+  .icon-button{width:35px;height:35px;flex-basis:35px}
+  .top-install-tip{font-size:9px}
+  .welcome-row{padding:22px 18px}
+  .hero-art{display:none}
+}
