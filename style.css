@@ -507,3 +507,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   .welcome-row{padding:22px 18px}
   .hero-art{display:none}
 }
+
+@media (max-width:760px){
+  .top-actions{display:grid;grid-template-columns:38px 38px;grid-template-areas:"install settings" "tip tip";justify-items:end;align-items:center;row-gap:6px}
+  .top-install-tip{grid-area:tip;justify-self:stretch;width:min(245px,62vw);text-align:right}
+}
+@media (max-width:420px){
+  .top-actions{grid-template-columns:35px 35px;grid-template-areas:"install settings" "tip tip"}
+  .top-install-tip{width:min(220px,62vw);font-size:9px;text-align:right}
+}
