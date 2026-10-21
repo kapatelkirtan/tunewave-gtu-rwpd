@@ -12,6 +12,9 @@
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
   const audio = $('#audio-player');
+  // Prefer complete buffering for mobile audio playback; this is a browser hint,
+  // not a bypass for Android or provider background-playback restrictions.
+  if (audio) audio.preload = 'auto';
 
   // Ask browsers that expose the Audio Session API to treat this as music playback.
   // This is a best-effort hint only; the browser and operating system still decide
@@ -487,54 +490,8 @@
     if (openLink) openLink.hidden = true;
   }
 
-  // Publish a lock-screen media session for the official YouTube iframe and
-  // route OS play/pause/skip commands back to that iframe. This improves controls
-  // where Edge exposes embedded-player sessions, but cannot override YouTube/OS policy.
-  function sendYouTubePlayerCommand(command, args = []) {
-    const frame = $('#official-player-frame');
-    if (!frame || !frame.contentWindow || !frame.src) return;
-    try {
-      const targetOrigin = new URL(frame.src).origin;
-      frame.contentWindow.postMessage(
-        JSON.stringify({ event: 'command', func: command, args }),
-        targetOrigin
-      );
-    } catch (_) { /* The embedded player may not be ready or may reject commands. */ }
-  }
-
-  function setYouTubeMediaSession(videoId = '') {
-    if (!('mediaSession' in navigator)) return;
-    const session = navigator.mediaSession;
-    for (const action of ['play', 'pause', 'stop', 'previoustrack', 'nexttrack', 'seekbackward', 'seekforward', 'seekto']) {
-      try { session.setActionHandler(action, null); } catch (_) { /* Action support varies by browser. */ }
-    }
-    const handlers = {
-      play: () => sendYouTubePlayerCommand('playVideo'),
-      pause: () => sendYouTubePlayerCommand('pauseVideo'),
-      stop: () => sendYouTubePlayerCommand('stopVideo'),
-      previoustrack: () => sendYouTubePlayerCommand('previousVideo'),
-      nexttrack: () => sendYouTubePlayerCommand('nextVideo')
-    };
-    for (const [action, handler] of Object.entries(handlers)) {
-      try { session.setActionHandler(action, handler); } catch (_) { /* Action support varies by browser. */ }
-    }
-    try {
-      if (typeof MediaMetadata === 'function') {
-        const artwork = /^[A-Za-z0-9_-]{11}$/.test(videoId)
-          ? 'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg'
-          : new URL('icon-512.png', document.baseURI).href;
-        session.metadata = new MediaMetadata({
-          title: 'YouTube playback',
-          artist: 'TuneWave',
-          album: 'Official YouTube player',
-          artwork: [{ src: artwork, sizes: '512x512' }]
-        });
-      }
-      session.playbackState = 'playing';
-    } catch (_) { /* Metadata support varies by browser. */ }
-    // Let direct-audio playback reinstall its own handlers when it starts.
-    mediaSessionActionHandlersInstalled = false;
-  }
+  // Let the official cross-origin YouTube iframe/browser own its media session.
+  // A synthetic parent-page session can conflict with the real player state.
 
   function clearTuneWaveMediaSessionForEmbed() {
     if (!('mediaSession' in navigator)) return;
@@ -639,7 +596,6 @@
         frame.src = embedUrl;
         frame.hidden = false;
         stage.hidden = false;
-        setYouTubeMediaSession(safeVideo ? videoId : '');
         if (status) status.textContent = 'YouTube’s official player is loading. TuneWave no longer overrides its media-session controls. Background playback still depends on YouTube account eligibility, Edge, and Android; for free in-page background listening, try a playable direct-audio track from TuneWave’s catalogue.';
       }
     });
