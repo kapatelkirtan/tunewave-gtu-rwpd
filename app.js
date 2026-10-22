@@ -490,8 +490,76 @@
     if (openLink) openLink.hidden = true;
   }
 
-  // Let the official cross-origin YouTube iframe/browser own its media session.
-  // A synthetic parent-page session can conflict with the real player state.
+  // Let the official cross-origin YouTube iframe/browser own its media session
+  // in normal tabs; installed apps use a fallback where nested sessions may be hidden.
+
+  function isTuneWaveStandalone() {
+    try {
+      return window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches ||
+        window.navigator.standalone === true;
+    } catch (_) {
+      return window.navigator.standalone === true;
+    }
+  }
+
+  function sendYouTubePlayerCommand(command, args = []) {
+    const frame = $('#official-player-frame');
+    if (!frame || !frame.contentWindow || !frame.src) return;
+    try {
+      frame.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func: command, args }),
+        new URL(frame.src).origin
+      );
+    } catch (_) { /* The official cross-origin player may not be ready yet. */ }
+  }
+
+  // In an installed PWA, Edge may not expose the nested YouTube iframe's media
+  // session to Android. Publish a standalone-only fallback session that forwards
+  // lock-screen commands to YouTube's official iframe. Ordinary browser tabs keep
+  // letting the official embedded player own its media session.
+  function setStandaloneYouTubeMediaSession(videoId = '') {
+    if (!isTuneWaveStandalone() || !('mediaSession' in navigator)) return false;
+    const session = navigator.mediaSession;
+    for (const action of ['play', 'pause', 'stop', 'previoustrack', 'nexttrack', 'seekbackward', 'seekforward', 'seekto']) {
+      try { session.setActionHandler(action, null); } catch (_) { /* Browser support varies. */ }
+    }
+    const handlers = {
+      play: () => sendYouTubePlayerCommand('playVideo'),
+      pause: () => sendYouTubePlayerCommand('pauseVideo'),
+      stop: () => sendYouTubePlayerCommand('stopVideo'),
+      previoustrack: () => sendYouTubePlayerCommand('previousVideo'),
+      nexttrack: () => sendYouTubePlayerCommand('nextVideo'),
+      seekbackward: details => sendYouTubePlayerCommand('seekTo', [
+        Math.max(0, (Number(details?.seekTime) || 0) - (Number(details?.seekOffset) || 10)), true
+      ]),
+      seekforward: details => sendYouTubePlayerCommand('seekTo', [
+        Math.max(0, (Number(details?.seekTime) || 0) + (Number(details?.seekOffset) || 10)), true
+      ]),
+      seekto: details => {
+        if (Number.isFinite(details?.seekTime)) sendYouTubePlayerCommand('seekTo', [details.seekTime, true]);
+      }
+    };
+    for (const [action, handler] of Object.entries(handlers)) {
+      try { session.setActionHandler(action, handler); } catch (_) { /* Individual actions are optional. */ }
+    }
+    try {
+      if (typeof MediaMetadata === 'function') {
+        const artwork = /^[A-Za-z0-9_-]{11}$/.test(videoId)
+          ? 'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg'
+          : new URL('icon-512.png', document.baseURI).href;
+        session.metadata = new MediaMetadata({
+          title: 'YouTube playback',
+          artist: 'TuneWave',
+          album: 'Official YouTube player',
+          artwork: [{ src: artwork, sizes: '512x512' }]
+        });
+      }
+      session.playbackState = 'playing';
+    } catch (_) { /* Media metadata is optional. */ }
+    mediaSessionActionHandlersInstalled = false;
+    return true;
+  }
 
   function clearTuneWaveMediaSessionForEmbed() {
     if (!('mediaSession' in navigator)) return;
@@ -577,9 +645,11 @@
       state.isResolvingPlayback = false;
       audio.pause();
       updateCurrentTrackUI();
-      // Let the signed-in official YouTube player/browser own its session where supported.
-      // TuneWave's generic media session cannot keep an embedded video alive in the background.
-      clearTuneWaveMediaSessionForEmbed();
+      // Normal Edge tabs let the official iframe own its session. Installed standalone
+      // apps also publish a fallback parent session because nested iframe sessions may
+      // not reach Android's lock-screen controls. This cannot bypass YouTube restrictions.
+      const standaloneSession = setStandaloneYouTubeMediaSession(safeVideo ? videoId : '');
+      if (!standaloneSession) clearTuneWaveMediaSessionForEmbed();
       saveState(true);
       if (openLink) {
         openLink.href = officialUrl;
